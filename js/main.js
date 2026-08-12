@@ -628,6 +628,13 @@
     });
     window.addEventListener("drb-live-control", function () {
       if (!S.g()) return;
+      if (waitingBriefing && liveNextBriefingOpen()) {
+        waitingBriefing = false;
+        S.advance();
+        lastResult = null;
+        render();
+        return;
+      }
       var eventOpen = liveEventOpen();
       var actualOpen = liveActualOpen();
       var eventJustOpened = lastLiveEventOpen === false && eventOpen === true;

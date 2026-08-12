@@ -5,6 +5,8 @@ const TEAM_NAME = /^([1-6])조$/u;
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const MAX_JSON_BYTES = 96 * 1024;
 const MAX_SNAPSHOT_BYTES = 64 * 1024;
+const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
+const RATE_WINDOW_MS = 15 * 60 * 1000;
 const CONTROL_STAGES = new Set([
   "lobby",
   "briefing",
@@ -65,6 +67,7 @@ function assertSameOrigin(request) {
 }
 
 function corsHeaders(request) {
+  // Public mutations separately require an explicit same-origin browser Origin.
   const headers = new Headers({
     vary: "Origin",
     "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS",
