@@ -19,7 +19,28 @@
    role — 경쟁사 AI가 성격을 판단할 때 쓰는 태그
      capacity 생산 / quality 품질 / tech 기술 / demand 판로
      future 새 사업 / people 인력 / flex 유연성 / cash 현금
+
+   strategyGroup — 참가자가 선택지를 비교할 때 쓰는 전략군
+   unlockSubround — 해당 시대에서 몇 번째 국면부터 보이는지 (0부터 시작)
+     엔진용 전체 투자 목록은 그대로 유지하고, 참가자 화면만 단계적으로 공개합니다.
    ============================================================ */
+
+window.DRB_INVESTMENT_GROUPS = {
+  operate: { order: 1, name: "운영 경쟁력", cue: "원가 · 생산 · 품질" },
+  market: { order: 2, name: "시장 확장", cue: "고객 · 판로 · 글로벌" },
+  future: { order: 3, name: "미래 성장", cue: "기술 · 신사업 · 전환" },
+  resilience: { order: 4, name: "선택지 · 회복력", cue: "현금 · 사람 · 유연성" }
+};
+
+/* 국면마다 새로 열리는 판단 차원. 참가자 화면의 난이도 안내에 사용합니다. */
+window.DRB_DECISION_COMPLEXITY = {
+  r1s1: { level: 1, label: "핵심 선택", newDimensions: ["제품 방향", "생산 기반", "현금 여력"] },
+  r1s2: { level: 2, label: "기반 확장", newDimensions: ["품질 체계", "숙련 인력"] },
+  r2s1: { level: 3, label: "확장 선택", newDimensions: ["해외 지역", "진입 방식"] },
+  r2s2: { level: 4, label: "위기 대응", newDimensions: ["확장 조직 운영"] },
+  r3s1: { level: 5, label: "전략 포트폴리오", newDimensions: ["네 가지 전략군", "유연성"] },
+  r3s2: { level: 6, label: "최종 선택", newDimensions: ["환경 · 안전", "고객 공동개발"] }
+};
 
 window.DRB_INVESTMENTS = {
 
@@ -31,6 +52,8 @@ window.DRB_INVESTMENTS = {
     {
       id: "consumer",
       role: "demand",
+      strategyGroup: "market",
+      unlockSubround: 0,
       name: "고무신 · 운동화",
       desc: "지금 당장 팔리는 것을 만듭니다. 신을 것이 없는 시대라 만들면 팔립니다.",
       tradeoffs: [
@@ -44,6 +67,8 @@ window.DRB_INVESTMENTS = {
     {
       id: "belt",
       role: "future",
+      strategyGroup: "future",
+      unlockSubround: 0,
       newField: true,
       name: "전동벨트 · 컨베어벨트",
       desc: "공장 기계에 들어가는 벨트입니다. 지금 이 나라에는 쓸 공장이 거의 없습니다.",
@@ -58,6 +83,8 @@ window.DRB_INVESTMENTS = {
     {
       id: "facility",
       role: "capacity",
+      strategyGroup: "operate",
+      unlockSubround: 0,
       name: "생산설비",
       desc: "기계를 들여놓습니다. 지금 돈이 나가고, 물건은 다음 국면부터 더 나옵니다.",
       tradeoffs: [
@@ -70,6 +97,8 @@ window.DRB_INVESTMENTS = {
     {
       id: "quality",
       role: "quality",
+      strategyGroup: "operate",
+      unlockSubround: 1,
       name: "품질관리",
       desc: "불량을 줄입니다. 매출로 바로 오지 않지만, 없으면 반드시 사고가 납니다.",
       tradeoffs: [
@@ -82,6 +111,8 @@ window.DRB_INVESTMENTS = {
     {
       id: "people",
       role: "people",
+      strategyGroup: "resilience",
+      unlockSubround: 1,
       name: "숙련인력",
       desc: "사람을 뽑고 가르칩니다. 모든 투자의 실행 속도를 좌우합니다.",
       tradeoffs: [
@@ -94,6 +125,8 @@ window.DRB_INVESTMENTS = {
     {
       id: "cash",
       role: "cash",
+      strategyGroup: "resilience",
+      unlockSubround: 0,
       name: "현금 보유",
       desc: "쓰지 않고 남깁니다. 아무 일도 일어나지 않는 것이 이 선택의 목적입니다.",
       keepCash: true,
@@ -114,6 +147,8 @@ window.DRB_INVESTMENTS = {
     {
       id: "beltExpand",
       role: "demand",
+      strategyGroup: "market",
+      unlockSubround: 0,
       name: "벨트 사업 확대",
       desc: "공장이 늘어난 만큼 벨트도 팔립니다. 지금 가장 확실한 사업입니다.",
       tradeoffs: [
@@ -126,6 +161,8 @@ window.DRB_INVESTMENTS = {
     {
       id: "auto",
       role: "future",
+      strategyGroup: "future",
+      unlockSubround: 0,
       newField: true,
       name: "자동차용 고무부품",
       desc: "자동차가 만들어지기 시작했습니다. 지금 물량은 적고 요구는 까다롭습니다.",
@@ -141,6 +178,8 @@ window.DRB_INVESTMENTS = {
     {
       id: "globalPlant",
       role: "future",
+      strategyGroup: "market",
+      unlockSubround: 0,
       newField: true,
       name: "해외 진출",
       desc: "고객이 나가는 곳으로 따라갑니다. 어느 나라에 어떤 방식으로 갈지 함께 정합니다.",
@@ -156,6 +195,8 @@ window.DRB_INVESTMENTS = {
     {
       id: "rnd",
       role: "tech",
+      strategyGroup: "future",
+      unlockSubround: 0,
       name: "연구개발",
       desc: "시장이 요구하는 기술수준이 올라갔습니다. 못 따라가면 단가가 무너집니다.",
       tradeoffs: [
@@ -168,6 +209,8 @@ window.DRB_INVESTMENTS = {
     {
       id: "facility",
       role: "capacity",
+      strategyGroup: "operate",
+      unlockSubround: 0,
       name: "생산설비 증설",
       desc: "늘어난 주문을 감당할 생산능력을 만듭니다.",
       tradeoffs: [
@@ -180,6 +223,8 @@ window.DRB_INVESTMENTS = {
     {
       id: "quality",
       role: "quality",
+      strategyGroup: "operate",
+      unlockSubround: 0,
       name: "품질체계",
       desc: "고객이 요구하는 수준이 올라갔습니다. 못 맞추면 거래가 끊깁니다.",
       tradeoffs: [
@@ -192,6 +237,8 @@ window.DRB_INVESTMENTS = {
     {
       id: "people",
       role: "people",
+      strategyGroup: "resilience",
+      unlockSubround: 1,
       name: "인력·조직",
       desc: "커진 회사를 굴러가게 만듭니다. 눈에 띄지 않지만 없으면 흔들립니다.",
       tradeoffs: [
@@ -204,6 +251,8 @@ window.DRB_INVESTMENTS = {
     {
       id: "cash",
       role: "cash",
+      strategyGroup: "resilience",
+      unlockSubround: 0,
       name: "현금 확보",
       desc: "확장을 미루고 현금을 지킵니다. 금융이 흔들릴 때는 이것이 전략입니다.",
       keepCash: true,
@@ -224,6 +273,8 @@ window.DRB_INVESTMENTS = {
     {
       id: "smartFactory",
       role: "capacity",
+      strategyGroup: "operate",
+      unlockSubround: 0,
       name: "스마트팩토리",
       desc: "공장을 데이터로 돌립니다. 눈에 보이는 성과가 가장 확실한 선택입니다.",
       tradeoffs: [
@@ -237,6 +288,8 @@ window.DRB_INVESTMENTS = {
     {
       id: "mobility",
       role: "future",
+      strategyGroup: "future",
+      unlockSubround: 0,
       newField: true,
       name: "모빌리티 전환 대응",
       desc: "자동차가 전기로 바뀝니다. 언제, 얼마나 바뀔지는 전망이 엇갈립니다.",
@@ -251,6 +304,8 @@ window.DRB_INVESTMENTS = {
     {
       id: "newMaterial",
       role: "tech",
+      strategyGroup: "future",
+      unlockSubround: 0,
       newField: true,
       name: "신소재 · 친환경",
       desc: "규제와 고객 요구가 함께 움직입니다. 먼저 준비한 곳이 가져갑니다.",
@@ -264,6 +319,8 @@ window.DRB_INVESTMENTS = {
     {
       id: "globalReshape",
       role: "demand",
+      strategyGroup: "market",
+      unlockSubround: 0,
       newField: true,
       name: "글로벌 공급망 재편",
       desc: "거점을 다시 짭니다. 어디에 어떤 방식으로 갈지 다시 정합니다.",
@@ -278,6 +335,8 @@ window.DRB_INVESTMENTS = {
     {
       id: "aiRnd",
       role: "tech",
+      strategyGroup: "future",
+      unlockSubround: 0,
       name: "AI · 데이터 기반 R&D",
       desc: "개발하는 방식 자체를 바꿉니다. 성과는 가장 늦게, 가장 크게 옵니다.",
       tradeoffs: [
@@ -290,6 +349,8 @@ window.DRB_INVESTMENTS = {
     {
       id: "pilot",
       role: "flex",
+      strategyGroup: "resilience",
+      unlockSubround: 0,
       name: "신사업 Pilot (작게 여러 개)",
       desc: "크게 걸지 않고 작게 여러 개를 시험합니다. 대부분 실패하지만, 길이 열립니다.",
       tradeoffs: [
@@ -302,6 +363,8 @@ window.DRB_INVESTMENTS = {
     {
       id: "talent",
       role: "people",
+      strategyGroup: "resilience",
+      unlockSubround: 0,
       name: "핵심 인재 확보",
       desc: "기술을 아는 사람을 붙잡고 새로 데려옵니다. 지금은 사람이 가장 비쌉니다.",
       tradeoffs: [
@@ -314,6 +377,8 @@ window.DRB_INVESTMENTS = {
     {
       id: "esg",
       role: "quality",
+      strategyGroup: "operate",
+      unlockSubround: 1,
       name: "환경 · 안전 대응",
       desc: "규제와 고객 심사가 함께 강해집니다. 못 맞추면 입찰 자격을 잃습니다.",
       tradeoffs: [
@@ -326,6 +391,8 @@ window.DRB_INVESTMENTS = {
     {
       id: "customerLock",
       role: "demand",
+      strategyGroup: "market",
+      unlockSubround: 1,
       name: "고객 공동개발",
       desc: "고객의 다음 제품에 우리 부품을 넣습니다. 한번 들어가면 오래 갑니다.",
       tradeoffs: [
@@ -338,6 +405,8 @@ window.DRB_INVESTMENTS = {
     {
       id: "cash",
       role: "cash",
+      strategyGroup: "resilience",
+      unlockSubround: 0,
       name: "현금 확보",
       desc: "쓰지 않고 남깁니다. 무엇이 올지 모를 때 가장 강한 자산입니다.",
       keepCash: true,

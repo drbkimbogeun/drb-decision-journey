@@ -21,24 +21,77 @@
   var lastResult = null;
   var timerId = null;
   var stopLapse = null;
+  var waitingEvent = false;
+  var waitingActual = false;
+  var lapseTurn = -1;
+  var lastLiveEventOpen = null;
+  var lastLiveActualOpen = null;
+  var liveParams = new URLSearchParams(location.search);
+  var liveUrl = liveParams.has("session");
+  var liveJoinPending = false;
+  var liveJoinError = "";
+  var assignedLiveTeam = null;
+  var assignedLiveTeamCount = null;
 
   /* ============================================================
      시작 화면
      ============================================================ */
+  function liveControl() {
+    return window.DRBLive && window.DRBLive.currentControl ? window.DRBLive.currentControl() : null;
+  }
+
+  function liveEventOpen() {
+    var control = liveControl();
+    if (!control) return true;
+    var turn = S.turnIndex();
+    return control.currentTurn > turn ||
+      (control.currentTurn === turn && ["event", "actual", "debrief", "map", "complete"].indexOf(control.stage) >= 0);
+  }
+
+  function liveActualOpen() {
+    var control = liveControl();
+    if (!control) return true;
+    var revealed = control.revealedActual;
+    if (!/^r[1-3]$/.test(revealed || "")) return false;
+    return Number(revealed.slice(1)) >= S.round().no;
+  }
+
+  function publishLiveState() {
+    if (!window.DRBLive || !window.DRBLive.publishHook || !S.g()) return Promise.resolve();
+    if (!liveUrl) return Promise.resolve();
+    var credentials = window.DRBLive.credentials ? window.DRBLive.credentials() : null;
+    var teamName = credentials && credentials.role === "team" ? credentials.teamName : assignedLiveTeam;
+    if (!teamName || teamName !== assignedLiveTeam || !S.g().teams || !S.g().teams[teamName]) return Promise.resolve();
+    return window.DRBLive.publishHook(S.g(), teamName || S.g().activeTeam).catch(function () {
+      UI.toast("진행자 화면 동기화를 재시도합니다. 게임 기록은 이 기기에 안전하게 저장됐습니다.");
+    });
+  }
+
   var setupTeamCount = CFG.teamCountDefault;
   var setupTeamName  = CFG.teamNames[0];
+
+  function setLiveJoinUi() {
+    if (!liveUrl) return;
+    el("btnStart").disabled = liveJoinPending || (!assignedLiveTeam && !liveJoinError);
+    el("btnContinue").disabled = liveJoinPending || !assignedLiveTeam;
+    el("btnStart").textContent = liveJoinPending ? "세션 연결 중…" : (liveJoinError ? "연결 다시 시도" : "게임 시작");
+    el("teamCountPicker").setAttribute("aria-disabled", "true");
+    el("teamPicker").setAttribute("aria-disabled", "true");
+  }
 
   function initIntro() {
     el("introTheme").textContent = CFG.eduTheme;
     document.title = CFG.gameTitle;
 
-    /* 조 수 선택 */
+    var lockedCount = liveUrl && assignedLiveTeamCount ? assignedLiveTeamCount : setupTeamCount;
+    var lockedTeam = liveUrl && assignedLiveTeam ? assignedLiveTeam : setupTeamName;
     var cp = el("teamCountPicker");
     cp.innerHTML = "";
-    CFG.teamCountOptions.forEach(function (n) {
+    (liveUrl ? [lockedCount] : CFG.teamCountOptions).forEach(function (n) {
       var b = document.createElement("button");
-      b.className = "team-picker__btn" + (n === setupTeamCount ? " is-selected" : "");
+      b.className = "team-picker__btn" + (n === lockedCount ? " is-selected" : "");
       b.textContent = n + "조";
+      b.disabled = liveUrl;
       b.onclick = function () {
         setupTeamCount = n;
         if (CFG.teamNames.indexOf(setupTeamName) >= n) setupTeamName = CFG.teamNames[0];
@@ -47,36 +100,56 @@
       cp.appendChild(b);
     });
 
-    /* 우리 조 선택 */
     var tp = el("teamPicker");
     tp.innerHTML = "";
-    CFG.teamNames.slice(0, setupTeamCount).forEach(function (name) {
+    (liveUrl ? [lockedTeam || liveParams.get("team") || "배정 확인 중"] : CFG.teamNames.slice(0, setupTeamCount)).forEach(function (name) {
       var b = document.createElement("button");
-      b.className = "team-picker__btn" + (name === setupTeamName ? " is-selected" : "");
+      b.className = "team-picker__btn" + (name === lockedTeam ? " is-selected" : "");
       b.textContent = name;
+      b.disabled = liveUrl;
       b.onclick = function () { setupTeamName = name; initIntro(); };
       tp.appendChild(b);
     });
 
-    /* 이어서 하기 */
-    if (S.hasSave()) {
+    if (liveUrl) {
+      el("btnContinue").classList.add("hidden");
+      el("introHint").textContent = liveJoinError || (assignedLiveTeam
+        ? assignedLiveTeam + " 전용 새 게임으로 시작합니다. 이전 연습 기록은 이 세션에 전송하지 않습니다."
+        : "진행자 세션에 연결 중입니다.");
+    } else if (S.hasSave()) {
       el("btnContinue").classList.remove("hidden");
-      el("introHint").textContent = "이전에 하던 게임이 저장되어 있습니다. [게임 시작]을 누르면 지워집니다.";
+      el("introHint").textContent = "이전에 하던 게임이 저장되어 있습니다. [게임 시작]을 누르면 초기화됩니다.";
     } else {
       el("btnContinue").classList.add("hidden");
       el("introHint").textContent = "";
     }
+    setLiveJoinUi();
+  }
+
+  function forceAssignedTeam() {
+    if (!liveUrl) return true;
+    if (!assignedLiveTeam || !S.g() || !S.g().teams || !S.g().teams[assignedLiveTeam]) return false;
+    S.switchTeam(assignedLiveTeam);
+    return true;
   }
 
   function startNewGame() {
-    if (S.hasSave() && !confirm("저장된 게임이 지워집니다. 새로 시작할까요?")) return;
+    if (liveUrl && !assignedLiveTeam) {
+      if (!liveJoinPending) connectLiveSession();
+      return;
+    }
+    if (!liveUrl && S.hasSave() && !confirm("저장된 게임이 초기화됩니다. 새로 시작할까요?")) return;
     S.clearAll();
-    S.newGame(setupTeamCount);
-    S.switchTeam(setupTeamName);
+    S.newGame(liveUrl ? assignedLiveTeamCount : setupTeamCount);
+    S.switchTeam(liveUrl ? assignedLiveTeam : setupTeamName);
     enterGame();
   }
 
   function continueGame() {
+    if (liveUrl) {
+      UI.toast("라이브 세션에서는 이전 기록을 이어갈 수 없습니다. 새 게임으로 시작해주세요.");
+      return;
+    }
     if (!S.load()) {
       UI.toast("저장된 게임을 찾지 못했습니다.");
       return;
@@ -97,6 +170,7 @@
                  "actual", "ending", "whatif", "final"];
 
   function showScreen(name) {
+    el("app").setAttribute("data-screen", name);
     SCREENS.forEach(function (s) {
       var node = el("sc-" + s);
       if (node) node.classList.toggle("is-active", s === name);
@@ -104,6 +178,12 @@
     el("stage").classList.toggle("stage--full",
       name === "final" || name === "whatif" || name === "ending" || name === "timelapse");
     el("stage").querySelector(".stage__main").scrollTop = 0;
+    var current = el("sc-" + name);
+    var heading = current && current.querySelector("h2");
+    if (heading) {
+      heading.setAttribute("tabindex", "-1");
+      window.setTimeout(function () { heading.focus({ preventScroll: true }); }, 0);
+    }
   }
 
   function render() {
@@ -137,6 +217,15 @@
         break;
 
       case "result":
+        if (liveControl() && !liveEventOpen()) {
+          waitingEvent = true;
+          lastLiveEventOpen = false;
+          showScreen("timelapse");
+          UI.renderLiveWait("event");
+          break;
+        }
+        waitingEvent = false;
+        lastLiveEventOpen = liveControl() ? true : null;
         if (!lastResult) {
           /* 새로고침 등으로 결과가 사라졌으면 기록에서 복원 */
           var h = S.lastHistory();
@@ -148,12 +237,29 @@
 
       case "timelapse":
         showScreen("timelapse");
-        runTimelapse();
+        if (!liveEventOpen()) {
+          waitingEvent = true;
+          lastLiveEventOpen = false;
+          UI.renderLiveWait("event");
+        } else {
+          waitingEvent = false;
+          lastLiveEventOpen = liveControl() ? true : null;
+          runTimelapse();
+        }
         break;
 
       case "actual":
-        UI.renderActual();
-        showScreen("actual");
+        if (!liveActualOpen()) {
+          waitingActual = true;
+          lastLiveActualOpen = false;
+          showScreen("timelapse");
+          UI.renderLiveWait("actual");
+        } else {
+          waitingActual = false;
+          lastLiveActualOpen = liveControl() ? true : null;
+          UI.renderActual();
+          showScreen("actual");
+        }
         break;
 
       case "ending":
@@ -276,6 +382,7 @@
 
     /* 숫자 화면으로 바로 가지 않고, 시간이 흐르는 것을 먼저 보여줍니다 */
     S.setPhase("timelapse");
+    publishLiveState();
     render();
   }
 
@@ -285,14 +392,23 @@
   function runTimelapse() {
     var hist = S.lastHistory();
     if (!hist) { S.setPhase("result"); render(); return; }
+    var turn = S.turnIndex();
+    if (lapseTurn === turn && stopLapse) return;
+    if (stopLapse) { stopLapse(); stopLapse = null; }
+    lapseTurn = turn;
+    el("btnSkipLapse").classList.remove("hidden");
     stopLapse = UI.renderTimelapse(hist, function () {
+      if (lapseTurn !== turn || S.phase() !== "timelapse") return;
+      stopLapse = null;
       S.setPhase("result");
       render();
     });
   }
 
   function skipLapse() {
+    if (liveControl() && !liveEventOpen()) return;
     if (stopLapse) { stopLapse(); stopLapse = null; }
+    lapseTurn = -1;
     S.setPhase("result");
     render();
   }
@@ -301,7 +417,13 @@
      결과 → 다음
      ============================================================ */
   function afterResult() {
+    if (liveControl() && !liveEventOpen()) return;
     if (S.isLastSubround()) {
+      if (liveControl() && !liveActualOpen()) {
+        S.setPhase("actual");
+        render();
+        return;
+      }
       S.setPhase("actual");
     } else {
       S.advance();          // 다음 소라운드
@@ -310,7 +432,31 @@
     render();
   }
 
+  function updateEraCheckpoint() {
+    var t = S.team();
+    var r = S.round();
+    var reflection = {
+      kept: el("acKept").value.trim(),
+      tradeoff: el("acTradeoff").value.trim(),
+      lesson: el("acLesson").value.trim()
+    };
+    t.reflections = t.reflections || {};
+    t.reflections[r.id] = reflection;
+    S.save();
+    var ready = !!(reflection.kept && reflection.tradeoff && reflection.lesson);
+    el("acCheckpoint").classList.toggle("is-complete", ready);
+    el("acCheckpointStatus").textContent = ready
+      ? "교육 체크포인트 완료 · 다음 시대를 열 수 있습니다."
+      : "세 문장을 모두 작성하면 다음 시대가 열립니다.";
+    el("btnActualGo").disabled = !ready;
+  }
   function afterActual() {
+    if (liveControl() && !liveActualOpen()) return;
+    var reflection = S.team().reflections && S.team().reflections[S.round().id];
+    if (!reflection || !reflection.kept || !reflection.tradeoff || !reflection.lesson) {
+      UI.toast("세 문장을 모두 작성하면 다음 시대로 이동할 수 있습니다.");
+      return;
+    }
     /* 마지막 시대(2026)가 끝났다면 엔딩 연출로 */
     if (S.isLastRound()) {
       S.setPhase("ending");
@@ -385,6 +531,11 @@
      상단바 동작
      ============================================================ */
   function switchTeam(name) {
+    if (liveUrl && assignedLiveTeam && name !== assignedLiveTeam) {
+      UI.toast("이 세션에서는 배정된 " + assignedLiveTeam + "만 사용할 수 있습니다.");
+      el("tbTeam").value = assignedLiveTeam;
+      return;
+    }
     S.switchTeam(name);
     alloc = {};
     pickedPolicy = null;
@@ -425,6 +576,9 @@
     el("btnPolicyGo").onclick = commit;
     el("btnResultGo").onclick = afterResult;
     el("btnActualGo").onclick = afterActual;
+    ["acKept", "acTradeoff", "acLesson"].forEach(function (id) {
+      el(id).addEventListener("input", updateEraCheckpoint);
+    });
     el("btnWhatifGo").onclick = afterWhatIf;
     el("btnSkipLapse").onclick = skipLapse;
     ["btnEnd1", "btnEnd2", "btnEnd3", "btnEnd4"].forEach(function (id) {
@@ -435,6 +589,7 @@
     el("btnCopyCode").onclick = copyCode;
 
     el("tbTeam").onchange = function () { switchTeam(this.value); };
+    if (liveUrl) el("tbTeam").disabled = true;
     el("btnAdmin").onclick = toggleAdmin;
     el("btnReset").onclick = resetGame;
     el("btnDetail").onclick = UI.showDetail;
@@ -444,11 +599,51 @@
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape") UI.closeModal();
     });
+    window.addEventListener("drb-live-control", function () {
+      if (!S.g()) return;
+      var eventOpen = liveEventOpen();
+      var actualOpen = liveActualOpen();
+      var eventJustOpened = lastLiveEventOpen === false && eventOpen === true;
+      var actualJustOpened = lastLiveActualOpen === false && actualOpen === true;
+      lastLiveEventOpen = eventOpen;
+      lastLiveActualOpen = actualOpen;
+      if ((waitingEvent && (eventJustOpened || eventOpen)) ||
+          (waitingActual && (actualJustOpened || actualOpen))) render();
+    });
   }
 
   /* ============================================================
      시작
      ============================================================ */
+  function connectLiveSession() {
+    if (!liveUrl || liveJoinPending) return;
+    if (!window.DRBLive || !window.DRBLive.joinFromUrl) {
+      liveJoinPending = false;
+      liveJoinError = "라이브 모듈을 불러오지 못했습니다. 게임 시작을 눌러 다시 시도해주세요.";
+      initIntro();
+      return;
+    }
+    liveJoinPending = true;
+    liveJoinError = "";
+    initIntro();
+    window.DRBLive.joinFromUrl().then(function (joined) {
+      if (!joined || !joined.teamName) throw new Error("배정 조 정보를 확인하지 못했습니다.");
+      assignedLiveTeam = joined.teamName;
+      assignedLiveTeamCount = Number(joined.teamCount || setupTeamCount);
+      setupTeamCount = assignedLiveTeamCount;
+      setupTeamName = assignedLiveTeam;
+      liveJoinPending = false;
+      liveJoinError = "";
+      if (S.g() && S.g().teams && S.g().teams[assignedLiveTeam]) S.switchTeam(assignedLiveTeam);
+      initIntro();
+      UI.toast("교육 세션 " + liveParams.get("session") + " · " + assignedLiveTeam + " 연결 완료");
+    }).catch(function (error) {
+      liveJoinPending = false;
+      liveJoinError = (error.message || "교육 세션에 연결하지 못했습니다.") + " 게임 시작을 눌러 다시 시도해주세요.";
+      initIntro();
+      UI.toast(liveJoinError);
+    });
+  }
   function boot() {
     /* 데이터 파일이 하나라도 빠지면 바로 알려준다 (조용히 실패하지 않기) */
     var missing = [];
@@ -470,6 +665,8 @@
 
     bind();
     initIntro();
+
+    if (liveUrl) connectLiveSession();
   }
 
   if (document.readyState === "loading") {

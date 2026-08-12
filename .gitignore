@@ -15,3 +15,6 @@ desktop.ini
 .vscode/
 *.swp
 *~
+
+# Cloudflare 로컬 상태
+.wrangler/

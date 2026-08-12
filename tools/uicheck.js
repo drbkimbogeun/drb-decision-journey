@@ -212,7 +212,13 @@ while (S.phase() !== "final" && guard++ < 120) {
   else if (p === "result") {
     if (S.isLastSubround()) S.setPhase("actual"); else S.advance();
   }
-  else if (p === "actual")    { if (S.isLastRound()) S.setPhase("ending"); else S.advance(); }
+  else if (p === "actual")    {
+    const t = S.team(), r = S.round();
+    t.reflections = t.reflections || {};
+    t.reflections[r.id] = { kept: "검증", tradeoff: "검증", lesson: "검증" };
+    S.save();
+    if (S.isLastRound()) S.setPhase("ending"); else S.advance();
+  }
   else if (p === "ending")    { S.setPhase("whatif"); }
   else if (p === "whatif")    { S.advance(); }
   else { bad("모르는 단계: " + p); break; }

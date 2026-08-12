@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="css/simulation.css">
 <link rel="stylesheet" href="css/alert.css">
 <link rel="stylesheet" href="css/screens.css">
+<link rel="stylesheet" href="css/product.css">
 </head>
 <body>
 
@@ -36,8 +37,8 @@
 
     <div class="intro__rules">
       <div class="intro__rule">
-        <b>1945 → 2026 · 10 번의 결정</b>
-        <span>다섯 시대를 지납니다. 뒤로 갈수록 시간은 짧아지고 정보는 많아집니다.</span>
+        <b>1945 → 2026 · 3개 시대, 6번의 결정</b>
+        <span>세 시대를 지납니다. 뒤로 갈수록 시간은 짧아지고 정보는 많아집니다.</span>
       </div>
       <div class="intro__rule">
         <b>토론 → 토큰 → 입력</b>
@@ -100,6 +101,7 @@
       </div>
     </div>
 
+    <div class="topbar__phase" id="tbPhase" aria-live="polite">시대 시작 · 1/6</div>
     <div class="topbar__right">
       <span class="timer hidden" id="tbTimer">⏱ <span id="tbTimerText">3:00</span></span>
       <select class="input" id="tbTeam" style="width:auto;padding:6px 10px" title="조 전환"></select>
@@ -157,7 +159,7 @@
           </div>
 
           <div id="siEvent" class="result-event hidden" style="margin-top:var(--sp-5)">
-            <div class="result-event__label">돌발상황</div>
+            <div class="result-event__label" id="siEventLabel">돌발상황 · 진행자가 공개한 뒤 확인</div>
             <div class="result-event__title" id="siEventTitle"></div>
             <div class="result-event__body" id="siEventBody"></div>
           </div>
@@ -186,6 +188,8 @@
             <h2 class="screen-head__title">이번 국면에 무엇을 할 것인가</h2>
             <p class="screen-head__sub" id="inSub"></p>
           </div>
+
+          <div class="decision-scope" id="inDecisionScope" aria-live="polite"></div>
 
           <div class="budget">
             <div>
@@ -249,6 +253,7 @@
           <div class="screen-head">
             <div class="screen-head__eyebrow">결과</div>
             <h2 class="screen-head__title" id="reHeadline"></h2>
+            <p class="screen-head__sub hidden" id="reSimulationNotice">2026년 결과가 아니라, 선택의 방향을 보여주는 교육용 시뮬레이션 신호입니다.</p>
           </div>
 
           <div id="reEvents"></div>
@@ -319,12 +324,23 @@
                 <div id="acOurs"></div>
               </div>
               <div class="compare-col compare-col--drb">
-                <div class="compare-col__label">실제 DRB의 선택</div>
+                <div class="compare-col__label">DRB 기록으로 본 실제 선택</div>
                 <div id="acDrb"></div>
               </div>
             </div>
 
             <div class="actual__grid" id="acDetail"></div>
+
+            <div class="learning-checkpoint" id="acCheckpoint">
+              <div class="learning-checkpoint__eyebrow">ERA CLEAR · 교육 체크포인트</div>
+              <h3 class="learning-checkpoint__title">결과를 넘기기 전에, 판단을 한 문장으로 남기세요</h3>
+              <div class="learning-checkpoint__grid">
+                <label><span>우리가 끝까지 지킨 것</span><input class="input" id="acKept" maxlength="80" placeholder="예: 위기에도 현금을 남겼다"></label>
+                <label><span>우리가 감수한 대가</span><input class="input" id="acTradeoff" maxlength="80" placeholder="예: 성장 속도를 포기했다"></label>
+                <label><span>DRB 기록에서 새로 본 관점</span><input class="input" id="acLesson" maxlength="80" placeholder="예: 시장이 없을 때 기술을 먼저 준비했다"></label>
+              </div>
+              <p class="learning-checkpoint__status" id="acCheckpointStatus">세 문장을 모두 작성하면 다음 시대가 열립니다.</p>
+            </div>
 
             <div class="card" style="margin-top:var(--sp-5)">
               <div class="card__head">
@@ -339,7 +355,7 @@
             <div class="screen-actions">
               <button class="btn btn--primary btn--lg" id="btnActualGo">다음 라운드로</button>
               <span class="spacer"></span>
-              <span class="hint">금색 테두리만 실제 기록입니다. 나머지는 전부 시뮬레이션입니다.</span>
+              <span class="hint">금색 카드의 텍스트·연표는 실제 기록입니다. AI 시대 연출 이미지는 실제 사진이 아닙니다.</span>
             </div>
           </div>
         </section>
@@ -558,9 +574,9 @@
 <!-- 시간 진행 중에 뜨는 뉴스 속보 -->
 <div class="newsflash" id="newsflash"></div>
 
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<div class="modal" id="modal">
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
   <div class="modal__panel">
     <div class="row row--between" style="margin-bottom:var(--sp-4)">
       <h3 class="card__title" id="modalTitle">상세</h3>
@@ -585,6 +601,7 @@
 
 <!-- 게임 로직 -->
 <script src="js/engine.js"></script>
+<script src="js/live.js"></script>
 <script src="js/state.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/main.js"></script>

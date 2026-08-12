@@ -44,8 +44,9 @@ window.DRB_ACTUAL = {
       "1970년 일본 미쯔보시벨트와 기술제휴를 맺어 선진 기술 장벽에 도전했고,\n" +
       "1976년 기업을 공개, 1978년 금사동공장을 준공했습니다.",
 
-    image: "assets/img/actual_r1.png",
-    imageAlt: "1940~50년대 창업 초기 공장",
+    image: "assets/img/r2s1.webp",
+    imageAlt: "AI로 연출한 1970년대 산업용 벨트 생산과 수출 현장",
+    imageKind: "ai-era-illustration",
     note:
       "고무신을 만들던 회사가 왜 벨트로 갔는지 물어보세요. " +
       "당시 벨트는 살 사람이 거의 없었고, 고무신은 내일 당장 팔렸습니다.",
@@ -105,8 +106,9 @@ window.DRB_ACTUAL = {
       "2001년 중국 청도공장, 2004년 슬로바키아공장을 세우며 글로벌 생산체제로 넘어갔습니다.\n" +
       "2002년에는 CI를 'DRB'로 선포했습니다.",
 
-    image: "assets/img/actual_r2.png",
-    imageAlt: "1980~90년대 자동차부품 공장과 연구소",
+    image: "assets/img/r3s1.webp",
+    imageAlt: "AI로 연출한 1990년대 생산 자동화와 정밀부품 개발 현장",
+    imageKind: "ai-era-illustration",
     note:
       "1967년 자동차부품 공동개발을 시작할 때, 국내 자동차 시장은 거의 없었습니다. " +
       "왜 그때 들어갔는지 물어보세요.",
@@ -165,8 +167,9 @@ window.DRB_ACTUAL = {
       "그러나 이 시대의 결과는 아직 만들어지지 않았습니다.\n" +
       "지금 내리고 있는 결정들의 답은 앞으로 나옵니다.",
 
-    image: "assets/img/actual_r3.png",
-    imageAlt: "2010년대 이후 글로벌 생산거점",
+    image: "assets/img/r4s1.webp",
+    imageAlt: "AI로 연출한 2000년대 해외 생산거점 건설 현장",
+    imageKind: "ai-era-illustration",
     note:
       "여기서 게임이 끝납니다. 앞의 두 시대는 결과를 알고 봤지만, " +
       "이 시대는 여러분이 앞으로 만들어야 합니다. 대표이사 세션으로 이어주세요.",

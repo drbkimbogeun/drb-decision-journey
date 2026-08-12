@@ -22,3 +22,16 @@ wrangler.jsonc
 
 # 개발 중 임시 설치물
 node_modules/
+
+# Worker 서버 소스는 정적 웹 자산으로 직접 노출하지 않음
+worker.js
+
+# Codex/agent 작업 메타
+.codex/
+.agents/.wrangler/
+
+# 저장소·로컬 빌드 산출물
+.git/
+.wrangler/
+_deploy/
+.agents/

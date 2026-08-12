@@ -67,6 +67,9 @@ window.DRBUI = (function () {
     el("tbRound").textContent = "ERA " + r.no;
     el("tbYear").textContent  = e.yearLabel;
     el("tbEra").textContent   = e.name;
+    var phaseNames = { roundOpen: "시대 브리핑", situation: "상황 판단", invest: "자원 배분", policy: "경영정책", timelapse: "시간 진행", result: "경영 결과", actual: "DRB 실제 기록", ending: "2026 전환", whatif: "다른 선택", final: "최종 결과" };
+    var phase = S.phase();
+    if (el("tbPhase")) el("tbPhase").textContent = (phaseNames[phase] || "진행 중") + " · " + (S.turnIndex() + 1) + "/" + S.totalTurns();
 
     renderTimeline();
 
@@ -510,6 +513,8 @@ window.DRBUI = (function () {
       var img = new Image();
       img.alt = sr.situation.imageAlt || "";
       img.decoding = "async";
+      img.width = 1600;
+      img.height = 900;
       img.onload = function () { fig.classList.remove("is-loading"); };
       img.onerror = function () {
         fig.classList.remove("is-loading");
@@ -524,9 +529,12 @@ window.DRBUI = (function () {
       fig.appendChild(img);
     }
 
-    /* 돌발상황 예고 */
+    /* 라이브 교육에서는 진행자가 결정을 잠근 뒤 사건을 공개합니다. 로컬 모드는 기존처럼 즉시 표시합니다. */
     var evBox = el("siEvent");
-    if (sr.event && window.DRB_EVENTS[sr.event]) {
+    var liveControl = window.DRBLive && window.DRBLive.currentControl ? window.DRBLive.currentControl() : null;
+    var eventIsRevealed = !liveControl || liveControl.currentTurn > S.turnIndex() ||
+      (liveControl.currentTurn === S.turnIndex() && ["event", "actual", "debrief", "map"].indexOf(liveControl.stage) >= 0);
+    if (sr.event && window.DRB_EVENTS[sr.event] && eventIsRevealed) {
       var ev = window.DRB_EVENTS[sr.event];
       el("siEventTitle").textContent = ev.title;
       el("siEventBody").textContent = ev.body;
@@ -558,12 +566,94 @@ window.DRBUI = (function () {
   /* ============================================================
      투자 배분 화면
      ============================================================ */
+  function renderDecisionScope(context) {
+    var box = el("inDecisionScope");
+    if (!box) return;
+    clearNode(box);
+    if (!context) {
+      box.classList.add("hidden");
+      return;
+    }
+    box.classList.remove("hidden");
+
+    var summary = document.createElement("div");
+    summary.className = "decision-scope__summary";
+    var label = document.createElement("span");
+    label.className = "decision-scope__label";
+    label.textContent = context.label;
+    var count = document.createElement("strong");
+    count.className = "decision-scope__count";
+    count.textContent = context.visibleCount + "개 선택지 · " + context.groups.length + "개 전략군";
+    if (context.visibleCount < context.totalCount) {
+      var pending = document.createElement("span");
+      pending.className = "decision-scope__pending";
+      pending.textContent = "전체 " + context.totalCount + "개 중 단계 공개";
+      summary.appendChild(label);
+      summary.appendChild(count);
+      summary.appendChild(pending);
+    } else {
+      summary.appendChild(label);
+      summary.appendChild(count);
+    }
+
+    var meter = document.createElement("div");
+    meter.className = "complexity-meter";
+    meter.setAttribute("aria-label", "의사결정 복잡도 " + context.level + " / " + context.totalLevels);
+    var meterLabel = document.createElement("span");
+    meterLabel.className = "complexity-meter__label";
+    meterLabel.textContent = "판단 복잡도";
+    meter.appendChild(meterLabel);
+    for (var i = 1; i <= context.totalLevels; i++) {
+      var cell = document.createElement("span");
+      cell.className = "complexity-meter__cell" + (i <= context.level ? " is-on" : "");
+      meter.appendChild(cell);
+    }
+    var meterValue = document.createElement("span");
+    meterValue.className = "complexity-meter__value num";
+    meterValue.textContent = context.level + "/" + context.totalLevels;
+    meter.appendChild(meterValue);
+
+    var dimensions = document.createElement("div");
+    dimensions.className = "decision-scope__dimensions";
+    var dimensionLabel = document.createElement("span");
+    dimensionLabel.className = "decision-scope__label";
+    dimensionLabel.textContent = "이번에 새로 열린 판단";
+    dimensions.appendChild(dimensionLabel);
+    var dimensionChips = document.createElement("div");
+    dimensionChips.className = "decision-scope__chips";
+    context.newDimensions.forEach(function (name) {
+      var chip = document.createElement("span");
+      chip.className = "decision-scope__chip";
+      chip.textContent = name;
+      dimensionChips.appendChild(chip);
+    });
+    dimensions.appendChild(dimensionChips);
+
+    var groupLegend = document.createElement("div");
+    groupLegend.className = "decision-scope__groups";
+    context.groups.forEach(function (group) {
+      var chip = document.createElement("span");
+      chip.className = "strategy-chip";
+      chip.setAttribute("data-strategy", group.id);
+      chip.textContent = group.name;
+      groupLegend.appendChild(chip);
+    });
+
+    box.appendChild(summary);
+    box.appendChild(meter);
+    box.appendChild(dimensions);
+    box.appendChild(groupLegend);
+  }
+
   function renderInvest(alloc, onChange, choices, onChoice) {
-    var items = S.investments();
+    var items = S.availableInvestments ? S.availableInvestments() : S.investments();
+    var decisionContext = S.investmentDecisionContext ? S.investmentDecisionContext() : null;
     var budget = S.budget();
     var list = el("inList");
     choices = choices || {};
     clearNode(list);
+    list.className = "alloc-list";
+    renderDecisionScope(decisionContext);
 
     var planned = S.subround().budget;
     var sub = S.era().yearLabel + " · " + S.subround().title +
@@ -579,11 +669,12 @@ window.DRBUI = (function () {
       ? "현금이 바닥났습니다. 지금은 <b>버티는 것</b>도 전략입니다."
       : "남긴 예산은 자동으로 <b>현금</b>으로 넘어갑니다. 아끼는 것도 하나의 전략입니다.";
 
-    items.forEach(function (item) {
+    function buildAllocationCard(item) {
       var amt = alloc[item.id] || 0;
 
       var card = document.createElement("div");
       card.className = "alloc" + (amt > 0 ? " is-invested" : "");
+      card.setAttribute("data-strategy", item.strategyGroup || "resilience");
 
       var name = document.createElement("div");
       name.className = "alloc__name";
@@ -596,16 +687,19 @@ window.DRBUI = (function () {
       minus.className = "btn btn--icon";
       minus.textContent = "−";
       minus.setAttribute("aria-label", item.name + " 줄이기");
+      minus.disabled = amt <= 0;
       minus.onclick = function () { onChange(item.id, -CFG.tokenUnit); };
 
       var val = document.createElement("span");
       val.className = "alloc__amount num";
       val.textContent = amt;
+      val.setAttribute("aria-label", item.name + " " + amt + ", 토큰 " + (amt / CFG.tokenUnit) + "개");
 
       var plus = document.createElement("button");
       plus.className = "btn btn--icon";
       plus.textContent = "+";
       plus.setAttribute("aria-label", item.name + " 늘리기");
+      plus.disabled = allocSum(alloc) + CFG.tokenUnit > budget;
       plus.onclick = function () { onChange(item.id, CFG.tokenUnit); };
 
       stepper.appendChild(minus);
@@ -635,8 +729,50 @@ window.DRBUI = (function () {
         card.appendChild(buildDimensions(item, choices[item.id] || {}, onChoice));
       }
 
-      list.appendChild(card);
-    });
+      return card;
+    }
+
+    if (decisionContext && decisionContext.grouped) {
+      list.classList.add("alloc-list--grouped");
+      decisionContext.groups.forEach(function (group) {
+        var groupItems = items.filter(function (item) {
+          return (item.strategyGroup || "resilience") === group.id;
+        });
+        if (!groupItems.length) return;
+
+        var section = document.createElement("section");
+        section.className = "strategy-group";
+        section.setAttribute("data-strategy", group.id);
+
+        var head = document.createElement("div");
+        head.className = "strategy-group__head";
+        var title = document.createElement("h3");
+        title.className = "strategy-group__title";
+        title.textContent = group.name;
+        var cue = document.createElement("span");
+        cue.className = "strategy-group__cue";
+        cue.textContent = group.cue;
+        var itemCount = document.createElement("span");
+        itemCount.className = "strategy-group__count num";
+        itemCount.textContent = groupItems.length + "개";
+        head.appendChild(title);
+        head.appendChild(cue);
+        head.appendChild(itemCount);
+
+        var grid = document.createElement("div");
+        grid.className = "strategy-group__items";
+        groupItems.forEach(function (item) {
+          grid.appendChild(buildAllocationCard(item));
+        });
+        section.appendChild(head);
+        section.appendChild(grid);
+        list.appendChild(section);
+      });
+    } else {
+      items.forEach(function (item) {
+        list.appendChild(buildAllocationCard(item));
+      });
+    }
 
     updateBudgetBar(alloc);
   }
@@ -723,6 +859,7 @@ window.DRBUI = (function () {
     S.policies().forEach(function (p) {
       var btn = document.createElement("button");
       btn.className = "policy" + (selectedId === p.id ? " is-selected" : "");
+      btn.setAttribute("aria-pressed", selectedId === p.id ? "true" : "false");
       btn.onclick = function () { onPick(p.id); };
 
       var name = document.createElement("div");
@@ -774,6 +911,12 @@ window.DRBUI = (function () {
     var hist = S.lastHistory();
 
     el("reHeadline").textContent = rep.headline;
+    var finalDecision = !!S.subround().isFinalDecision;
+    var simulationNotice = el("reSimulationNotice");
+    if (simulationNotice) simulationNotice.classList.toggle("hidden", !finalDecision);
+    el("reHint").textContent = finalDecision
+      ? "이 수치는 실제 미래 성과가 아니라 선택의 구조를 비교하기 위한 신호입니다."
+      : "같은 사건도 준비 상태에 따라 다른 결과가 됩니다.";
 
     /* 돌발상황과 우리 회사의 반응 */
     var evBox = el("reEvents");
@@ -1047,7 +1190,24 @@ window.DRBUI = (function () {
     if (box) clearNode(box);
   }
 
+  function renderLiveWait(kind) {
+    clearNewsFlash();
+    var feed = el("tlFeed");
+    clearNode(feed);
+    el("tlYear").textContent = kind === "actual" ? "DRB" : "LIVE";
+    el("tlCaption").textContent = kind === "actual"
+      ? "진행자가 DRB 기록을 공개할 때까지 조별 판단을 정리하세요"
+      : "모든 조의 결정이 모였습니다 · 진행자의 돌발상황 공개를 기다립니다";
+    var card = document.createElement("div");
+    card.className = "timelapse__line timelapse__line--market";
+    card.innerHTML = kind === "actual"
+      ? "<span class='timelapse__who'>교육 체크포인트</span><span>우리 조는 무엇을 지켰고 어떤 대가를 감수했는지 먼저 말해보세요.</span>"
+      : "<span class='timelapse__who'>결정 잠금 완료</span><span>결정은 전송됐습니다. 다른 조의 선택은 아직 공개되지 않습니다.</span>";
+    feed.appendChild(card);
+    el("btnSkipLapse").classList.add("hidden");
+  }
   function renderTimelapse(hist, onDone) {
+    el("btnSkipLapse").classList.remove("hidden");
     var feed = el("tlFeed");
     var yearBox = el("tlYear");
     clearNode(feed);
@@ -1252,19 +1412,30 @@ window.DRBUI = (function () {
       detail.appendChild(factBox("실제 결과", a.result));
       if (a.note) detail.appendChild(factBox("진행자 설명", a.note));
       if (a.image) {
-        var figWrap = document.createElement("div");
-        figWrap.className = "situation__figure";
+        var figWrap = document.createElement("figure");
+        figWrap.className = "situation__figure actual-media";
         var img = new Image();
         img.alt = a.imageAlt || "";
+        img.decoding = "async";
+        img.width = 1600;
+        img.height = 900;
         img.onerror = function () {
           clearNode(figWrap);
           var ph = document.createElement("div");
           ph.className = "img-placeholder";
-          ph.textContent = "🖼 사진 자리 — " + a.image;
+          ph.textContent = "시대 연출 이미지를 불러오지 못했습니다.";
           figWrap.appendChild(ph);
         };
+        var badge = document.createElement("span");
+        badge.className = "actual-media__badge";
+        badge.textContent = "AI 시대 연출 이미지 · 실제 DRB 사진 아님";
+        var caption = document.createElement("figcaption");
+        caption.className = "actual-media__caption";
+        caption.textContent = "해당 시대의 산업 환경을 이해하기 위해 제작한 AI 연출 이미지입니다. DRB의 실제 공장·임직원·사건을 촬영한 기록사진이 아닙니다.";
         img.src = a.image;
         figWrap.appendChild(img);
+        figWrap.appendChild(badge);
+        figWrap.appendChild(caption);
         detail.appendChild(figWrap);
       }
     } else {
@@ -1282,7 +1453,19 @@ window.DRBUI = (function () {
 
     renderRivals(r.id, sorted, items);
 
-    el("btnActualGo").textContent = S.isLastRound() ? "다른 선택 비교하기" : "다음 라운드로";
+    /* 시대를 클리어할 때 결과 확인을 교육 언어로 전환합니다. */
+    var reflection = t.reflections && t.reflections[r.id] ? t.reflections[r.id] : {};
+    [["acKept", "kept"], ["acTradeoff", "tradeoff"], ["acLesson", "lesson"]].forEach(function (pair) {
+      var input = el(pair[0]);
+      input.value = reflection[pair[1]] || "";
+    });
+    var checkpointReady = !!(reflection.kept && reflection.tradeoff && reflection.lesson);
+    el("acCheckpoint").classList.toggle("is-complete", checkpointReady);
+    el("acCheckpointStatus").textContent = checkpointReady
+      ? "교육 체크포인트 완료 · 다음 시대를 열 수 있습니다."
+      : "세 문장을 모두 작성하면 다음 시대가 열립니다.";
+    el("btnActualGo").disabled = !checkpointReady;
+    el("btnActualGo").textContent = S.isLastRound() ? "최종 여정으로" : "ERA " + r.no + " 클리어 · 다음 시대 열기";
   }
 
   /* ============================================================
@@ -1675,7 +1858,7 @@ window.DRBUI = (function () {
     renderPolicy: renderPolicy, renderResult: renderResult,
     renderActual: renderActual, renderWhatIf: renderWhatIf, renderFinal: renderFinal,
     renderDecisionCard: renderDecisionCard,
-    renderTimeline: renderTimeline, renderTimelapse: renderTimelapse,
+    renderTimeline: renderTimeline, renderLiveWait: renderLiveWait, renderTimelapse: renderTimelapse,
     showEndingStep: showEndingStep, renderWorldMap: renderWorldMap,
     showNewsFlash: showNewsFlash, clearNewsFlash: clearNewsFlash,
     investName: investName, escapeHtml: escapeHtml

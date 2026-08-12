@@ -203,6 +203,49 @@ window.DRBState = (function () {
   function subround()      { return round().subrounds[team().subIndex]; }
   function era()           { return window.DRB_ERAS[round().era]; }
   function investments()   { return window.DRB_INVESTMENTS[era().investSet]; }
+  function availableInvestments() {
+    var step = team().subIndex;
+    return investments().filter(function (item) {
+      return (Number(item.unlockSubround) || 0) <= step;
+    });
+  }
+
+  /* 참가자 화면용 의사결정 범위. 엔진은 investments()의 전체 목록을 계속 사용합니다. */
+  function investmentDecisionContext() {
+    var visible = availableInvestments();
+    var groupDefs = window.DRB_INVESTMENT_GROUPS || {};
+    var seen = {};
+    var groups = [];
+
+    visible.forEach(function (item) {
+      var id = item.strategyGroup || "resilience";
+      if (seen[id]) return;
+      seen[id] = true;
+      var def = groupDefs[id] || {};
+      groups.push({
+        id: id,
+        order: def.order || 99,
+        name: def.name || id,
+        cue: def.cue || ""
+      });
+    });
+    groups.sort(function (a, b) { return a.order - b.order; });
+
+    var meta = (window.DRB_DECISION_COMPLEXITY || {})[subround().id] || {};
+    return {
+      visibleCount: visible.length,
+      totalCount: investments().length,
+      level: meta.level || (turnIndex() + 1),
+      totalLevels: totalTurns(),
+      label: meta.label || "의사결정",
+      newDimensions: (meta.newDimensions || []).slice(),
+      newlyUnlocked: visible.filter(function (item) {
+        return (Number(item.unlockSubround) || 0) === team().subIndex;
+      }).map(function (item) { return item.id; }),
+      groups: groups,
+      grouped: era().id === "era3"
+    };
+  }
   function policies()      { return window.DRB_POLICIES[era().policySet]; }
   function actual()        { return window.DRB_ACTUAL[round().actualId]; }
   function phase()         { return team().phase; }
@@ -382,6 +425,8 @@ window.DRBState = (function () {
   function exportTeamCode(teamName) {
     var t = data.teams[teamName || data.activeTeam];
     var payload = {
+      v: 3,
+      exportedAt: new Date().toISOString(),
       t: t.name,
       s: t.state,
       w: t.reason,
@@ -393,7 +438,26 @@ window.DRBState = (function () {
           a: h.allocation,
           pol: h.policyName,
           rev: h.report.kpi.revenue,
-          pro: h.report.kpi.profit
+          pro: h.report.kpi.profit,
+          y: h.year,
+          title: h.subTitle,
+          pid: h.policyId,
+          ch: h.choices || {},
+          ev: (h.report.events || []).map(function (event) {
+            return {
+              id: event.id,
+              title: event.title,
+              reactions: (event.reactions || []).map(function (reaction) {
+                return { text: reaction.text, positive: !!reaction.positive };
+              })
+            };
+          }),
+          kpi: {
+            revenue: h.report.kpi.revenue,
+            profit: h.report.kpi.profit
+          },
+          before: { cash: h.before && h.before.cash },
+          after: { cash: h.after && h.after.cash }
         };
       })
     };
@@ -422,7 +486,9 @@ window.DRBState = (function () {
     newGame: newGame,
     g: g, team: team, teamNames: teamNames,
     round: round, subround: subround, era: era, phase: phase,
-    investments: investments, policies: policies, actual: actual,
+    investments: investments, availableInvestments: availableInvestments,
+    investmentDecisionContext: investmentDecisionContext,
+    policies: policies, actual: actual,
     turnIndex: turnIndex, totalTurns: totalTurns,
     isLastSubround: isLastSubround, isLastRound: isLastRound,
     budget: budget, budgetIsTight: budgetIsTight,
