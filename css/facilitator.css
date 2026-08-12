@@ -550,6 +550,49 @@ body.fac-body {
   .fac-drb__compare { grid-template-columns:minmax(0,1fr) 36px minmax(0,1fr); }
 }
 
+@media (max-width:1023px) {
+  body.fac-body { min-width:0; }
+  .fac-console { height:100dvh; }
+
+  .fac-console__top {
+    flex-wrap:wrap;
+    align-content:center;
+    padding:10px 14px;
+  }
+  .fac-console__top > .spacer { display:none; }
+  .fac-console__top .board__eraname {
+    flex:1 1 220px;
+    max-width:none;
+    min-width:0;
+  }
+  .fac-console__actions {
+    flex:1 1 100%;
+    flex-wrap:wrap;
+    margin-left:0;
+  }
+  .fac-console__actions .btn { min-height:44px; }
+
+  .fac-stage-tabs { min-width:0; }
+  .fac-stage-tabs > .spacer { display:none; }
+  .fac-stage-tabs #btnPrev { margin-left:auto; }
+  .fac-stage-tabs__tab,
+  .fac-stage-tabs > .btn { min-height:44px; }
+
+  .fac-console__body {
+    grid-template-columns:minmax(0,1fr);
+    grid-template-rows:auto auto;
+    min-height:0;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+  }
+  .fac-console__main,
+  .fac-console__rail { overflow:visible; }
+  .fac-console__rail {
+    border-left:0;
+    border-top:1px solid var(--fac-line);
+  }
+}
+
 @media print {
   body.fac-body { min-width:0; overflow:visible; background:#fff; color:#111; }
   .fac-console { display:block; height:auto; overflow:visible; }
