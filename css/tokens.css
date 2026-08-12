@@ -1,0 +1,119 @@
+/* ============================================================
+   tokens.css — 디자인 토큰 (색 / 간격 / 글꼴 / 모양)
+
+   ★ 디자인을 바꾸고 싶으면 이 파일의 값만 바꾸세요.
+     다른 CSS 파일은 여기 정의된 변수만 사용합니다.
+     (색상 코드를 다른 파일에 직접 쓰지 않는 것이 규칙입니다)
+   ============================================================ */
+
+:root {
+  /* ---------- 브랜드 ---------- */
+  --drb-red:            rgb(227, 29, 56);   /* DRB 메인컬러 */
+  --drb-red-soft:       rgba(227, 29, 56, 0.16);
+  --drb-red-line:       rgba(227, 29, 56, 0.42);
+  --drb-red-hover:      rgb(243, 58, 83);
+
+  /* ---------- 배경 (어두운 경영 상황실 톤) ---------- */
+  --bg-0:               #0d1117;   /* 가장 바깥 */
+  --bg-1:               #141a22;   /* 패널 */
+  --bg-2:               #1b232d;   /* 카드 */
+  --bg-3:               #232d39;   /* 카드 위 요소 */
+  --bg-inset:           #0a0e13;   /* 눌린 영역 (입력창 등) */
+
+  /* ---------- 선 ---------- */
+  --line:               #2a3542;
+  --line-strong:        #3a4757;
+
+  /* ---------- 글자 ---------- */
+  --text-1:             #e8edf3;   /* 본문 */
+  --text-2:             #a7b4c4;   /* 보조 */
+  --text-3:             #6f7f92;   /* 약한 설명 */
+  --text-on-accent:     #ffffff;
+
+  /* ---------- 의미 색 ---------- */
+  --good:               #3fb950;   /* 증가 / 좋음 */
+  --good-soft:          rgba(63, 185, 80, 0.14);
+  --bad:                #f0603a;   /* 감소 / 나쁨 */
+  --bad-soft:           rgba(240, 96, 58, 0.14);
+  --warn:               #e3a008;   /* 주의 / 돌발상황 */
+  --warn-soft:          rgba(227, 160, 8, 0.14);
+  --info:               #58a6ff;   /* 정보 / 시대환경 */
+  --info-soft:          rgba(88, 166, 255, 0.12);
+
+  /* ---------- 지표별 색 (회사 상태 게이지) ---------- */
+  --m-cash:             #f2c14e;
+  --m-capacity:         #7aa2f7;
+  --m-tech:             #a78bfa;
+  --m-quality:          #4dd4c0;
+  --m-trust:            #f78fb3;
+  --m-people:           #7fd18a;
+
+  /* ---------- 구분: 실제 역사 vs 가상 시뮬레이션 ---------- */
+  /* 실제 DRB 기록 = 금색 계열 / 시뮬레이션 = 청색 계열 */
+  --fact-bg:            #1e1a12;
+  --fact-line:          #7a6224;
+  --fact-text:          #f3d68a;
+  --sim-line:           var(--info);
+
+  /* ---------- 간격 ---------- */
+  --sp-1:               4px;
+  --sp-2:               8px;
+  --sp-3:               12px;
+  --sp-4:               16px;
+  --sp-5:               24px;
+  --sp-6:               32px;
+  --sp-7:               48px;
+
+  /* ---------- 글꼴 ---------- */
+  --font-ui: "Pretendard", "Malgun Gothic", "맑은 고딕", -apple-system,
+             "Segoe UI", Roboto, sans-serif;
+  --font-num: "Consolas", "D2Coding", "Menlo", monospace;  /* 숫자 전용 */
+
+  --fs-display:         38px;   /* 화면 대제목 */
+  --fs-title:           26px;   /* 상황 제목 */
+  --fs-lead:            18px;   /* 상황 본문 */
+  --fs-body:            15px;
+  --fs-small:           13px;
+  --fs-tiny:            11px;
+
+  --lh-tight:           1.25;
+  --lh-body:            1.7;
+
+  /* ---------- 모양 ---------- */
+  --r-sm:               6px;
+  --r-md:               10px;
+  --r-lg:               16px;
+  --r-pill:             999px;
+
+  --shadow-card:        0 2px 10px rgba(0, 0, 0, 0.35);
+  --shadow-pop:         0 16px 48px rgba(0, 0, 0, 0.55);
+
+  /* ---------- 레이아웃 ---------- */
+  --topbar-h:           64px;
+  --side-w:             320px;
+  --content-max:        1080px;
+
+  /* ---------- 움직임 (교육용이라 절제) ---------- */
+  --t-fast:             120ms ease;
+  --t-base:             220ms ease;
+}
+
+/* 밝은 화면을 선호하는 교육장(빔프로젝터 등)을 위한 대체 테마.
+   <html data-theme="light"> 를 주면 적용됩니다. */
+:root[data-theme="light"] {
+  --bg-0:               #f4f6f9;
+  --bg-1:               #ffffff;
+  --bg-2:               #ffffff;
+  --bg-3:               #eef1f5;
+  --bg-inset:           #e9edf2;
+  --line:               #d8dee6;
+  --line-strong:        #b9c3cf;
+  --text-1:             #16202b;
+  --text-2:             #4c5b6b;
+  --text-3:             #78889a;
+  --fact-bg:            #fdf7e6;
+  --fact-line:          #d8b65a;
+  --fact-text:          #6b5410;
+  --shadow-card:        0 1px 4px rgba(16, 32, 48, 0.10);
+  --shadow-pop:         0 16px 48px rgba(16, 32, 48, 0.18);
+}

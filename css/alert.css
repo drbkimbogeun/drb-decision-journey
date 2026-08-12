@@ -1,0 +1,97 @@
+/* ============================================================
+   alert.css — 시간 진행 중에 뜨는 뉴스 속보 알림
+   ============================================================ */
+
+.newsflash {
+  position: fixed;
+  top: 84px;
+  right: 24px;
+  width: min(400px, calc(100vw - 48px));
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  pointer-events: none;
+}
+
+.newsflash__item {
+  border-radius: var(--r-md);
+  border: 1px solid var(--warn);
+  border-left: 4px solid var(--warn);
+  background: var(--bg-1);
+  box-shadow: var(--shadow-pop);
+  padding: var(--sp-3) var(--sp-4);
+  opacity: 0;
+  transform: translateX(24px);
+  animation: flash-in 0.45s cubic-bezier(.2,.8,.2,1) forwards;
+}
+
+.newsflash__item--fade {
+  animation: flash-out 0.5s ease forwards;
+}
+
+@keyframes flash-in {
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes flash-out {
+  to { opacity: 0; transform: translateX(24px); }
+}
+
+.newsflash__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--fs-tiny);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--warn);
+  margin-bottom: 4px;
+}
+
+.newsflash__tag::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--warn);
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.25; }
+}
+
+.newsflash__title {
+  font-size: var(--fs-body);
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.newsflash__year {
+  font-family: var(--font-num);
+  font-size: var(--fs-tiny);
+  color: var(--text-3);
+  margin-top: 4px;
+}
+
+/* 우리 회사에만 벌어진 일 (조건부 사건) */
+.newsflash__item--ours {
+  border-color: var(--drb-red);
+  border-left-color: var(--drb-red);
+}
+.newsflash__item--ours .newsflash__tag       { color: var(--drb-red); }
+.newsflash__item--ours .newsflash__tag::before { background: var(--drb-red); }
+
+/* 기회 (좋은 소식) */
+.newsflash__item--good {
+  border-color: var(--good);
+  border-left-color: var(--good);
+}
+.newsflash__item--good .newsflash__tag       { color: var(--good); }
+.newsflash__item--good .newsflash__tag::before { background: var(--good); }
+
+@media (max-width: 860px) {
+  .newsflash { top: auto; bottom: 76px; right: 12px; left: 12px; width: auto; }
+}

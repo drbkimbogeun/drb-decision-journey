@@ -1,0 +1,17 @@
+# 배포용으로 자동 생성되는 폴더 (배포파일 만들기.bat 이 만듭니다)
+_deploy/
+
+# 검사 도구가 남기는 임시 출력
+check.txt
+
+# 개발 중 임시 설치되는 것들
+node_modules/
+package-lock.json
+
+# 운영체제·편집기 부산물
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/
+*.swp
+*~

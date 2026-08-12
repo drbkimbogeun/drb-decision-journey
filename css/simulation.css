@@ -1,0 +1,601 @@
+/* ============================================================
+   simulation.css — 후반 시대 전용 부품
+
+   타임라인 / 전망 선명도 / 다차원 선택 / 세계지도 /
+   시간 진행(타임랩스) / 경쟁사 / 2026 엔딩
+
+   ★ 색과 간격은 여기서도 tokens.css 의 변수만 씁니다.
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   시대 타임라인 — 뒤로 갈수록 간격이 촘촘해집니다.
+   "세상이 빨라진다"를 설명하지 않고 보여주는 장치입니다.
+   ------------------------------------------------------------ */
+.timeline {
+  position: relative;
+  height: 34px;
+  flex: 1 1 auto;
+  min-width: 200px;
+  max-width: 620px;
+}
+
+.timeline__track {
+  position: absolute;
+  left: 0;
+  right: 22px;
+  top: 15px;
+  height: 2px;
+  background: var(--line);
+}
+
+.timeline__future {
+  position: absolute;
+  right: 0;
+  top: 8px;
+  font-size: var(--fs-tiny);
+  color: var(--text-3);
+  font-weight: 800;
+}
+
+.timeline__node {
+  position: absolute;
+  top: 9px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.timeline__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--line-strong);
+  transition: background var(--t-base), box-shadow var(--t-base);
+}
+
+.timeline__node.is-done .timeline__dot { background: var(--text-3); }
+
+.timeline__node.is-active .timeline__dot {
+  background: var(--drb-red);
+  box-shadow: 0 0 0 4px var(--drb-red-soft);
+}
+
+.timeline__year {
+  font-family: var(--font-num);
+  font-size: 9px;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+.timeline__node.is-active .timeline__year {
+  color: var(--drb-red);
+  font-weight: 700;
+  font-size: 11px;
+}
+
+@media (max-width: 1100px) {
+  .timeline { display: none; }
+}
+
+/* ------------------------------------------------------------
+   전망 선명도 (Forecast Visibility)
+   ------------------------------------------------------------ */
+.visibility {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md);
+  background: var(--bg-inset);
+  border: 1px solid var(--line);
+  margin-top: var(--sp-4);
+}
+
+.visibility__label {
+  font-size: var(--fs-tiny);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+.visibility__bar {
+  display: flex;
+  gap: 3px;
+  flex: 0 0 auto;
+}
+
+.visibility__cell {
+  width: 14px;
+  height: 15px;
+  border-radius: 2px;
+  background: var(--bg-3);
+}
+
+.visibility__cell.is-on  { background: var(--info); }
+.visibility__cell.is-mid { background: var(--warn); }
+.visibility__cell.is-low { background: var(--bad); }
+
+.visibility__note {
+  font-size: var(--fs-small);
+  color: var(--text-2);
+  line-height: 1.5;
+}
+
+/* ------------------------------------------------------------
+   다차원 의사결정 — 어디에 / 어떤 방식으로
+   ------------------------------------------------------------ */
+.dimension {
+  grid-column: 1 / -1;
+  margin-top: var(--sp-2);
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--bg-inset);
+  border: 1px dashed var(--line-strong);
+}
+
+.dimension__label {
+  font-size: var(--fs-tiny);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--info);
+  margin-bottom: var(--sp-2);
+}
+
+.dimension__opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.dim-opt {
+  padding: 6px 11px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line-strong);
+  background: var(--bg-2);
+  font-size: var(--fs-small);
+  text-align: left;
+  line-height: 1.35;
+}
+
+.dim-opt:hover { border-color: var(--text-3); }
+
+.dim-opt.is-selected {
+  border-color: var(--info);
+  background: var(--info-soft);
+  color: var(--info);
+  font-weight: 700;
+}
+
+.dim-opt__sub {
+  display: block;
+  font-size: var(--fs-tiny);
+  color: var(--text-3);
+  font-weight: 400;
+}
+
+.dimension__warn {
+  margin-top: var(--sp-2);
+  font-size: var(--fs-tiny);
+  color: var(--warn);
+}
+
+/* ------------------------------------------------------------
+   세계지도 — 우리와 경쟁사의 거점
+   ------------------------------------------------------------ */
+.worldmap {
+  position: relative;
+  width: 100%;
+  padding-top: 46%;
+  background: var(--bg-inset);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+
+.worldmap__inner {
+  position: absolute;
+  inset: 0;
+}
+
+.worldmap svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.worldmap__land {
+  fill: var(--bg-3);
+  stroke: var(--line-strong);
+  stroke-width: 0.3;
+}
+
+.map-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  pointer-events: none;
+}
+
+.map-node__dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--bg-0);
+}
+
+.map-node__label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-2);
+  background: var(--bg-0);
+  padding: 1px 4px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.map-node--home  .map-node__dot { background: var(--drb-red); width: 14px; height: 14px; }
+.map-node--ours  .map-node__dot { background: var(--info); }
+.map-node--rival .map-node__dot { width: 9px; height: 9px; }
+
+.map-node--build .map-node__dot {
+  background: var(--warn);
+  animation: map-pulse 1.6s infinite;
+}
+
+@keyframes map-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.3; }
+}
+
+.map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-4);
+  margin-top: var(--sp-3);
+  font-size: var(--fs-tiny);
+  color: var(--text-3);
+}
+
+.map-legend__item { display: flex; align-items: center; gap: 5px; }
+.map-legend__dot  { width: 9px; height: 9px; border-radius: 50%; }
+
+/* ------------------------------------------------------------
+   시간 진행 (타임랩스)
+   ------------------------------------------------------------ */
+.timelapse {
+  min-height: 380px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: var(--sp-6) var(--sp-5);
+}
+
+.timelapse__year {
+  font-family: var(--font-num);
+  font-size: 64px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--drb-red);
+  letter-spacing: -0.02em;
+}
+
+.timelapse__caption {
+  margin-top: var(--sp-2);
+  color: var(--text-3);
+  font-size: var(--fs-small);
+}
+
+.timelapse__feed {
+  width: min(660px, 100%);
+  margin-top: var(--sp-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.timelapse__line {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-4);
+  border-radius: var(--r-md);
+  background: var(--bg-2);
+  border-left: 3px solid var(--line-strong);
+  font-size: var(--fs-small);
+  opacity: 0;
+  transform: translateY(6px);
+  animation: feed-in 0.35s forwards;
+}
+
+@keyframes feed-in {
+  to { opacity: 1; transform: none; }
+}
+
+.timelapse__line--ours   { border-left-color: var(--drb-red); }
+.timelapse__line--rival  { border-left-color: var(--text-3); }
+.timelapse__line--market { border-left-color: var(--warn); }
+
+.timelapse__who {
+  font-weight: 700;
+  min-width: 84px;
+  font-size: var(--fs-tiny);
+  letter-spacing: 0.04em;
+  color: var(--text-3);
+}
+
+.timelapse__line--ours .timelapse__who { color: var(--drb-red); }
+
+/* ------------------------------------------------------------
+   경쟁사 현황
+   ------------------------------------------------------------ */
+.rival-row {
+  display: grid;
+  grid-template-columns: 118px 1fr auto;
+  gap: var(--sp-3);
+  align-items: center;
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md);
+  background: var(--bg-inset);
+  border: 1px solid var(--line);
+  margin-bottom: var(--sp-2);
+}
+
+.rival-row__name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: var(--fs-small);
+}
+
+.rival-row__badge {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.rival-row__move { font-size: var(--fs-small); color: var(--text-2); }
+.rival-row__type { font-size: var(--fs-tiny); color: var(--text-3); white-space: nowrap; }
+
+/* 우리 vs 경쟁사 평균 */
+.standing {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  gap: var(--sp-2);
+}
+
+.standing__item {
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--bg-inset);
+  border: 1px solid var(--line);
+  text-align: center;
+}
+
+.standing__name { font-size: var(--fs-tiny); color: var(--text-3); }
+
+.standing__diff {
+  font-family: var(--font-num);
+  font-size: 20px;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+.standing__sub { font-size: var(--fs-tiny); color: var(--text-3); }
+
+/* ------------------------------------------------------------
+   변화 대응력 (Adaptive Capacity) — 마지막에만 공개
+   ------------------------------------------------------------ */
+.adaptive {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-4);
+  margin-top: var(--sp-4);
+}
+
+@media (max-width: 760px) {
+  .adaptive { grid-template-columns: 1fr; }
+}
+
+.adaptive__box {
+  padding: var(--sp-5);
+  border-radius: var(--r-lg);
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  text-align: center;
+}
+
+.adaptive__box--main {
+  border-color: var(--drb-red-line);
+  background: linear-gradient(180deg, var(--drb-red-soft), transparent 70%), var(--bg-2);
+}
+
+.adaptive__label {
+  font-size: var(--fs-tiny);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--text-3);
+}
+
+.adaptive__stars {
+  font-size: 32px;
+  letter-spacing: 4px;
+  margin: var(--sp-2) 0;
+  color: var(--drb-red);
+}
+
+.adaptive__score {
+  font-family: var(--font-num);
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+
+.adaptive__verdict {
+  margin-top: var(--sp-4);
+  padding: var(--sp-4);
+  border-radius: var(--r-md);
+  background: var(--bg-inset);
+  border: 1px solid var(--line);
+  font-size: var(--fs-body);
+  line-height: 1.7;
+  color: var(--text-2);
+}
+
+/* ------------------------------------------------------------
+   2026 엔딩 — 이 게임의 마지막 장면
+   ------------------------------------------------------------ */
+.ending {
+  min-height: calc(100vh - var(--topbar-h) - var(--sp-7));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--sp-7) var(--sp-5);
+  max-width: 820px;
+  margin: 0 auto;
+}
+
+.ending__step {
+  display: none;
+  animation: ending-in 0.8s ease;
+}
+
+.ending__step.is-active { display: block; }
+
+@keyframes ending-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.ending__year {
+  font-family: var(--font-num);
+  font-size: 78px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.ending__rule {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-3);
+  margin: var(--sp-5) 0;
+  font-family: var(--font-num);
+  color: var(--text-3);
+}
+
+.ending__rule-line {
+  width: 220px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--drb-red), var(--line));
+}
+
+.ending__q {
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--text-3);
+}
+
+.ending__text {
+  font-size: var(--fs-lead);
+  line-height: 2;
+  color: var(--text-2);
+  white-space: pre-line;
+}
+
+.ending__big {
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1.5;
+  margin: var(--sp-5) 0;
+}
+
+.ending__market {
+  margin-top: var(--sp-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  width: min(560px, 100%);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.ending__market-line {
+  display: flex;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-4);
+  border-radius: var(--r-md);
+  background: var(--bg-2);
+  border-left: 3px solid var(--text-3);
+  font-size: var(--fs-small);
+  color: var(--text-2);
+  text-align: left;
+  opacity: 0;
+  animation: feed-in 0.4s forwards;
+}
+
+.ending__actions {
+  margin-top: var(--sp-6);
+}
+
+.ending__unknown {
+  display: inline-block;
+  padding: var(--sp-3) var(--sp-5);
+  border: 2px dashed var(--line-strong);
+  border-radius: var(--r-md);
+  font-family: var(--font-num);
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  color: var(--text-3);
+}
+
+/* ------------------------------------------------------------
+   80년 Replay
+   ------------------------------------------------------------ */
+.replay {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: var(--sp-3);
+}
+
+.replay__row {
+  display: grid;
+  grid-template-columns: 62px 1fr;
+  gap: var(--sp-4);
+  padding: var(--sp-3) 0;
+  border-left: 2px solid var(--line);
+  padding-left: var(--sp-4);
+  margin-left: var(--sp-3);
+  position: relative;
+}
+
+.replay__row::before {
+  content: "";
+  position: absolute;
+  left: -5px;
+  top: 20px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--drb-red);
+}
+
+.replay__year {
+  font-family: var(--font-num);
+  font-weight: 700;
+  color: var(--drb-red);
+  font-size: var(--fs-small);
+}
+
+.replay__what { font-size: var(--fs-small); color: var(--text-2); line-height: 1.6; }

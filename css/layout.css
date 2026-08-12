@@ -1,0 +1,158 @@
+/* ============================================================
+   layout.css — 화면 골격 (뼈대만. 색·모양은 components.css)
+
+   [상단바 : ROUND / 연도 / 시대 / 진행 단계]
+   [본문 영역                     | 회사 상태 사이드]
+   ============================================================ */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* ---------- 상단바 ---------- */
+.topbar {
+  flex: 0 0 var(--topbar-h);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-5);
+  padding: 0 var(--sp-5);
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-1);
+}
+
+.topbar__left {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  min-width: 0;
+}
+
+.topbar__right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+/* ---------- 무대(본문 + 사이드) ---------- */
+.stage {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: 1fr var(--side-w);
+  min-height: 0;                 /* 자식 스크롤이 동작하려면 필요 */
+}
+
+.stage__main {
+  min-width: 0;
+  overflow-y: auto;
+  padding: var(--sp-5) var(--sp-5) var(--sp-7);
+}
+
+.stage__inner {
+  max-width: var(--content-max);
+  margin: 0 auto;
+}
+
+.stage__side {
+  border-left: 1px solid var(--line);
+  background: var(--bg-1);
+  overflow-y: auto;
+  padding: var(--sp-4);
+}
+
+/* 사이드가 없는 화면(시작·최종결과 등)은 이 클래스를 붙인다 */
+.stage--full {
+  grid-template-columns: 1fr;
+}
+
+.stage--full .stage__side {
+  display: none;
+}
+
+/* ---------- 자주 쓰는 배치 ---------- */
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.row--between {
+  justify-content: space-between;
+}
+
+.row--wrap {
+  flex-wrap: wrap;
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-4);
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-4);
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+/* ---------- 화면 전환 ---------- */
+.screen {
+  display: none;
+}
+
+.screen.is-active {
+  display: block;
+  animation: screen-in var(--t-base);
+}
+
+@keyframes screen-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ---------- 좁은 화면 대응 (태블릿 세로 등) ---------- */
+@media (max-width: 1100px) {
+  :root {
+    --side-w: 268px;
+    --fs-display: 30px;
+    --fs-title: 22px;
+    --fs-lead: 16px;
+  }
+}
+
+@media (max-width: 860px) {
+  .stage {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  .stage__side {
+    order: -1;
+    border-left: none;
+    border-bottom: 1px solid var(--line);
+    max-height: 210px;
+  }
+
+  .grid-3,
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media print {
+  body { overflow: visible; }
+  .no-print { display: none !important; }
+}

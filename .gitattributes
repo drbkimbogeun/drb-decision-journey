@@ -1,0 +1,23 @@
+# ============================================================
+#  줄바꿈 규칙
+#
+#  ⚠ .bat 파일은 반드시 CRLF 여야 합니다.
+#    한글 Windows 의 cmd 는 LF 배치 파일을 제대로 읽지 못해
+#    "내부 또는 외부 명령이 아닙니다" 오류가 납니다.
+# ============================================================
+
+* text=auto
+
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+
+*.html text eol=lf
+*.css  text eol=lf
+*.js   text eol=lf
+*.md   text eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.pdf binary

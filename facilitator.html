@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>진행자 화면 · DRB Decision Journey</title>
+
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/simulation.css">
+<link rel="stylesheet" href="css/screens.css">
+<link rel="stylesheet" href="css/facilitator.css">
+</head>
+<body class="fac-body">
+
+<div class="board">
+
+  <!-- ================= 상단 ================= -->
+  <div class="board__top">
+    <span class="chip chip--accent">진행자</span>
+    <span class="board__title">DRB Decision Journey</span>
+
+    <div class="board__era">
+      <span class="board__year num" id="bYear">1947</span>
+      <span class="board__eraname" id="bEra">창업기 · 무엇을 만들 것인가</span>
+    </div>
+
+    <span class="spacer"></span>
+
+    <span class="chip" id="bProgress">진행 0 / 6</span>
+    <button class="btn btn--sm btn--ghost" id="btnDrawer">조별 상세 · 결정 카드</button>
+    <button class="btn btn--sm btn--ghost" id="btnPaste">다른 PC 조 추가</button>
+    <button class="btn btn--sm btn--ghost" id="btnRefresh">새로고침</button>
+  </div>
+
+  <!-- ================= 본문 ================= -->
+  <div class="board__main">
+
+    <!-- 왼쪽 : 참가 조 + 경쟁사 -->
+    <div class="board__side">
+      <div class="section-label">참가 조</div>
+      <div id="bTeams"></div>
+
+      <div class="section-label" style="margin-top:var(--sp-4)">AI 경쟁사</div>
+      <div id="bRivals"></div>
+    </div>
+
+    <!-- 가운데 : 지도 -->
+    <div class="board__stage">
+      <div class="bigmap" id="bMap"></div>
+      <div class="boardbar" id="bBar"></div>
+    </div>
+
+    <!-- 오른쪽 : 뉴스 -->
+    <div class="board__news">
+      <div class="newsfeed__head">
+        <span class="section-label" style="margin:0">산업 뉴스</span>
+        <span class="spacer"></span>
+        <span class="chip" id="bNewsCount">0</span>
+      </div>
+      <div id="bNews"></div>
+    </div>
+  </div>
+
+  <!-- ================= 하단 서랍 ================= -->
+  <div class="board__drawer" id="bDrawer">
+    <div class="drawer__handle">
+      <h2 style="font-size:18px;font-weight:800;margin:0">조별 상세 · 결정 카드</h2>
+      <span class="spacer"></span>
+      <button class="btn btn--sm btn--ghost no-print" id="btnPrint">인쇄 / PDF</button>
+      <button class="btn btn--sm btn--ghost" id="btnDrawerClose">닫기</button>
+    </div>
+
+    <div class="section-label">같은 상황, 서로 다른 결정</div>
+    <div id="bCompare" style="margin-bottom:var(--sp-5)"></div>
+
+    <div class="section-label">조별 결정 카드</div>
+    <div id="bCards"></div>
+
+    <div class="section-label" style="margin-top:var(--sp-5)">데이터 정리</div>
+    <button class="btn btn--sm btn--ghost" id="btnClearPasted">붙여넣은 조 비우기</button>
+  </div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="modal__panel">
+    <div class="row row--between" style="margin-bottom:var(--sp-4)">
+      <h3 class="card__title" id="modalTitle">결과 코드 붙여넣기</h3>
+      <button class="btn btn--sm btn--ghost" id="modalClose">닫기</button>
+    </div>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="data/config.js"></script>
+<script src="data/eras.js"></script>
+<script src="data/investments.js"></script>
+<script src="data/policies.js"></script>
+<script src="data/events.js"></script>
+<script src="data/rounds.js"></script>
+<script src="data/actual_drb.js"></script>
+<script src="data/competitors.js"></script>
+<script src="data/whatif.js"></script>
+<script src="data/global.js"></script>
+<script src="data/rivals.js"></script>
+<script src="js/engine.js"></script>
+
+<script>
+/* ============================================================
+   진행자 화면 — 지도 위에서 산업 전체가 움직이는 것을 봅니다
+
+   왼쪽  : 참가 조와 경쟁사의 상태
+   가운데: 세계지도 — 누가 어디에 거점을 세웠는가
+   오른쪽: 산업 뉴스 — 각 조의 투자와 사건이 뉴스로 흘러갑니다
+   아래  : 조별 상세와 결정 카드 (필요할 때만 올려서 봄)
+   ============================================================ */
+function startFacilitator() {
+  "use strict";
+
+  /* 데이터 파일이 하나라도 안 읽혔으면 조용히 실패하지 않고 알린다 */
+  if (!window.DRB_CONFIG || !window.DRB_GLOBAL || !window.DRBEngine) {
+    document.body.innerHTML =
+      "<div style='padding:40px;font-family:sans-serif;color:#e8edf3;background:#0d1117;height:100vh'>" +
+      "<h1>데이터 파일을 읽지 못했습니다</h1>" +
+      "<p>data 폴더와 js 폴더가 같은 위치에 있는지 확인해주세요.</p></div>";
+    return;
+  }
+
+  var CFG = window.DRB_CONFIG;
+  var G = window.DRB_GLOBAL;
+  var PASTED_KEY = CFG.storage.key + "_pasted";
+
+  function el(id) { return document.getElementById(id); }
+
+  function toast(msg) {
+    var t = el("toast");
+    t.textContent = msg;
+    t.classList.add("is-show");
+    clearTimeout(t._t);
+    t._t = setTimeout(function () { t.classList.remove("is-show"); }, 2200);
+  }
+
+  function esc(s) {
+    return String(s === undefined || s === null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function fmt(n) {
+    if (n === undefined || n === null || isNaN(n)) return "-";
+    return Math.round(n).toLocaleString("ko-KR");
+  }
+
+  function signed(n) {
+    var v = Math.round(Number(n) || 0);
+    return (v > 0 ? "+" : "") + v.toLocaleString("ko-KR");
+  }
+
+  function investName(id) {
+    var found = null;
+    Object.keys(window.DRB_INVESTMENTS).forEach(function (k) {
+      window.DRB_INVESTMENTS[k].forEach(function (i) { if (i.id === id && !found) found = i.name; });
+    });
+    return found || id;
+  }
+
+  function topInvestId(alloc) {
+    var best = null, v = 0;
+    Object.keys(alloc || {}).forEach(function (k) { if (alloc[k] > v) { v = alloc[k]; best = k; } });
+    return best;
+  }
+
+  /* 조 색 — 지도 핀과 카드에 함께 씁니다 */
+  var TEAM_COLORS = ["#e31d38", "#f2c14e", "#4dd4c0", "#7aa2f7", "#f78fb3", "#7fd18a"];
+  function teamColor(name) {
+    var i = (CFG.teamNames || []).indexOf(name);
+    return TEAM_COLORS[(i < 0 ? 0 : i) % TEAM_COLORS.length];
+  }
+
+  /* ============================================================
+     데이터 모으기
+     ============================================================ */
+  function readSave() {
+    try { return JSON.parse(localStorage.getItem(CFG.storage.key) || "null"); }
+    catch (e) { return null; }
+  }
+
+  function readPasted() {
+    try { return JSON.parse(localStorage.getItem(PASTED_KEY) || "[]"); }
+    catch (e) { return []; }
+  }
+
+  function collectTeams() {
+    var list = [];
+    var data = readSave();
+
+    if (data) {
+      (data.teamNames || []).forEach(function (name) {
+        var t = data.teams[name];
+        if (!t) return;
+        var round = window.DRB_ROUNDS[t.roundIndex] || window.DRB_ROUNDS[window.DRB_ROUNDS.length - 1];
+        var sub = round.subrounds[t.subIndex] || round.subrounds[0];
+        var last = t.history.length ? t.history[t.history.length - 1] : null;
+        list.push({
+          name: name, source: "local", state: t.state, history: t.history,
+          position: t.finished ? "완료" : ("ERA " + round.no + " · " + sub.year),
+          policy: last ? last.policyName : "-",
+          revenue: last ? last.report.kpi.revenue : null,
+          profit: last ? last.report.kpi.profit : null,
+          turns: t.history.length,
+          reason: t.reason, gapPick: t.gapPick
+        });
+      });
+    }
+
+    readPasted().forEach(function (p) {
+      var last = p.p && p.p.length ? p.p[p.p.length - 1] : null;
+      list.push({
+        name: p.t, source: "code", state: p.s, history: null,
+        position: "완료 (코드 수신)",
+        policy: last ? last.pol : "-",
+        revenue: last ? last.rev : null,
+        profit: last ? last.pro : null,
+        turns: p.p ? p.p.length : 0,
+        pasted: p, reason: p.w, gapPick: p.g
+      });
+    });
+
+    /* 같은 이름은 더 많이 진행한 쪽 */
+    var byName = {};
+    list.forEach(function (t) {
+      if (!byName[t.name] || byName[t.name].turns < t.turns) byName[t.name] = t;
+    });
+    return Object.keys(byName).map(function (k) { return byName[k]; })
+      .sort(function (a, b) { return a.name.localeCompare(b.name, "ko"); });
+  }
+
+  function collectRivals() {
+    var data = readSave();
+    if (!data || !data.rivals) return [];
+    return (window.DRB_RIVALS || []).map(function (def) {
+      var rv = data.rivals[def.id];
+      return rv ? { def: def, state: rv.state, moves: rv.moves || [], history: rv.history || [] } : null;
+    }).filter(Boolean);
+  }
+
+  /* ============================================================
+     뉴스 만들기 — 각 조의 투자와 사건을 기사로
+     ============================================================ */
+  function buildNews(teams, rivals) {
+    var news = [];
+
+    teams.forEach(function (t) {
+      if (!t.history) return;
+      t.history.forEach(function (h) {
+        /* 그 조가 그 국면에 가장 크게 넣은 곳 */
+        var top = topInvestId(h.allocation);
+        if (top) {
+          var amount = h.allocation[top];
+          var where = "";
+          Object.keys(h.choices || {}).forEach(function (k) {
+            var c = (G.countries || []).filter(function (x) { return x.id === h.choices[k].where; })[0];
+            var m = (G.modes || []).filter(function (x) { return x.id === h.choices[k].how; })[0];
+            if (c) where = " · " + c.name + (m ? " " + m.name : "");
+          });
+          news.push({
+            year: h.year, kind: "team", who: t.name, color: teamColor(t.name),
+            text: investName(top) + "에 " + amount + " 투입" + where,
+            sub: "정책 " + h.policyName + " · 매출 " + fmt(h.report.kpi.revenue) +
+                 " · 손익 " + signed(h.report.kpi.profit)
+          });
+        }
+
+        /* 성장의 이정표 */
+        var a = h.after, b = h.before;
+        if (a.tech - b.tech >= 5) {
+          news.push({ year: h.year, kind: "milestone", who: t.name, color: teamColor(t.name),
+                      text: "기술 도약 — 기술력 " + Math.round(b.tech) + " → " + Math.round(a.tech) });
+        }
+        if (a.capacity - b.capacity >= 10) {
+          news.push({ year: h.year, kind: "milestone", who: t.name, color: teamColor(t.name),
+                      text: "생산능력 확대 — " + Math.round(b.capacity) + " → " + Math.round(a.capacity) });
+        }
+        if ((a.sites || []).length > (b.sites || []).length) {
+          var ns = (a.sites || [])[(a.sites || []).length - 1];
+          news.push({ year: h.year, kind: "milestone", who: t.name, color: teamColor(t.name),
+                      text: (ns ? ns.countryName + " 진출 결정 (" + ns.modeName + ")" : "해외 진출 결정") });
+        }
+
+        /* 그 국면에 터진 사건 */
+        (h.report.events || []).forEach(function (ev) {
+          var full = window.DRB_EVENTS[ev.id] || ev;
+          news.push({
+            year: h.year, kind: "event", who: full.conditional ? t.name : "산업 전체",
+            color: full.conditional ? teamColor(t.name) : "var(--warn)",
+            text: full.headline || ev.title,
+            sub: ev.reactions && ev.reactions.length ? ev.reactions[0].text : ""
+          });
+        });
+      });
+    });
+
+    rivals.forEach(function (r) {
+      r.moves.forEach(function (m) {
+        news.push({ year: m.year, kind: "rival", who: r.def.name, color: r.def.color, text: m.text });
+      });
+    });
+
+    /* 최신순 */
+    news.sort(function (a, b) { return b.year - a.year; });
+    return news;
+  }
+
+  /* ============================================================
+     그리기
+     ============================================================ */
+  function render() {
+    var teams = collectTeams();
+    var rivals = collectRivals();
+
+    /* ---- 상단 : 지금 어느 시대인가 (가장 앞선 조 기준) ---- */
+    var maxTurns = teams.reduce(function (a, t) { return Math.max(a, t.turns); }, 0);
+    var allSubs = [];
+    window.DRB_ROUNDS.forEach(function (r) {
+      r.subrounds.forEach(function (s) { allSubs.push({ year: s.year, era: window.DRB_ERAS[r.era] }); });
+    });
+    var cur = allSubs[Math.min(maxTurns, allSubs.length - 1)];
+    el("bYear").textContent = cur ? cur.year : "-";
+    el("bEra").textContent = cur ? cur.era.name : "";
+    el("bProgress").textContent = "진행 " + maxTurns + " / " + allSubs.length;
+
+    renderTeams(teams, rivals);
+    renderMap(teams, rivals);
+    renderBar(teams, rivals);
+    renderNews(buildNews(teams, rivals));
+    renderCompare(teams);
+    renderCards(teams);
+  }
+
+  /* ---------- 왼쪽 : 조 카드 ---------- */
+  var BARS = [
+    { key: "cash",     name: "현금", max: 260, color: "var(--m-cash)" },
+    { key: "capacity", name: "생산", max: 100, color: "var(--m-capacity)" },
+    { key: "tech",     name: "기술", max: 100, color: "var(--m-tech)" },
+    { key: "quality",  name: "품질", max: 100, color: "var(--m-quality)" },
+    { key: "trust",    name: "신뢰", max: 100, color: "var(--m-trust)" }
+  ];
+
+  function barsHtml(state) {
+    return "<div class='team-card__bars'>" + BARS.map(function (b) {
+      var v = state ? state[b.key] : 0;
+      var pct = Math.max(3, Math.min(100, (v / b.max) * 100));
+      return "<div class='team-card__bar' title='" + b.name + " " + fmt(v) + "'>" +
+             "<div class='team-card__fill' style='height:" + pct + "%;background:" + b.color + "'></div>" +
+             "<div class='team-card__barlabel'>" + fmt(v) + "</div></div>";
+    }).join("") + "</div>";
+  }
+
+  function renderTeams(teams, rivals) {
+    var box = el("bTeams");
+    box.innerHTML = "";
+    if (!teams.length) {
+      box.innerHTML = "<p class='hint'>조가 게임을 시작하면 여기에 나타납니다.</p>";
+    }
+
+    teams.forEach(function (t) {
+      var ad = t.state ? window.DRBEngine.adaptiveCapacity(t.state) : { score: 0 };
+      var st = (t.state && t.turns > 0) ? window.DRBEngine.judgeStyle(t.state) : null;
+      var card = document.createElement("div");
+      card.className = "team-card";
+      card.style.borderLeftColor = teamColor(t.name);
+      card.innerHTML =
+        "<div class='team-card__head'>" +
+        "<span class='team-card__name'>" + esc(t.name) + "</span>" +
+        "<span class='team-card__pos'>" + esc(t.position) + "</span></div>" +
+        barsHtml(t.state) +
+        "<div class='team-card__meta'>" +
+        "<span>" + esc(t.policy) + "</span>" +
+        (st ? "<span>· " + esc(st.name) + "</span>" : "") +
+        "<span>· 대응력 " + ad.score + "</span>" +
+        (t.reason ? "<span style='color:var(--good)'>· 카드 ✔</span>" : "") +
+        "</div>";
+      box.appendChild(card);
+    });
+
+    var rbox = el("bRivals");
+    rbox.innerHTML = "";
+    if (!rivals.length) {
+      rbox.innerHTML = "<p class='hint'>—</p>";
+      return;
+    }
+    rivals.forEach(function (r) {
+      var last = r.moves.length ? r.moves[r.moves.length - 1] : null;
+      var card = document.createElement("div");
+      card.className = "team-card team-card--rival";
+      card.style.borderLeftColor = r.def.color;
+      card.innerHTML =
+        "<div class='team-card__head'>" +
+        "<span class='team-card__name'>" + esc(r.def.name) + "</span>" +
+        "<span class='team-card__pos'>" + esc(r.def.type) + "</span></div>" +
+        barsHtml(r.state) +
+        "<div class='team-card__meta'><span>" +
+        esc(last ? last.year + " " + last.text : "—") + "</span></div>";
+      rbox.appendChild(card);
+    });
+  }
+
+  /* ---------- 가운데 : 큰 지도 ---------- */
+  function renderMap(teams, rivals) {
+    var box = el("bMap");
+    box.innerHTML =
+      "<svg class='bigmap__svg' viewBox='0 0 100 50' preserveAspectRatio='none' aria-hidden='true'>" +
+      "<path class='bigmap__land' d='M8,14 L26,10 L32,20 L26,34 L16,40 L10,30 Z'/>" +
+      "<path class='bigmap__land' d='M22,38 L30,36 L32,46 L26,49 L21,44 Z'/>" +
+      "<path class='bigmap__land' d='M42,10 L56,8 L58,18 L50,22 L43,18 Z'/>" +
+      "<path class='bigmap__land' d='M44,24 L58,22 L60,38 L50,44 L44,34 Z'/>" +
+      "<path class='bigmap__land' d='M60,12 L86,10 L92,22 L84,32 L70,34 L62,24 Z'/>" +
+      "<path class='bigmap__land' d='M72,44 L88,42 L90,48 L74,49 Z'/>" +
+      "<line class='bigmap__grid' x1='0' y1='25' x2='100' y2='25'/>" +
+      "<line class='bigmap__grid' x1='50' y1='0' x2='50' y2='50'/>" +
+      "</svg>";
+
+    /* 지역별로 누가 있는지 모은다 */
+    var regions = {};
+    function addPin(regionId, label, color, stage) {
+      if (!regions[regionId]) regions[regionId] = [];
+      regions[regionId].push({ label: label, color: color, stage: stage });
+    }
+
+    /* 본국 — 모든 회사가 여기서 시작합니다 */
+    teams.forEach(function (t) { addPin("kr", t.name, teamColor(t.name), "running"); });
+    rivals.forEach(function (r) { addPin("kr", r.def.name, r.def.color, "running"); });
+
+    /* 해외 거점 */
+    teams.forEach(function (t) {
+      var seen = {};
+      ((t.state && t.state.sites) || []).forEach(function (s) {
+        var k = s.country + "_" + (s.stage === "build" ? "b" : "r");
+        if (seen[k]) return;
+        seen[k] = true;
+        addPin(s.country, t.name, teamColor(t.name), s.stage);
+      });
+    });
+    rivals.forEach(function (r) {
+      var seen = {};
+      ((r.state && r.state.sites) || []).forEach(function (s) {
+        if (seen[s.country]) return;
+        seen[s.country] = true;
+        addPin(s.country, r.def.name, r.def.color, s.stage);
+      });
+    });
+
+    /* 지역 노드 배치 */
+    var places = [{ id: G.home.id, name: G.home.name, map: G.home.map, home: true }]
+      .concat((G.countries || []).map(function (c) {
+        return { id: c.id, name: c.name, map: c.map };
+      }));
+
+    places.forEach(function (pl) {
+      var pins = regions[pl.id] || [];
+      var node = document.createElement("div");
+      node.className = "region" + (pl.home ? " region--home" : "");
+      node.style.left = pl.map.x + "%";
+      node.style.top = pl.map.y + "%";
+      node.innerHTML =
+        "<div class='region__name'>" + esc(pl.name) +
+        (pins.length ? " <span style='color:var(--text-3)'>(" + pins.length + ")</span>" : "") +
+        "</div><div class='region__pins'>" +
+        pins.map(function (p) {
+          return "<span class='pin" + (p.stage === "build" ? " pin--build" : "") + "'>" +
+                 "<span class='pin__dot' style='background:" + p.color + "'></span>" +
+                 esc(p.label) + "</span>";
+        }).join("") + "</div>";
+      box.appendChild(node);
+    });
+  }
+
+  /* ---------- 지도 아래 요약 ---------- */
+  function renderBar(teams, rivals) {
+    var bar = el("bBar");
+    var sites = 0, built = 0;
+    teams.forEach(function (t) {
+      ((t.state && t.state.sites) || []).forEach(function (s) {
+        sites++;
+        if (s.stage === "running" || s.stage === "expand") built++;
+      });
+    });
+    var avgAdapt = teams.length
+      ? Math.round(teams.reduce(function (a, t) {
+          return a + (t.state ? window.DRBEngine.adaptiveCapacity(t.state).score : 0); }, 0) / teams.length)
+      : 0;
+
+    bar.innerHTML =
+      "<span class='boardbar__item'><span class='boardbar__k'>참가 조</span>" +
+      "<span class='boardbar__v'>" + teams.length + "</span></span>" +
+      "<span class='boardbar__item'><span class='boardbar__k'>AI 경쟁사</span>" +
+      "<span class='boardbar__v'>" + rivals.length + "</span></span>" +
+      "<span class='boardbar__item'><span class='boardbar__k'>해외 거점</span>" +
+      "<span class='boardbar__v'>" + built + " 가동 / " + sites + " 전체</span></span>" +
+      "<span class='boardbar__item'><span class='boardbar__k'>평균 변화대응력</span>" +
+      "<span class='boardbar__v'>" + avgAdapt + "</span></span>" +
+      "<span class='spacer'></span>" +
+      "<span class='boardbar__item' style='color:var(--text-3)'>" +
+      "점선 핀 = 건설 중 · 실선 핀 = 가동</span>";
+  }
+
+  /* ---------- 오른쪽 : 뉴스 ---------- */
+  function renderNews(news) {
+    var box = el("bNews");
+    box.innerHTML = "";
+    el("bNewsCount").textContent = news.length;
+
+    if (!news.length) {
+      box.innerHTML = "<p class='hint'>조가 결정을 내리면 이곳에 산업 뉴스가 흐릅니다.</p>";
+      return;
+    }
+
+    news.slice(0, 60).forEach(function (n) {
+      var d = document.createElement("div");
+      d.className = "news-item news-item--" + n.kind;
+      if (n.color && n.kind !== "event") d.style.borderLeftColor = n.color;
+      d.innerHTML =
+        "<div class='news-item__meta'>" +
+        "<span class='num'>" + n.year + "</span>" +
+        "<span class='news-item__who' style='color:" + (n.color || "var(--text-2)") + "'>" +
+        esc(n.who) + "</span></div>" +
+        "<div class='news-item__text'>" + esc(n.text) + "</div>" +
+        (n.sub ? "<div class='news-item__sub'>" + esc(n.sub) + "</div>" : "");
+      box.appendChild(d);
+    });
+  }
+
+  /* ---------- 서랍 : 같은 상황 다른 결정 ---------- */
+  function roundSummary(t) {
+    var out = {};
+    if (t.history) {
+      t.history.forEach(function (h) {
+        if (!out[h.roundId]) out[h.roundId] = {};
+        Object.keys(h.allocation || {}).forEach(function (k) {
+          out[h.roundId][k] = (out[h.roundId][k] || 0) + h.allocation[k];
+        });
+      });
+    } else if (t.pasted) {
+      (t.pasted.p || []).forEach(function (h) {
+        var rid = "r" + h.r;
+        if (!out[rid]) out[rid] = {};
+        Object.keys(h.a || {}).forEach(function (k) { out[rid][k] = (out[rid][k] || 0) + h.a[k]; });
+      });
+    }
+    var res = {};
+    Object.keys(out).forEach(function (rid) {
+      res[rid] = Object.keys(out[rid])
+        .filter(function (k) { return out[rid][k] > 0; })
+        .sort(function (a, b) { return out[rid][b] - out[rid][a]; })
+        .slice(0, 2)
+        .map(function (k) { return investName(k) + " " + out[rid][k]; })
+        .join(" · ") || "투자 없음";
+    });
+    return res;
+  }
+
+  function renderCompare(teams) {
+    var box = el("bCompare");
+    box.innerHTML = "";
+    var played = teams.filter(function (t) { return t.turns > 0; });
+    if (!played.length) {
+      box.innerHTML = "<p class='hint'>조가 시대를 마치면 비교가 나타납니다.</p>";
+      return;
+    }
+    played.forEach(function (t) { t._sum = roundSummary(t); });
+
+    window.DRB_ROUNDS.forEach(function (r) {
+      var rows = played.filter(function (t) { return t._sum[r.id]; }).map(function (t) {
+        return "<div class='breakdown__row'>" +
+               "<span class='breakdown__label'><b style='color:" + teamColor(t.name) + "'>" +
+               esc(t.name) + "</b></span>" +
+               "<span class='breakdown__value' style='min-width:230px;text-align:right'>" +
+               esc(t._sum[r.id]) + "</span></div>";
+      }).join("");
+      if (!rows) return;
+      var card = document.createElement("div");
+      card.className = "card card--flat";
+      card.style.marginBottom = "var(--sp-3)";
+      card.innerHTML = "<div class='card__head'><span class='card__title'>ERA " + r.no + " · " +
+                       esc(r.title) + "</span><span class='spacer'></span><span class='chip'>" +
+                       esc(window.DRB_ERAS[r.era].yearLabel) + "</span></div>" +
+                       "<div class='breakdown'>" + rows + "</div>";
+      box.appendChild(card);
+    });
+  }
+
+  /* ---------- 서랍 : 결정 카드 ---------- */
+  function renderCards(teams) {
+    var box = el("bCards");
+    box.innerHTML = "";
+    var any = false;
+
+    teams.forEach(function (t) {
+      if (!t.reason) return;
+      any = true;
+      var gapRound = null;
+      window.DRB_ROUNDS.forEach(function (r) { if (r.id === t.gapPick) gapRound = r; });
+      var actual = gapRound ? window.DRB_ACTUAL[gapRound.actualId] : null;
+      var sum = t._sum || roundSummary(t);
+
+      var d = document.createElement("div");
+      d.className = "fac-question";
+      d.style.borderLeftColor = teamColor(t.name);
+      d.innerHTML =
+        "<div class='fac-question__team' style='color:" + teamColor(t.name) + "'>" + esc(t.name) +
+        (gapRound ? " · ERA " + gapRound.no + " (" + esc(gapRound.title) + ")" : "") + "</div>" +
+        (gapRound && sum[gapRound.id]
+          ? "<div style='font-size:var(--fs-small);color:var(--text-2);margin-bottom:6px'>우리의 선택 — " +
+            esc(sum[gapRound.id]) + "</div>" : "") +
+        "<div style='font-size:var(--fs-small);color:var(--fact-text);margin-bottom:10px'>실제 DRB — " +
+        esc(actual && actual.filled ? actual.choice.split("\n")[0] : "[DRB 실제 사례 입력 예정]") + "</div>" +
+        "<div class='fac-question__text'>" + esc(t.reason) + "</div>";
+      box.appendChild(d);
+    });
+
+    if (!any) box.innerHTML = "<p class='hint'>아직 제출된 결정 카드가 없습니다.</p>";
+  }
+
+  /* ============================================================
+     결과 코드 붙여넣기
+     ============================================================ */
+  function openPaste() {
+    el("modalTitle").textContent = "다른 PC 조 추가";
+    el("modalBody").innerHTML =
+      "<p class='hint'>각 조 화면의 <b>[진행자에게 보낼 결과 코드 복사]</b>로 받은 코드를 붙여넣으세요.</p>" +
+      "<textarea class='textarea' id='pasteInput' style='min-height:140px'></textarea>" +
+      "<div class='row' style='margin-top:var(--sp-4)'><button class='btn btn--primary' id='pasteOk'>확인</button></div>";
+    el("modal").classList.add("is-open");
+    el("pasteOk").onclick = applyPaste;
+    el("pasteInput").focus();
+  }
+
+  function applyPaste() {
+    var code = el("pasteInput").value.trim();
+    if (!code) { toast("코드가 비어 있습니다."); return; }
+    var obj = null;
+    try { obj = JSON.parse(decodeURIComponent(escape(atob(code)))); }
+    catch (e) { toast("코드를 읽지 못했습니다."); return; }
+    if (!obj || !obj.t || !obj.s) { toast("올바른 결과 코드가 아닙니다."); return; }
+
+    var list = readPasted().filter(function (x) { return x.t !== obj.t; });
+    list.push(obj);
+    localStorage.setItem(PASTED_KEY, JSON.stringify(list));
+    el("modal").classList.remove("is-open");
+    toast(obj.t + " 결과를 받았습니다.");
+    render();
+  }
+
+  function clearPasted() {
+    if (!confirm("붙여넣은 조 데이터를 모두 지울까요?")) return;
+    localStorage.removeItem(PASTED_KEY);
+    toast("비웠습니다.");
+    render();
+  }
+
+  /* ============================================================
+     연결
+     ============================================================ */
+  el("btnRefresh").onclick = render;
+  el("btnPaste").onclick = openPaste;
+  el("btnClearPasted").onclick = clearPasted;
+  el("btnPrint").onclick = function () { window.print(); };
+  el("btnDrawer").onclick = function () { el("bDrawer").classList.toggle("is-open"); };
+  el("btnDrawerClose").onclick = function () { el("bDrawer").classList.remove("is-open"); };
+  el("modalClose").onclick = function () { el("modal").classList.remove("is-open"); };
+  el("modal").onclick = function (e) { if (e.target === this) this.classList.remove("is-open"); };
+
+  render();
+  setInterval(render, 3000);
+}
+
+/* 외부 스크립트가 모두 읽힌 뒤에 시작합니다 */
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", startFacilitator);
+} else {
+  startFacilitator();
+}
+</script>
+
+</body>
+</html>

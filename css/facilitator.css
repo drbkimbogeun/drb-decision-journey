@@ -1,0 +1,357 @@
+/* ============================================================
+   facilitator.css — 진행자 화면 (지도 중심)
+
+   대시보드가 아니라 '판'을 봅니다.
+   가운데 큰 지도에 각 조와 경쟁사의 거점이 놓이고,
+   오른쪽으로 뉴스가 흐릅니다.
+   ============================================================ */
+
+body.fac-body {
+  overflow: hidden;
+  background: var(--bg-0);
+}
+
+.board {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100vh;
+}
+
+/* ---------- 상단 바 ---------- */
+.board__top {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-3) var(--sp-5);
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-1);
+}
+
+.board__title {
+  font-size: 18px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.board__era {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+}
+
+.board__year {
+  font-family: var(--font-num);
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--drb-red);
+  line-height: 1;
+}
+
+.board__eraname {
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+
+/* ---------- 본문 3단 ---------- */
+.board__main {
+  display: grid;
+  grid-template-columns: 268px 1fr 320px;
+  min-height: 0;
+}
+
+@media (max-width: 1400px) {
+  .board__main { grid-template-columns: 232px 1fr 280px; }
+}
+
+@media (max-width: 1100px) {
+  .board__main { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; }
+  .board__side, .board__news { max-height: 240px; }
+}
+
+.board__side,
+.board__news {
+  overflow-y: auto;
+  padding: var(--sp-4);
+  background: var(--bg-1);
+}
+
+.board__side { border-right: 1px solid var(--line); }
+.board__news { border-left: 1px solid var(--line); }
+
+.board__stage {
+  position: relative;
+  min-width: 0;
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+/* ---------- 조 카드 (왼쪽) ---------- */
+.team-card {
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  margin-bottom: var(--sp-2);
+  border-left: 4px solid var(--line-strong);
+  cursor: default;
+  transition: border-color var(--t-fast), background var(--t-fast);
+}
+
+.team-card:hover { background: var(--bg-3); }
+
+.team-card__head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: 6px;
+}
+
+.team-card__name {
+  font-weight: 800;
+  font-size: 15px;
+}
+
+.team-card__pos {
+  margin-left: auto;
+  font-size: var(--fs-tiny);
+  color: var(--text-3);
+}
+
+.team-card__bars {
+  display: flex;
+  gap: 3px;
+  margin-top: 6px;
+}
+
+.team-card__bar {
+  flex: 1;
+  height: 22px;
+  border-radius: 3px;
+  background: var(--bg-inset);
+  position: relative;
+  overflow: hidden;
+}
+
+.team-card__fill {
+  position: absolute;
+  inset: auto 0 0 0;
+  border-radius: 3px 3px 0 0;
+}
+
+.team-card__barlabel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-1);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+}
+
+.team-card__meta {
+  display: flex;
+  gap: var(--sp-2);
+  margin-top: 6px;
+  font-size: var(--fs-tiny);
+  color: var(--text-3);
+  flex-wrap: wrap;
+}
+
+.team-card--rival {
+  background: var(--bg-inset);
+  border-left-style: dashed;
+}
+
+/* ---------- 큰 지도 ---------- */
+.bigmap {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 260px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--line-strong);
+  background:
+    radial-gradient(ellipse at 50% 40%, rgba(88,166,255,0.06), transparent 70%),
+    var(--bg-inset);
+  overflow: hidden;
+}
+
+.bigmap__svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.bigmap__land {
+  fill: var(--bg-3);
+  stroke: var(--line-strong);
+  stroke-width: 0.25;
+}
+
+.bigmap__grid {
+  stroke: var(--line);
+  stroke-width: 0.15;
+  opacity: 0.5;
+}
+
+.region {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+}
+
+.region__name {
+  font-size: var(--fs-tiny);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+  margin-bottom: 4px;
+  white-space: nowrap;
+}
+
+.region__pins {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  justify-content: center;
+  max-width: 130px;
+}
+
+.pin {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: var(--r-pill);
+  font-size: 10px;
+  font-weight: 800;
+  border: 1px solid var(--bg-0);
+  background: var(--bg-3);
+  color: var(--text-1);
+  white-space: nowrap;
+}
+
+.pin--build {
+  opacity: 0.75;
+  border-style: dashed;
+  animation: map-pulse 1.8s infinite;
+}
+
+.pin__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.region--home .region__name { color: var(--drb-red); }
+
+/* ---------- 지도 아래 요약 ---------- */
+.boardbar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  font-size: var(--fs-small);
+}
+
+.boardbar__item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-2);
+}
+
+.boardbar__k {
+  font-size: var(--fs-tiny);
+  color: var(--text-3);
+}
+
+.boardbar__v {
+  font-family: var(--font-num);
+  font-weight: 700;
+  color: var(--text-1);
+}
+
+/* ---------- 뉴스 피드 (오른쪽) ---------- */
+.newsfeed__head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+}
+
+.news-item {
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line-strong);
+  margin-bottom: var(--sp-2);
+  animation: feed-in 0.4s ease;
+}
+
+.news-item--team   { border-left-color: var(--info); }
+.news-item--rival  { border-left-color: var(--text-3); }
+.news-item--event  { border-left-color: var(--warn); background: var(--warn-soft); }
+.news-item--milestone { border-left-color: var(--drb-red); }
+
+.news-item__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-tiny);
+  color: var(--text-3);
+  margin-bottom: 3px;
+}
+
+.news-item__who {
+  font-weight: 800;
+  color: var(--text-2);
+}
+
+.news-item__text {
+  font-size: var(--fs-small);
+  line-height: 1.55;
+  color: var(--text-1);
+}
+
+.news-item__sub {
+  font-size: var(--fs-tiny);
+  color: var(--text-3);
+  margin-top: 3px;
+}
+
+/* ---------- 하단 패널 (질문·비교) ---------- */
+.board__drawer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: 62vh;
+  overflow-y: auto;
+  background: var(--bg-1);
+  border-top: 1px solid var(--line-strong);
+  box-shadow: 0 -12px 32px rgba(0,0,0,0.4);
+  padding: var(--sp-5);
+  transform: translateY(102%);
+  transition: transform var(--t-base);
+  z-index: 20;
+}
+
+.board__drawer.is-open { transform: none; }
+
+.drawer__handle {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+}
