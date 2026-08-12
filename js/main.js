@@ -23,6 +23,7 @@
   var stopLapse = null;
   var waitingEvent = false;
   var waitingActual = false;
+  var waitingBriefing = false;
   var lapseTurn = -1;
   var lastLiveEventOpen = null;
   var lastLiveActualOpen = null;
@@ -54,6 +55,14 @@
     var revealed = control.revealedActual;
     if (!/^r[1-3]$/.test(revealed || "")) return false;
     return Number(revealed.slice(1)) >= S.round().no;
+  }
+
+  function liveNextBriefingOpen() {
+    var control = liveControl();
+    if (!control) return true;
+    var target = S.turnIndex() + 1;
+    return control.currentTurn > target ||
+      (control.currentTurn === target && control.stage !== 'lobby');
   }
 
   function publishLiveState() {
@@ -189,6 +198,12 @@
   function render() {
     UI.renderTopbar();
     UI.renderSide();
+
+    if (waitingBriefing && !liveNextBriefingOpen()) {
+      showScreen('timelapse');
+      UI.renderLiveWait('briefing');
+      return;
+    }
 
     var phase = S.phase();
     stopTimer();
@@ -426,6 +441,12 @@
       }
       S.setPhase("actual");
     } else {
+      if (liveControl() && !liveNextBriefingOpen()) {
+        waitingBriefing = true;
+        showScreen('timelapse');
+        UI.renderLiveWait('briefing');
+        return;
+      }
       S.advance();          // 다음 소라운드
     }
     lastResult = null;
@@ -461,6 +482,12 @@
     if (S.isLastRound()) {
       S.setPhase("ending");
     } else {
+      if (liveControl() && !liveNextBriefingOpen()) {
+        waitingBriefing = true;
+        showScreen('timelapse');
+        UI.renderLiveWait('briefing');
+        return;
+      }
       S.advance();          // 다음 시대
     }
     lastResult = null;
