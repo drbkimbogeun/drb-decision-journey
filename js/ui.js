@@ -506,9 +506,13 @@ window.DRBUI = (function () {
     var fig = el("siFigure");
     clearNode(fig);
     if (sr.situation.image) {
+      fig.classList.add("is-loading");
       var img = new Image();
       img.alt = sr.situation.imageAlt || "";
+      img.decoding = "async";
+      img.onload = function () { fig.classList.remove("is-loading"); };
       img.onerror = function () {
+        fig.classList.remove("is-loading");
         clearNode(fig);
         var ph = document.createElement("div");
         ph.className = "img-placeholder";
