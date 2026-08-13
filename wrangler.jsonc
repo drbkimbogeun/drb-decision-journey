@@ -13,11 +13,19 @@
       {
         "name": "GAME_SESSION",
         "class_name": "GameSession"
+      },
+      {
+        "name": "REQUEST_GATE",
+        "class_name": "RequestGate"
       }
     ]
   },
   "exports": {
     "GameSession": {
+      "type": "durable-object",
+      "storage": "sqlite"
+    },
+    "RequestGate": {
       "type": "durable-object",
       "storage": "sqlite"
     }

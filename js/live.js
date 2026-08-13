@@ -29,6 +29,34 @@
     }
   }
 
+  function base64UrlEncode(value) {
+    var bytes = new TextEncoder().encode(value);
+    var binary = "";
+    bytes.forEach(function (byte) { binary += String.fromCharCode(byte); });
+    return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+  }
+
+  function base64UrlDecode(value) {
+    var normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+    while (normalized.length % 4) normalized += "=";
+    var binary = atob(normalized);
+    var bytes = Uint8Array.from(binary, function (ch) { return ch.charCodeAt(0); });
+    return new TextDecoder().decode(bytes);
+  }
+
+  function validFacilitatorCredentials(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+    if (!/^[A-HJ-NP-Z2-9]{6}$/.test(value.sessionId || "") ||
+        !/^[A-Za-z0-9_-]{43}$/.test(value.facilitatorSecret || "") ||
+        !/^\d{4}$/.test(String(value.pin || "")) ||
+        !Number.isInteger(value.teamCount) || value.teamCount < 1 || value.teamCount > 6 ||
+        !value.teamClaims || typeof value.teamClaims !== "object" || Array.isArray(value.teamClaims)) return false;
+    for (var index = 1; index <= value.teamCount; index += 1) {
+      if (!/^[A-Za-z0-9_-]{43}$/.test(value.teamClaims[index + "조"] || "")) return false;
+    }
+    return true;
+  }
+
   function cleanText(value, limit) {
     return typeof value === "string"
       ? value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, limit)
@@ -271,6 +299,7 @@
       sessionId: payload.session.id,
       facilitatorSecret: payload.facilitatorSecret,
       pin: payload.pin,
+      teamClaims: payload.teamClaims || {},
       teamCount: payload.session.teamCount,
     };
     setStore(window.sessionStorage, FACILITATOR_KEY, credentials);
@@ -280,13 +309,15 @@
       sessionId: credentials.sessionId,
       pin: payload.pin,
       facilitatorSecret: credentials.facilitatorSecret,
+      teamClaims: credentials.teamClaims,
       teamCount: credentials.teamCount,
       raw: payload,
     };
   }
 
-  async function join(sessionId, pin, teamName) {
+  async function join(sessionId, pin, teamName, claimSecret) {
     if (sessionId && typeof sessionId === "object") {
+      claimSecret = sessionId.claimSecret;
       teamName = sessionId.teamName;
       pin = sessionId.pin;
       sessionId = sessionId.sessionId;
@@ -294,10 +325,22 @@
     sessionId = normalizeSessionId(sessionId);
     teamName = cleanText(teamName, 8);
     if (!/^[1-6]조$/u.test(teamName)) throw new Error("팀 이름은 1조~6조 형식이어야 합니다.");
-    if (!/^\d{4}$/.test(String(pin || ""))) throw new Error("PIN은 4자리 숫자입니다.");
+    var prior = teamCredentials();
+    var reconnecting = prior && prior.sessionId === sessionId && prior.teamName === teamName && prior.teamToken;
+    if (!reconnecting && !/^\d{4}$/.test(String(pin || ""))) throw new Error("PIN은 4자리 숫자입니다.");
+    if (!reconnecting && !/^[A-Za-z0-9_-]{43}$/.test(String(claimSecret || ""))) throw new Error("이 조의 참가 링크가 필요합니다.");
+    var joinHeaders = reconnecting
+      ? authHeader(prior.teamToken)
+      : {};
+    var joinBody = { teamName: teamName };
+    if (!reconnecting) {
+      joinBody.pin = String(pin);
+      joinBody.claimSecret = String(claimSecret);
+    }
     var payload = await api("/api/session/" + sessionId + "/join", {
       method: "POST",
-      body: { pin: String(pin), teamName: teamName },
+      headers: joinHeaders,
+      body: joinBody,
     });
     var credentials = { sessionId: sessionId, teamName: payload.teamName, teamToken: payload.teamToken };
     setStore(window.localStorage, TEAM_KEY, credentials);
@@ -313,11 +356,20 @@
 
   async function joinFromUrl() {
     var params = new URLSearchParams(window.location.search);
+    var secrets = new URLSearchParams(window.location.hash.replace(/^#/, ""));
     var sessionId = params.get("session");
-    var pin = params.get("pin");
+    var pin = secrets.get("pin") || params.get("pin");
     var teamName = params.get("team");
-    if (!sessionId || !pin || !teamName) return null;
-    return join(sessionId, pin, teamName);
+    var claimSecret = secrets.get("claim") || params.get("claim");
+    var prior = teamCredentials();
+    if (!sessionId || !teamName) return null;
+    var reconnecting = prior && prior.sessionId === normalizeSessionId(sessionId) && prior.teamName === cleanText(teamName, 8);
+    if (!reconnecting && (!pin || !claimSecret)) return null;
+    var joined = await join(sessionId, pin, teamName, claimSecret);
+    if (window.location.hash && window.history && window.history.replaceState) {
+      window.history.replaceState(null, document.title, window.location.pathname + window.location.search);
+    }
+    return joined;
   }
 
   async function publish(data, teamName) {
@@ -372,6 +424,45 @@
     return payload;
   }
 
+  async function resetTeam(teamName) {
+    var credentials = facilitatorCredentials();
+    if (!credentials) throw new Error("이 브라우저에 진행자 세션 인증 정보가 없습니다.");
+    teamName = cleanText(teamName, 8);
+    if (!/^[1-6]조$/u.test(teamName)) throw new Error("초기화할 조 이름이 올바르지 않습니다.");
+    return api("/api/session/" + credentials.sessionId + "/team-reset", {
+      method: "PUT",
+      headers: authHeader(credentials.facilitatorSecret),
+      body: { teamName: teamName },
+    });
+  }
+
+  function facilitatorRecoveryLink() {
+    var credentials = facilitatorCredentials();
+    if (!validFacilitatorCredentials(credentials)) throw new Error("진행자 복구 정보를 만들 수 없습니다.");
+    var base = window.location.origin + window.location.pathname;
+    return base + "#recover=" + base64UrlEncode(JSON.stringify(credentials));
+  }
+
+  function restoreFacilitatorFromUrl() {
+    var params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    var encoded = params.get("recover");
+    if (!encoded) return null;
+    try {
+      if (!/^[A-Za-z0-9_-]{80,4096}$/.test(encoded)) throw new Error("format");
+      var credentials = JSON.parse(base64UrlDecode(encoded));
+      if (!validFacilitatorCredentials(credentials)) throw new Error("credentials");
+      setStore(window.sessionStorage, FACILITATOR_KEY, credentials);
+      setStore(window.localStorage, META_KEY, { sessionId: credentials.sessionId, role: "facilitator" });
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState(null, document.title, window.location.pathname + window.location.search);
+      }
+      emit("drb-live-status", { connected: true, role: "facilitator", sessionId: credentials.sessionId, recovered: true });
+      return { sessionId: credentials.sessionId, teamCount: credentials.teamCount };
+    } catch (_) {
+      throw new Error("진행자 복구 링크가 올바르지 않습니다.");
+    }
+  }
+
   async function leave(options) {
     options = options || {};
     var facilitator = facilitatorCredentials();
@@ -419,6 +510,9 @@
     publishHook: publishHook,
     snapshot: snapshot,
     control: control,
+    resetTeam: resetTeam,
+    facilitatorRecoveryLink: facilitatorRecoveryLink,
+    restoreFacilitatorFromUrl: restoreFacilitatorFromUrl,
     leave: leave,
     snapshotFromState: snapshotFromState,
     facilitatorCredentials: facilitatorCredentials,

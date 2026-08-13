@@ -560,13 +560,68 @@
   function showSessionDetails(creds) {
     var base = location.origin + location.pathname.replace(/facilitator(?:\.html)?$/, "");
     var links = (CFG.teamNames || []).slice(0, creds.teamCount || 6).map(function (name) {
-      var url = base + "?session=" + encodeURIComponent(creds.sessionId) + "&pin=" + encodeURIComponent(creds.pin) + "&team=" + encodeURIComponent(name);
-      return "<div class='card card--flat' style='margin-top:8px'><b>" + esc(name) + "</b><br><a href='" + esc(url) + "' target='_blank' rel='noopener'>" + esc(url) + "</a></div>";
+      var claim = creds.teamClaims && creds.teamClaims[name];
+      if (!claim) return "<div class='card card--flat' style='margin-top:8px'><b>" + esc(name) + "</b><br><span class='hint'>보안 참가키 없음 · 새 세션을 만들어주세요.</span></div>";
+      var url = base + "?session=" + encodeURIComponent(creds.sessionId) + "&team=" + encodeURIComponent(name) +
+        "#pin=" + encodeURIComponent(creds.pin) + "&claim=" + encodeURIComponent(claim);
+      return "<div class='card card--flat' style='margin-top:8px'><b>" + esc(name) + "</b><br><button class='btn btn--ghost fac-team-link-copy' type='button' data-team='" + esc(name) + "' data-url='" + esc(url) + "'>" + esc(name) + " 전용 링크 복사</button><button class='btn btn--ghost fac-team-reset' type='button' data-team='" + esc(name) + "'>재연결 초기화</button></div>";
     }).join("");
-    openModal("세션 " + creds.sessionId, "<div class='fac-brief__facts'><div class='fac-brief__fact'><div class='fac-brief__fact-label'>세션 코드</div><div class='fac-brief__fact-value num'>" + esc(creds.sessionId) + "</div></div><div class='fac-brief__fact'><div class='fac-brief__fact-label'>참가 PIN</div><div class='fac-brief__fact-value num'>" + esc(creds.pin) + "</div></div></div><p class='hint'>아래 링크를 각 조에 전달하세요. 진행자 비밀키는 이 브라우저에만 저장됩니다.</p>" + links + "<div class='row' style='margin-top:var(--sp-4)'><button class='btn btn--ghost' id='sessionCopy'>전체 링크 복사</button></div>");
+    openModal("세션 " + creds.sessionId, "<div class='fac-brief__facts'><div class='fac-brief__fact'><div class='fac-brief__fact-label'>세션 코드</div><div class='fac-brief__fact-value num'>" + esc(creds.sessionId) + "</div></div><div class='fac-brief__fact'><div class='fac-brief__fact-label'>자동 종료</div><div class='fac-brief__fact-value'>생성 후 24시간</div></div></div><p class='hint'>각 조에는 자기 조 전용 링크만 전달하세요. 참가키와 PIN은 링크 안에 숨겨지고 첫 연결 뒤 주소창에서 제거됩니다. 진행자 비밀키는 이 탭에만 저장됩니다.</p>" + links + "<div class='row' style='margin-top:var(--sp-4)'><button class='btn btn--ghost' id='sessionCopy'>전체 링크 복사</button><button class='btn btn--ghost' id='sessionRecovery'>진행자 복구 링크 복사</button><button class='btn btn--ghost' id='sessionEnd'>세션 종료·데이터 삭제</button></div>");
+    el("modalBody").querySelectorAll(".fac-team-link-copy").forEach(function (button) {
+      button.onclick = function () {
+        if (navigator.clipboard) navigator.clipboard.writeText(button.dataset.url).then(function () { toast(button.dataset.team + " 링크를 복사했습니다."); });
+      };
+    });
+    el("modalBody").querySelectorAll(".fac-team-reset").forEach(function (button) {
+      button.onclick = function () {
+        var teamName = button.dataset.team;
+        openModal(teamName + " 재연결을 초기화할까요?", "<div class='card card--flat' style='border-color:var(--warn);box-shadow:inset 4px 0 var(--warn)'><b>" + esc(teamName) + "의 현재 연결과 실시간 진행 사본만 삭제됩니다.</b><br>기존 참가 화면은 더 이상 전송할 수 없고, 새 기기에서 같은 조 전용 링크로 다시 입장해야 합니다.</div><p class='hint'>참가 기기 고장·브라우저 저장소 삭제 때만 사용하세요. 다른 조와 전체 세션에는 영향이 없습니다.</p><div class='row' style='margin-top:var(--sp-4)'><button class='btn btn--ghost' id='teamResetCancel'>취소하고 돌아가기</button><button class='btn btn--primary' id='teamResetConfirm'>" + esc(teamName) + " 재연결 초기화</button></div>");
+        el("teamResetCancel").onclick = function () { showSessionDetails(creds); };
+        el("teamResetConfirm").onclick = function () {
+          el("teamResetConfirm").disabled = true;
+          el("teamResetConfirm").textContent = "초기화 중…";
+          window.DRBLive.resetTeam(teamName).then(function () {
+            toast(teamName + " 연결을 초기화했습니다. 조 전용 링크를 다시 전달하세요.");
+            showSessionDetails(creds);
+          }).catch(function (error) {
+            el("teamResetConfirm").disabled = false;
+            el("teamResetConfirm").textContent = teamName + " 재연결 초기화";
+            toast(error.message || "조 재연결 초기화에 실패했습니다.");
+          });
+        };
+      };
+    });
     el("sessionCopy").onclick = function () {
-      var text = Array.prototype.map.call(el("modalBody").querySelectorAll("a"), function (a) { return a.parentElement.querySelector("b").textContent + ": " + a.href; }).join("\n");
+      var text = Array.prototype.map.call(el("modalBody").querySelectorAll(".fac-team-link-copy"), function (button) { return button.dataset.team + ": " + button.dataset.url; }).join("\n");
       if (navigator.clipboard) navigator.clipboard.writeText(text).then(function () { toast("조별 링크를 복사했습니다."); });
+    };
+    el("sessionRecovery").onclick = function () {
+      var recoveryUrl;
+      try { recoveryUrl = window.DRBLive.facilitatorRecoveryLink(); }
+      catch (error) { toast(error.message || "복구 링크를 만들지 못했습니다."); return; }
+      if (navigator.clipboard) navigator.clipboard.writeText(recoveryUrl).then(function () {
+        toast("진행자 복구 링크를 복사했습니다. 비밀번호처럼 안전하게 보관하세요.");
+      });
+    };
+    el("sessionEnd").onclick = function () {
+      openModal("세션을 영구 종료할까요?", "<div class='card card--flat' style='border-color:var(--bad);box-shadow:inset 4px 0 var(--bad)'><b>" + esc(creds.sessionId) + " 세션의 실시간 데이터가 즉시 삭제됩니다.</b><br>연결된 모든 조가 끊기며 이 작업은 되돌릴 수 없습니다.</div><p class='hint'>교육을 마쳤거나 잘못 만든 세션일 때만 삭제하세요.</p><div class='row' style='margin-top:var(--sp-4)'><button class='btn btn--ghost' id='sessionEndCancel'>취소하고 돌아가기</button><button class='btn btn--primary' id='sessionEndConfirm'>세션 영구 삭제</button></div>");
+      el("sessionEndCancel").onclick = function () { showSessionDetails(creds); };
+      el("sessionEndConfirm").onclick = function () {
+        el("sessionEndConfirm").disabled = true;
+        el("sessionEndConfirm").textContent = "삭제 중…";
+        window.DRBLive.leave({ destroy: true }).then(function () {
+          clearInterval(liveTimer);
+          liveTimer = null;
+          liveSnapshot = null;
+          closeModal();
+          render();
+          toast("세션과 실시간 진행 데이터를 삭제했습니다.");
+        }).catch(function (error) {
+          el("sessionEndConfirm").disabled = false;
+          el("sessionEndConfirm").textContent = "세션 영구 삭제";
+          toast(error.message || "세션 종료에 실패했습니다.");
+        });
+      };
     };
   }
 
@@ -584,7 +639,13 @@
   function bind() {
     document.querySelectorAll("[data-stage]").forEach(function (button) { button.onclick = function () { showStage(button.dataset.stage, true); }; });
     el("btnPrev").onclick = function () { selectedTurn = Math.max(0, selectedTurn - 1); manualTurn = true; render(); };
-    el("btnNext").onclick = function () { selectedTurn = Math.min(Math.min(minTurns, timeline.length - 1), selectedTurn + 1); manualTurn = true; render(); };
+    el("btnNext").onclick = function () {
+      selectedTurn = Math.min(Math.min(minTurns, timeline.length - 1), selectedTurn + 1);
+      manualTurn = true;
+      currentStage = "briefing";
+      render();
+      showStage("briefing", true);
+    };
     el("btnRevealActual").onclick = function () {
       var round = timeline[selectedTurn].round;
       if (!allCompletedRound(collectTeams(), round)) return;
@@ -603,6 +664,14 @@
   }
 
   function boot() {
+    if (window.DRBLive && window.DRBLive.restoreFacilitatorFromUrl) {
+      try {
+        var recovered = window.DRBLive.restoreFacilitatorFromUrl();
+        if (recovered) setTimeout(function () { toast("진행자 세션 " + recovered.sessionId + "을 복원했습니다."); }, 0);
+      } catch (error) {
+        setTimeout(function () { toast(error.message || "진행자 복구 링크를 읽지 못했습니다."); }, 0);
+      }
+    }
     bind();
     render();
     startLivePolling();

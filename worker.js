@@ -66,6 +66,16 @@ function assertSameOrigin(request) {
   }
 }
 
+function assertBrowserSameOrigin(request) {
+  const origin = request.headers.get("origin");
+  if (!origin) throw new ApiError(403, "Same-origin browser required.", "ORIGIN_REQUIRED");
+  assertSameOrigin(request);
+  const site = request.headers.get("sec-fetch-site");
+  if (site && site !== "same-origin") {
+    throw new ApiError(403, "Same-origin requests only.", "CROSS_ORIGIN_DENIED");
+  }
+}
+
 function corsHeaders(request) {
   // Public mutations separately require an explicit same-origin browser Origin.
   const headers = new Headers({
@@ -142,6 +152,13 @@ function randomSecret() {
 async function sha256(value) {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function clientAddress(request) {
+  const cloudflareAddress = cleanText(request.headers.get("cf-connecting-ip"), 64);
+  if (cloudflareAddress) return cloudflareAddress;
+  const forwarded = cleanText((request.headers.get("x-forwarded-for") || "").split(",")[0], 64);
+  return forwarded || "local-development";
 }
 
 function cleanText(value, maxLength, fallback = "") {
@@ -337,9 +354,97 @@ function sanitizeControlPatch(value, current) {
   return next;
 }
 
+export class RequestGate extends DurableObject {
+  constructor(ctx, env) {
+    super(ctx, env);
+    this.sql = ctx.storage.sql;
+    this.sql.exec(`
+      CREATE TABLE IF NOT EXISTS rate_buckets (
+        bucket_key TEXT PRIMARY KEY,
+        window_start INTEGER NOT NULL,
+        count INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS live_sessions (
+        code TEXT PRIMARY KEY,
+        expires_at INTEGER NOT NULL
+      );
+    `);
+  }
+
+  first(query, ...bindings) {
+    return [...this.sql.exec(query, ...bindings)][0] || null;
+  }
+
+  async fetch(request) {
+    try {
+      if (request.method !== "POST") methodNotAllowed(["POST"]);
+      const url = new URL(request.url);
+      const body = await readJson(request, 16 * 1024);
+      const now = Date.now();
+      this.sql.exec("DELETE FROM rate_buckets WHERE expires_at <= ?", now);
+      this.sql.exec("DELETE FROM live_sessions WHERE expires_at <= ?", now);
+
+      if (url.pathname === "/consume") {
+        const rules = Array.isArray(body.rules) ? body.rules : [];
+        if (!rules.length || rules.length > 6) throw new ApiError(400, "Invalid rate rules.", "INVALID_RATE_RULES");
+        const checked = rules.map((rule) => {
+          const key = cleanId(rule && rule.key, 160);
+          const limit = boundedInteger(rule && rule.limit, 1, 10000, 0);
+          const windowMs = boundedInteger(rule && rule.windowMs, 60000, 24 * 60 * 60 * 1000, 0);
+          if (!key || !limit || !windowMs) throw new ApiError(400, "Invalid rate rule.", "INVALID_RATE_RULE");
+          const windowStart = Math.floor(now / windowMs) * windowMs;
+          const row = this.first("SELECT window_start, count FROM rate_buckets WHERE bucket_key = ?", key);
+          const count = row && row.window_start === windowStart ? row.count : 0;
+          return { key, limit, windowMs, windowStart, count };
+        });
+        const denied = checked.filter((item) => item.count >= item.limit);
+        if (denied.length) {
+          const retryAfter = Math.max(...denied.map((item) => Math.ceil((item.windowStart + item.windowMs - now) / 1000)));
+          return json({ allowed: false, retryAfter });
+        }
+        checked.forEach((item) => {
+          this.sql.exec(
+            "INSERT INTO rate_buckets (bucket_key, window_start, count, expires_at) VALUES (?, ?, ?, ?) ON CONFLICT(bucket_key) DO UPDATE SET window_start = excluded.window_start, count = excluded.count, expires_at = excluded.expires_at",
+            item.key,
+            item.windowStart,
+            item.count + 1,
+            item.windowStart + item.windowMs,
+          );
+        });
+        return json({ allowed: true });
+      }
+
+      if (url.pathname === "/register") {
+        if (!SESSION_CODE.test(body.sessionId) || !Number.isInteger(body.expiresAt) || body.expiresAt <= now) {
+          throw new ApiError(400, "Invalid session registration.", "INVALID_REGISTRATION");
+        }
+        this.sql.exec("INSERT OR REPLACE INTO live_sessions (code, expires_at) VALUES (?, ?)", body.sessionId, body.expiresAt);
+        return json({ ok: true });
+      }
+
+      if (url.pathname === "/exists") {
+        if (!SESSION_CODE.test(body.sessionId)) throw new ApiError(400, "Invalid session code.", "INVALID_SESSION_CODE");
+        return json({ exists: !!this.first("SELECT code FROM live_sessions WHERE code = ? AND expires_at > ?", body.sessionId, now) });
+      }
+
+      if (url.pathname === "/remove") {
+        if (!SESSION_CODE.test(body.sessionId)) throw new ApiError(400, "Invalid session code.", "INVALID_SESSION_CODE");
+        this.sql.exec("DELETE FROM live_sessions WHERE code = ?", body.sessionId);
+        return json({ ok: true });
+      }
+
+      throw new ApiError(404, "Gate action not found.", "NOT_FOUND");
+    } catch (error) {
+      return apiErrorResponse(error);
+    }
+  }
+}
+
 export class GameSession extends DurableObject {
   constructor(ctx, env) {
     super(ctx, env);
+    this.ctx = ctx;
     this.sql = ctx.storage.sql;
     this.sql.exec(`
       CREATE TABLE IF NOT EXISTS session (
@@ -359,6 +464,10 @@ export class GameSession extends DurableObject {
         joined_at INTEGER NOT NULL,
         last_seen INTEGER NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS team_claims (
+        name TEXT PRIMARY KEY,
+        claim_hash TEXT NOT NULL
+      );
     `);
   }
 
@@ -367,7 +476,16 @@ export class GameSession extends DurableObject {
   }
 
   session() {
-    return this.first("SELECT * FROM session WHERE singleton = 1");
+    const session = this.first("SELECT * FROM session WHERE singleton = 1");
+    if (session && session.created_at + SESSION_TTL_MS <= Date.now()) {
+      this.sql.exec("DELETE FROM teams; DELETE FROM team_claims; DELETE FROM session;");
+      return null;
+    }
+    return session;
+  }
+
+  async alarm() {
+    this.sql.exec("DELETE FROM teams; DELETE FROM team_claims; DELETE FROM session;");
   }
 
   async requireFacilitator(request, session) {
@@ -414,6 +532,7 @@ export class GameSession extends DurableObject {
         id: session.code,
         teamCount: session.team_count,
         createdAt: session.created_at,
+        expiresAt: session.created_at + SESSION_TTL_MS,
         updatedAt: session.updated_at,
       },
       control: this.publicControl(session),
@@ -431,9 +550,14 @@ export class GameSession extends DurableObject {
         if (request.method !== "POST") methodNotAllowed(["POST"]);
         if (session) throw new ApiError(409, "이미 사용 중인 세션 코드입니다.", "SESSION_EXISTS");
         const body = await readJson(request, 16 * 1024);
+        const claims = Array.isArray(body.teamClaims) ? body.teamClaims : [];
+        const validClaims = claims.length === body.teamCount && claims.every((claim, index) =>
+          claim && claim.teamName === `${index + 1}조` &&
+          typeof claim.claimSecret === "string" && /^[A-Za-z0-9_-]{43}$/.test(claim.claimSecret)
+        );
         if (!SESSION_CODE.test(body.sessionId) || !/^\d{4}$/.test(body.pin) ||
             typeof body.facilitatorSecret !== "string" || body.facilitatorSecret.length < 24 ||
-            !Number.isInteger(body.teamCount) || body.teamCount < 1 || body.teamCount > 6) {
+            !Number.isInteger(body.teamCount) || body.teamCount < 1 || body.teamCount > 6 || !validClaims) {
           throw new ApiError(400, "세션 생성 정보가 올바르지 않습니다.", "INVALID_SESSION");
         }
         const now = Date.now();
@@ -448,7 +572,15 @@ export class GameSession extends DurableObject {
           now,
           now,
         );
-        return json({ session: { id: body.sessionId, teamCount: body.teamCount, createdAt: now }, control }, 201);
+        for (const claim of claims) {
+          this.sql.exec(
+            "INSERT INTO team_claims (name, claim_hash) VALUES (?, ?)",
+            claim.teamName,
+            await sha256(claim.claimSecret),
+          );
+        }
+        await this.ctx.storage.setAlarm(now + SESSION_TTL_MS);
+        return json({ session: { id: body.sessionId, teamCount: body.teamCount, createdAt: now, expiresAt: now + SESSION_TTL_MS }, control }, 201);
       }
 
       if (!session) throw new ApiError(404, "세션을 찾을 수 없습니다.", "SESSION_NOT_FOUND");
@@ -457,19 +589,44 @@ export class GameSession extends DurableObject {
         if (request.method !== "POST") methodNotAllowed(["POST"]);
         const body = await readJson(request, 16 * 1024);
         const teamMatch = TEAM_NAME.exec(cleanText(body.teamName, 8));
-        if (!/^\d{4}$/.test(String(body.pin || "")) || !teamMatch || Number(teamMatch[1]) > session.team_count) {
-          throw new ApiError(400, "PIN 또는 팀 이름 형식이 올바르지 않습니다.", "INVALID_JOIN");
-        }
-        if (await sha256(String(body.pin)) !== session.pin_hash) {
-          throw new ApiError(403, "세션 PIN이 올바르지 않습니다.", "INVALID_PIN");
+        const allowedJoinKeys = new Set(["teamName", "pin", "claimSecret"]);
+        if (!teamMatch || Number(teamMatch[1]) > session.team_count || Object.keys(body).some((key) => !allowedJoinKeys.has(key))) {
+          throw new ApiError(400, "Team name is invalid.", "INVALID_JOIN");
         }
         const teamName = `${teamMatch[1]}조`;
-        const token = randomSecret();
+        let token;
         const now = Date.now();
-        const existing = this.first("SELECT name FROM teams WHERE name = ?", teamName);
+        const existing = this.first("SELECT name, token_hash FROM teams WHERE name = ?", teamName);
         if (existing) {
-          this.sql.exec("UPDATE teams SET token_hash = ?, last_seen = ? WHERE name = ?", await sha256(token), now, teamName);
+          if (Object.keys(body).some((key) => key !== "teamName")) {
+            throw new ApiError(400, "Reconnect only accepts the team name.", "INVALID_JOIN");
+          }
+          let ownsTeam = false;
+          try {
+            token = bearerToken(request);
+            ownsTeam = await sha256(token) === existing.token_hash;
+          } catch {
+            ownsTeam = false;
+          }
+          if (!ownsTeam) {
+            throw new ApiError(409, "This team is already joined on another browser.", "TEAM_ALREADY_JOINED");
+          }
+          this.sql.exec("UPDATE teams SET last_seen = ? WHERE name = ?", now, teamName);
         } else {
+          if (Object.keys(body).length !== 3) {
+            throw new ApiError(403, "Session credentials are invalid.", "INVALID_JOIN_CREDENTIALS");
+          }
+          if (!/^\d{4}$/.test(String(body.pin || "")) || await sha256(String(body.pin)) !== session.pin_hash) {
+            throw new ApiError(403, "Session credentials are invalid.", "INVALID_JOIN_CREDENTIALS");
+          }
+          if (typeof body.claimSecret !== "string" || !/^[A-Za-z0-9_-]{43}$/.test(body.claimSecret)) {
+            throw new ApiError(403, "Session credentials are invalid.", "INVALID_JOIN_CREDENTIALS");
+          }
+          const claim = this.first("SELECT claim_hash FROM team_claims WHERE name = ?", teamName);
+          if (!claim || await sha256(body.claimSecret) !== claim.claim_hash) {
+            throw new ApiError(403, "Session credentials are invalid.", "INVALID_JOIN_CREDENTIALS");
+          }
+          token = randomSecret();
           this.sql.exec(
             "INSERT INTO teams (name, token_hash, snapshot_json, joined_at, last_seen) VALUES (?, ?, ?, ?, ?)",
             teamName,
@@ -513,10 +670,25 @@ export class GameSession extends DurableObject {
         return json({ control, updatedAt: now });
       }
 
+      if (action === "team-reset") {
+        if (request.method !== "PUT") methodNotAllowed(["PUT"]);
+        await this.requireFacilitator(request, session);
+        const body = await readJson(request, 16 * 1024);
+        const teamMatch = TEAM_NAME.exec(cleanText(body.teamName, 8));
+        if (!teamMatch || Number(teamMatch[1]) > session.team_count || Object.keys(body).length !== 1) {
+          throw new ApiError(400, "Team name is invalid.", "INVALID_TEAM_RESET");
+        }
+        const teamName = `${teamMatch[1]}조`;
+        this.sql.exec("DELETE FROM teams WHERE name = ?", teamName);
+        this.sql.exec("UPDATE session SET updated_at = ? WHERE singleton = 1", Date.now());
+        return json({ ok: true, teamName });
+      }
+
       if (action === "delete") {
         if (request.method !== "DELETE") methodNotAllowed(["DELETE"]);
         await this.requireFacilitator(request, session);
-        this.sql.exec("DELETE FROM teams; DELETE FROM session;");
+        this.sql.exec("DELETE FROM teams; DELETE FROM team_claims; DELETE FROM session;");
+        await this.ctx.storage.deleteAlarm();
         return json({ ok: true });
       }
 
@@ -525,6 +697,46 @@ export class GameSession extends DurableObject {
       return apiErrorResponse(error);
     }
   }
+}
+
+async function gateAction(env, action, body) {
+  const id = env.REQUEST_GATE.idFromName("global-live-session-gate");
+  const response = await env.REQUEST_GATE.get(id).fetch(new Request(`https://gate.internal/${action}`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  }));
+  if (!response.ok) throw new ApiError(503, "Live-session protection is temporarily unavailable.", "GATE_UNAVAILABLE");
+  return response.json();
+}
+
+async function enforceRateLimits(env, request, rules) {
+  const addressHash = (await sha256(clientAddress(request))).slice(0, 32);
+  const payload = await gateAction(env, "consume", {
+    rules: rules.map((rule) => ({
+      key: rule.key.replace("{ip}", addressHash),
+      limit: rule.limit,
+      windowMs: rule.windowMs,
+    })),
+  });
+  if (!payload.allowed) {
+    throw new ApiError(429, "Too many requests. Please wait and try again.", "RATE_LIMITED", {
+      "retry-after": String(payload.retryAfter || 60),
+    });
+  }
+}
+
+async function registerSession(env, sessionId, expiresAt) {
+  await gateAction(env, "register", { sessionId, expiresAt });
+}
+
+async function sessionIsRegistered(env, sessionId) {
+  const payload = await gateAction(env, "exists", { sessionId });
+  return payload.exists === true;
+}
+
+async function unregisterSession(env, sessionId) {
+  await gateAction(env, "remove", { sessionId });
 }
 
 async function forwardToSession(env, sessionId, action, request, body = undefined) {
@@ -551,6 +763,11 @@ async function handleApi(request, env) {
   const url = new URL(request.url);
   if (url.pathname === "/api/session") {
     if (request.method !== "POST") methodNotAllowed(["POST"]);
+    assertBrowserSameOrigin(request);
+    await enforceRateLimits(env, request, [
+      { key: "create:ip:{ip}", limit: 6, windowMs: 60 * 60 * 1000 },
+      { key: "create:global", limit: 300, windowMs: 60 * 60 * 1000 },
+    ]);
     const body = await readJson(request, 16 * 1024);
     const teamCount = body.teamCount ?? 6;
     if (!Number.isInteger(teamCount) || teamCount < 1 || teamCount > 6 || Object.keys(body).some((key) => key !== "teamCount")) {
@@ -560,24 +777,68 @@ async function handleApi(request, env) {
       const sessionId = randomString(6);
       const pin = randomPin();
       const facilitatorSecret = randomSecret();
+      const teamClaims = Array.from({ length: teamCount }, (_, index) => ({
+        teamName: `${index + 1}조`,
+        claimSecret: randomSecret(),
+      }));
       const internal = await forwardToSession(env, sessionId, "create", request, {
         sessionId,
         pin,
         facilitatorSecret,
         teamCount,
+        teamClaims,
       });
       if (internal.status === 409) continue;
       if (!internal.ok) return internal;
       const result = await internal.json();
-      return json({ ...result, pin, facilitatorSecret }, 201, corsHeaders(request));
+      await registerSession(env, sessionId, result.session.expiresAt || Date.now() + SESSION_TTL_MS);
+      return json({
+        ...result,
+        pin,
+        facilitatorSecret,
+        teamClaims: Object.fromEntries(teamClaims.map((claim) => [claim.teamName, claim.claimSecret])),
+      }, 201, corsHeaders(request));
     }
     throw new ApiError(503, "세션 코드를 만들지 못했습니다. 잠시 후 다시 시도해주세요.", "SESSION_CODE_UNAVAILABLE");
   }
 
-  const match = /^\/api\/session\/([A-HJ-NP-Z2-9]{6})\/(join|team|snapshot|control)$/.exec(url.pathname);
+  const match = /^\/api\/session\/([A-HJ-NP-Z2-9]{6})\/(join|team|snapshot|control|team-reset)$/.exec(url.pathname);
   if (match) {
     const [, sessionId, action] = match;
+    const allowedMethods = { join: "POST", team: "PUT", snapshot: "GET", control: "PUT", "team-reset": "PUT" };
+    if (request.method !== allowedMethods[action]) methodNotAllowed([allowedMethods[action]]);
+    if (action === "join") {
+      assertBrowserSameOrigin(request);
+      await enforceRateLimits(env, request, [
+        { key: `join:ip:{ip}:${sessionId}`, limit: 60, windowMs: RATE_WINDOW_MS },
+        { key: `join:session:${sessionId}`, limit: 600, windowMs: RATE_WINDOW_MS },
+        { key: "join:global", limit: 3000, windowMs: RATE_WINDOW_MS },
+      ]);
+    }
+    if (action === "team-reset") {
+      await enforceRateLimits(env, request, [
+        { key: `team-reset:ip:{ip}:${sessionId}`, limit: 20, windowMs: 60 * 60 * 1000 },
+        { key: `team-reset:session:${sessionId}`, limit: 40, windowMs: 60 * 60 * 1000 },
+      ]);
+    }
+    if (!await sessionIsRegistered(env, sessionId)) {
+      throw new ApiError(404, "Session not found.", "SESSION_NOT_FOUND");
+    }
     const response = await forwardToSession(env, sessionId, action, request);
+    if (action === "join" && !response.ok) {
+      try {
+        await enforceRateLimits(env, request, [
+          { key: `join-fail:ip:{ip}:${sessionId}`, limit: 10, windowMs: RATE_WINDOW_MS },
+          { key: `join-fail:session:${sessionId}`, limit: 60, windowMs: RATE_WINDOW_MS },
+        ]);
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 429) {
+          await response.body?.cancel();
+          throw error;
+        }
+        console.error("Failed-join rate accounting unavailable", error);
+      }
+    }
     const headers = new Headers(response.headers);
     for (const [key, value] of corsHeaders(request)) headers.set(key, value);
     return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
@@ -586,7 +847,10 @@ async function handleApi(request, env) {
   const deleteMatch = /^\/api\/session\/([A-HJ-NP-Z2-9]{6})$/.exec(url.pathname);
   if (deleteMatch) {
     if (request.method !== "DELETE") methodNotAllowed(["DELETE"]);
-    const response = await forwardToSession(env, deleteMatch[1], "delete", request);
+    const sessionId = deleteMatch[1];
+    if (!await sessionIsRegistered(env, sessionId)) throw new ApiError(404, "Session not found.", "SESSION_NOT_FOUND");
+    const response = await forwardToSession(env, sessionId, "delete", request);
+    if (response.ok) await unregisterSession(env, sessionId);
     const headers = new Headers(response.headers);
     for (const [key, value] of corsHeaders(request)) headers.set(key, value);
     return new Response(response.body, { status: response.status, statusText: response.statusText, headers });

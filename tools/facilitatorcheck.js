@@ -556,6 +556,9 @@ function checkLiveIntegration() {
   const createSource = functionSource(live, "create");
   const publishSource = functionSource(mainSource, "publishLiveState");
   const commitSource = functionSource(mainSource, "commit");
+  const afterResultSource = functionSource(mainSource, "afterResult");
+  const afterActualSource = functionSource(mainSource, "afterActual");
+  const bindSource = functionSource(facilitator, "bind");
   const normalizeSource = functionSource(facilitator, "normalizeHistory");
 
   expect(/DRBLive\.publishHook\s*\(/.test(publishSource) &&
@@ -565,6 +568,22 @@ function checkLiveIntegration() {
     "participant listens for drb-live-control");
   expect(/\brevealedActual\b/.test(participant),
     "participant consumes facilitator revealedActual control");
+  expect(/function\s+liveNextBriefingOpen\s*\(/.test(mainSource) &&
+    /control\.stage\s*!==\s*["']lobby["']/.test(mainSource),
+    "participant gates the next briefing against quoted lobby stage");
+  expect(/liveNextBriefingOpen\s*\(\s*\)/.test(afterResultSource) &&
+    /waitingBriefing\s*=\s*true/.test(afterResultSource),
+    "afterResult waits before advancing to the next subround briefing");
+  expect(/liveNextBriefingOpen\s*\(\s*\)/.test(afterActualSource) &&
+    /waitingBriefing\s*=\s*true/.test(afterActualSource),
+    "afterActual waits before advancing to the next era briefing");
+  expect(/waitingBriefing\s*&&\s*liveNextBriefingOpen\s*\(\s*\)[\s\S]*?waitingBriefing\s*=\s*false[\s\S]*?S\.advance\s*\(\s*\)/.test(mainSource),
+    "live control wake advances a waiting participant after briefing opens");
+  expect(!/showScreen\s*\(\s*timelapse\s*\)/.test(mainSource) &&
+    !/renderLiveWait\s*\(\s*briefing\s*\)/.test(mainSource),
+    "live waiting calls do not contain bare identifiers");
+  expect(/el\s*\(\s*["']btnNext["']\s*\)[\s\S]*?currentStage\s*=\s*["']briefing["'][\s\S]*?showStage\s*\(\s*["']briefing["']\s*,\s*true\s*\)/.test(bindSource),
+    "facilitator next-turn action publishes the common briefing stage");
 
   expect(/\bh\.ev\b/.test(normalizeSource) && /\bh\.events\b/.test(normalizeSource),
     "facilitator normalizeHistory accepts result-code h.ev and live h.events");

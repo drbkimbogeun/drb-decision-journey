@@ -1194,6 +1194,22 @@ window.DRBUI = (function () {
     clearNewsFlash();
     var feed = el("tlFeed");
     clearNode(feed);
+    if (kind === 'briefing') {
+      el('tlYear').textContent = 'LIVE';
+      el('tlCaption').textContent = '다음 공통 배경 공개 대기 · 이전 국면 토론을 정리하세요';
+      var briefingCard = document.createElement('div');
+      briefingCard.className = 'timelapse__line timelapse__line--market';
+      var briefingWho = document.createElement('span');
+      briefingWho.className = 'timelapse__who';
+      briefingWho.textContent = '토론 정리';
+      var briefingCopy = document.createElement('span');
+      briefingCopy.textContent = '다음 국면의 정보는 진행자가 공통 배경을 공개하면 표시됩니다.';
+      briefingCard.appendChild(briefingWho);
+      briefingCard.appendChild(briefingCopy);
+      feed.appendChild(briefingCard);
+      el('btnSkipLapse').classList.add('hidden');
+      return;
+    }
     el("tlYear").textContent = kind === "actual" ? "DRB" : "LIVE";
     el("tlCaption").textContent = kind === "actual"
       ? "진행자가 DRB 기록을 공개할 때까지 조별 판단을 정리하세요"
