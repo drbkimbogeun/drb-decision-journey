@@ -313,7 +313,7 @@ button, .btn, .policy, .alloc, .teampick__btn { touch-action: manipulation; }
 .talk__right {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-4);
+  gap: var(--sp-3);
   padding: clamp(24px, 2.6vw, 40px);
   border-left: 1px solid var(--line);
   background: var(--bg-1);
@@ -343,7 +343,7 @@ button, .btn, .policy, .alloc, .teampick__btn { touch-action: manipulation; }
   display: flex;
   align-items: center;
   gap: var(--sp-3);
-  padding: var(--sp-3) var(--sp-4);
+  padding: 9px var(--sp-4);
   border: 1px solid transparent;
   border-radius: var(--r-md);
 }
@@ -899,3 +899,232 @@ button, .btn, .policy, .alloc, .teampick__btn { touch-action: manipulation; }
   .codebox__input { width: 100%; font-size: 28px; }
   .warp__years { flex-wrap: wrap; justify-content: center; }
 }
+
+/* ============================================================================
+   상황 · 브리핑 · 대화 — 한 화면
+
+   왼쪽은 그때 알 수 있던 것 전부, 오른쪽은 지금 할 일.
+   product.css 를 다시 쓰면서 빠졌던 부품들입니다.
+   ============================================================================ */
+
+.talk__left { gap: 0; }
+.talk__lead { margin-top: var(--sp-3); color: var(--text-2); font-size: var(--fs-lead); line-height: 1.55; }
+
+/* 국내 / 세계 — 두 칸 */
+.factors {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-4);
+  margin-top: clamp(20px, 2.4vw, 32px);
+}
+.factors__col {
+  display: flex;
+  flex-direction: column;
+  padding: var(--sp-4) var(--sp-5);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--bg-2);
+}
+.factors__label {
+  color: var(--text-3);
+  font-size: var(--fs-tiny);
+  font-weight: var(--fw-strong);
+  letter-spacing: 0.1em;
+  margin-bottom: var(--sp-3);
+}
+.factors__list { display: flex; flex-direction: column; gap: 10px; }
+.factors__list .factor { font-size: var(--fs-body); font-weight: var(--fw-mid); gap: var(--sp-3); }
+.factors__list .factor__mark { flex: 0 0 14px; font-size: var(--fs-small); }
+
+/* 리스크 */
+.riskbox {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr);
+  gap: var(--sp-4);
+  margin-top: var(--sp-3);
+  padding: var(--sp-4) var(--sp-5);
+  border-radius: var(--r-lg);
+  background: var(--coral-tint);
+}
+.riskbox__label {
+  color: var(--coral);
+  font-size: var(--fs-tiny);
+  font-weight: var(--fw-strong);
+  letter-spacing: 0.08em;
+  padding-top: 3px;
+}
+.riskbox__list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px var(--sp-5); }
+.riskbox__item { color: var(--text-1); font-size: var(--fs-small); line-height: 1.45; }
+
+.talk__foot {
+  margin-top: auto;
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--line);
+  color: var(--text-3);
+  font-size: var(--fs-small);
+}
+
+/* 전망 선명도 */
+.clarity {
+  padding: var(--sp-4) var(--sp-5);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--bg-2);
+}
+.clarity__row { display: flex; align-items: baseline; gap: 4px; }
+.clarity__label { color: var(--text-3); font-size: var(--fs-small); font-weight: var(--fw-mid); }
+.clarity__value { color: var(--accent); font-size: 40px; font-weight: var(--fw-strong); line-height: 1; letter-spacing: -0.04em; }
+.clarity__unit { color: var(--accent); font-size: var(--fs-small); font-weight: var(--fw-strong); }
+.clarity__bar { height: 7px; margin-top: var(--sp-3); border-radius: var(--r-pill); background: var(--accent-track); overflow: hidden; }
+.clarity__fill { height: 100%; border-radius: var(--r-pill); background: var(--accent); transition: width var(--t-base); }
+.clarity__note { margin-top: var(--sp-3); color: var(--text-2); font-size: var(--fs-small); line-height: 1.5; }
+.clarity.is-low .clarity__value, .clarity.is-low .clarity__unit { color: var(--coral); }
+.clarity.is-low .clarity__fill { background: var(--coral); }
+
+/* 이번 국면에 쓸 수 있는 것 */
+.phasebox {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: var(--sp-4) var(--sp-5);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-lg);
+}
+.phasebox__row { display: flex; align-items: baseline; gap: var(--sp-3); }
+.phasebox__row dt { color: var(--text-2); font-size: var(--fs-small); margin: 0; }
+.phasebox__row dd { margin: 0 0 0 auto; font-size: var(--fs-body); font-weight: var(--fw-strong); }
+.phasebox__row.is-muted dd { color: var(--text-3); font-weight: var(--fw-mid); }
+
+/* 대화 시간 */
+.talk__timerrow { display: flex; align-items: baseline; padding-top: var(--sp-2); }
+.talk__timerlabel { color: var(--text-3); font-size: var(--fs-small); }
+.talk__timer { color: var(--coral); font-size: 40px; font-weight: var(--fw-strong); line-height: 1; }
+
+.talkcard__q { font-size: clamp(19px, 1.8vw, 23px); line-height: 1.4; }
+.rolerow__q { font-size: var(--fs-small); max-width: 50%; }
+.rolerow__state { font-size: var(--fs-body); }
+
+/* 상단바에서는 빼줍니다 — 오른쪽에 크게 있습니다 */
+#app[data-screen="situation"] .timer,
+#app[data-screen="situation"] .topbar__meta { display: none; }
+
+@media (max-width: 1200px) {
+  .riskbox__list { grid-template-columns: 1fr; }
+}
+@media (max-width: 900px) {
+  .factors { grid-template-columns: 1fr; }
+  .riskbox { grid-template-columns: 1fr; gap: var(--sp-2); }
+}
+
+/* ============================================================================
+   선택지가 늘어나는 시대 (ERA 2 · 3)
+
+   ERA 1 은 4개, ERA 3 은 10개입니다. 세로 카드를 가로로만 늘어놓으면
+   뒤 시대에서 한 장밖에 안 보입니다. 개수에 따라 접히게 만듭니다.
+   ============================================================================ */
+
+.alloc-list {
+  display: grid;
+  grid-auto-flow: row;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  align-content: start;
+  align-items: start;
+  gap: var(--sp-3);
+  overflow-y: auto;
+  padding-bottom: 2px;
+}
+
+.alloc { min-height: 0; padding: var(--sp-4); }
+.alloc__name { font-size: 17px; }
+.alloc__amount {
+  margin-top: var(--sp-3);
+  font-size: clamp(28px, 2.8vw, 46px);
+}
+.alloc__level { margin-top: var(--sp-2); }
+.alloc__stepper { margin-top: var(--sp-3); padding-top: 0; }
+.alloc__stepper .btn--icon { height: 44px; }
+.alloc__note { padding-top: var(--sp-3); font-size: var(--fs-small); }
+
+/* 카드가 많아지면 한 장씩은 작아집니다 */
+.alloc-list:has(.alloc:nth-child(7)) .alloc__amount { font-size: clamp(24px, 2.2vw, 34px); }
+.alloc-list:has(.alloc:nth-child(7)) .alloc__name { font-size: 15px; }
+.alloc-list:has(.alloc:nth-child(7)) .alloc__stepper .btn--icon { height: 38px; }
+
+/* ---------- 전략군으로 묶이는 화면 ---------- */
+/* 전략군은 나란히 놓습니다. 세로로 쌓으면 아래 묶음이 화면 밖으로 나갑니다. */
+.alloc-list--grouped {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  align-content: start;
+  align-items: start;
+  gap: var(--sp-3);
+  overflow-y: auto;
+}
+.strategy-group {
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--r-lg);
+  background: var(--bg-1);
+}
+.strategy-group__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-3);
+}
+.strategy-group__title { font-size: 17px; font-weight: var(--fw-strong); letter-spacing: -0.02em; }
+.strategy-group__cue { color: var(--text-3); font-size: var(--fs-small); }
+.strategy-group__count {
+  margin-left: auto;
+  padding: 3px 10px;
+  border: 1px solid var(--accent-line);
+  border-radius: var(--r-pill);
+  color: var(--accent-deep);
+  font-size: var(--fs-tiny);
+  font-weight: var(--fw-strong);
+}
+.strategy-group__items {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: start;
+  gap: var(--sp-2);
+}
+/* 묶음 안에서는 카드가 세로로 늘어나지 않습니다 */
+.strategy-group__items .alloc__stepper,
+.strategy-group__items .alloc__note { margin-top: var(--sp-3); }
+.strategy-group__items .alloc { background: var(--bg-2); }
+.strategy-group__items .alloc { padding: var(--sp-3) var(--sp-4); }
+.strategy-group__items .alloc__amount { margin-top: var(--sp-2); font-size: 28px; }
+.strategy-group__items .alloc__level { margin-top: 6px; }
+.strategy-group__items .alloc__name { font-size: 15px; }
+.strategy-group__items .alloc__stepper .btn--icon { height: 38px; }
+
+/* ---------- 판단 복잡도 안내 — 글자가 붙어 있었습니다 ---------- */
+.decision-scope {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2) var(--sp-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+}
+.decision-scope__summary { display: flex; align-items: baseline; gap: var(--sp-2); flex-wrap: wrap; }
+.decision-scope__label { color: var(--text-3); font-size: var(--fs-tiny); font-weight: var(--fw-strong); letter-spacing: 0.08em; }
+.decision-scope__count { font-size: var(--fs-body); font-weight: var(--fw-strong); }
+.decision-scope__pending { color: var(--text-3); font-size: var(--fs-small); }
+.complexity-meter { display: flex; align-items: center; gap: 4px; }
+.complexity-meter__label { margin-right: var(--sp-2); color: var(--text-3); font-size: var(--fs-tiny); }
+.complexity-meter__value { margin-left: var(--sp-2); color: var(--text-2); font-size: var(--fs-tiny); font-weight: var(--fw-strong); }
+.decision-scope__dimensions { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+.decision-scope__chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.decision-scope__chip { padding: 4px 10px; font-size: var(--fs-tiny); }
+.decision-scope__groups { display: flex; gap: var(--sp-3); flex-wrap: wrap; }
+.strategy-chip { display: inline-flex; align-items: center; gap: 5px; color: var(--text-2); font-size: var(--fs-tiny); font-weight: var(--fw-mid); }
+
+/* ---------- ERA 3 브리핑은 항목이 많습니다 ---------- */
+.factors__col { max-height: 100%; overflow-y: auto; }
+.talk__left { overflow-y: auto; }
+
+/* 항목이 많은 시대에는 리스크를 두 줄로 눕힙니다 */
+.riskbox__list { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }

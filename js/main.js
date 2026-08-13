@@ -340,6 +340,8 @@
 
   function showScreen(name) {
     el("app").setAttribute("data-screen", name);
+    /* 시간 진행에서 뜬 속보가 다음 화면을 덮지 않게 합니다 */
+    if (name !== "timelapse") UI.clearNewsFlash();
     musicForScreen(name);
     SCREENS.forEach(function (s) {
       var node = el("sc-" + s);

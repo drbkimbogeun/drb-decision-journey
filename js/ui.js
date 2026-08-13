@@ -496,7 +496,7 @@ window.DRBUI = (function () {
     var sr = S.subround();
     var e = S.era();
 
-    /* ---------- 왼쪽 ---------- */
+    /* ---------- 왼쪽 : 이 국면의 질문과 그때 알 수 있던 것 ---------- */
     /* 국면 제목은 "첫 번째 국면 · 고무신인가, 벨트인가" 형태입니다.
        가운뎃점 뒤쪽이 이 국면의 질문입니다. */
     var parts = String(sr.title).split("·");
@@ -504,11 +504,46 @@ window.DRBUI = (function () {
     el("siLead").textContent = sr.situation.title;
     el("siBody").textContent = sr.situation.body;
 
-    /* 판단에 걸리는 것 — 좋아지는 것 / 나빠지는 것 / 모르는 것 한 줄씩.
-       브리핑을 다 쏟아붓지 않습니다. 자세히는 [브리핑 자세히 보기]. */
-    renderKeyFactors(e);
+    /* 산업 브리핑을 이 화면에 함께 놓습니다.
+       상황과 브리핑을 따로 보여주면 조가 앞 화면을 기억해야 합니다. */
+    var brief = e.briefing || {};
+    renderFactors(el("siDomestic"), brief.domestic || []);
+    renderFactors(el("siGlobal"), brief.global || []);
 
-    /* ---------- 오른쪽 : 대화 시간 ---------- */
+    var riskBox = el("siRisk");
+    clearNode(riskBox);
+    (brief.risk || []).forEach(function (text) {
+      var item = document.createElement("div");
+      item.className = "riskbox__item";
+      item.textContent = text;
+      riskBox.appendChild(item);
+    });
+
+    /* 시대가 갈수록 한 번의 결정이 담당하는 기간이 짧아집니다 */
+    var era1 = window.DRB_ERAS.era1;
+    el("siFoot").textContent = r.no > 1 && e.pace && era1.pace
+      ? "한 번의 결정이 담당하는 기간 — ERA 1 " + era1.pace.yearsPerSubround +
+        "년 → 지금 " + e.pace.yearsPerSubround + "년"
+      : "이 시대에 알 수 있는 것은 여기까지입니다";
+
+    /* ---------- 오른쪽 : 전망 선명도 · 제약 · 대화 ---------- */
+    var v = e.visibility === undefined ? 70 : e.visibility;
+    el("siClarityValue").textContent = v;
+    el("siClarityFill").style.width = v + "%";
+    el("siClarityNote").textContent = e.visibilityNote || "";
+    el("siClarity").classList.toggle("is-low", v < 40);
+
+    var budget = S.budget();
+    var choiceCount = (S.availableInvestments ? S.availableInvestments() : S.investments()).length;
+    renderPhaseBox([
+      { name: "선택지", value: choiceCount + "개" },
+      { name: "예산", value: String(budget) },
+      { name: "실물 토큰", value: (budget / CFG.tokenUnit) + "개" },
+      r.no > 1
+        ? { name: "경쟁사", value: (window.DRB_RIVALS || []).length + "곳" }
+        : { name: "경쟁사", value: "ERA 2부터", muted: true }
+    ]);
+
     el("siTalkQ").textContent = r.subtitle || e.question || "";
     renderSpeakers();
 
@@ -529,26 +564,21 @@ window.DRBUI = (function () {
     renderEnv(el("siEnv"), e.display);
   }
 
-  /* 브리핑에서 톤별로 한 줄씩만 뽑습니다 */
-  function renderKeyFactors(era) {
-    var box = el("siFactors");
-    clearNode(box);
-    var brief = era.briefing || {};
-    var all = (brief.domestic || []).concat(brief.global || []);
-
-    ["up", "down", "q"].forEach(function (tone) {
-      var found = all.filter(function (x) { return x.tone === tone; })[0];
-      if (!found) return;
-      var row = document.createElement("div");
-      row.className = "factor factor--" + tone;
-      row.innerHTML = "<span class='factor__mark'>" + (MARKS[tone] || "·") + "</span>" +
-                      "<span class='factor__text'>" + escapeHtml(found.text) + "</span>";
-      box.appendChild(row);
+  /* 오른쪽 레일의 '이번 국면' 표 */
+  function renderPhaseBox(rows) {
+    var node = el("siPhaseList");
+    if (!node) return;
+    clearNode(node);
+    rows.forEach(function (row) {
+      var line = document.createElement("div");
+      line.className = "phasebox__row" + (row.muted ? " is-muted" : "");
+      line.innerHTML = "<dt>" + escapeHtml(row.name) + "</dt>" +
+                       "<dd class='num'>" + escapeHtml(row.value) + "</dd>";
+      node.appendChild(line);
     });
   }
 
-  /* 지금 말할 사람 — 타이머는 위의 대화 타이머 하나뿐입니다.
-     역할마다 시간을 재지 않습니다. 순서만 넘깁니다. */
+
   function renderSpeakers() {
     var box = el("siRoles");
     clearNode(box);

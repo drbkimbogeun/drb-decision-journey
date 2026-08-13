@@ -46,7 +46,7 @@ for (const className of ["GameSession", "RequestGate"]) {
   assert.deepStrictEqual(config.exports[className], { type: "durable-object", storage: "sqlite" });
 }
 /* 참가는 이제 주소 하나 + 조별 코드입니다. 주소에는 비밀값이 전혀 없습니다. */
-has(facilitator, /joinUrl = base \+ "\?s=" \+ encodeURIComponent\(creds\.sessionId\)/,
+has(facilitator, /joinUrl = base \+ "play\?s=" \+ encodeURIComponent\(creds\.sessionId\)/,
   "join URL must carry only the session code");
 assert(!/#pin=|&claim=|claim=/.test(facilitator),
   "no secret may ever be put into a participant URL");

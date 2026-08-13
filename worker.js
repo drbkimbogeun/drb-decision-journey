@@ -930,6 +930,15 @@ async function handleApi(request, env) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    /* 맨 주소는 진행자 화면입니다. 진행자가 먼저 여는 곳이기 때문입니다.
+       참가 조는 진행자가 알려주는 /play 로 들어옵니다. */
+    if (url.pathname === "/") {
+      return env.ASSETS.fetch(new Request(new URL("/facilitator.html", url), request));
+    }
+    if (url.pathname === "/play" || url.pathname === "/play/") {
+      return env.ASSETS.fetch(new Request(new URL("/index.html", url), request));
+    }
+
     if (url.pathname === "/api" || url.pathname.startsWith("/api/")) {
       try {
         return await handleApi(request, env);

@@ -177,17 +177,56 @@
           </div>
         </section>
 
-        <!-- ---------- 상황 · 대화 시간 ---------- -->
+        <!-- ---------- 상황 · 브리핑 · 대화 시간 (한 화면) ---------- -->
         <section class="screen" id="sc-situation">
           <div class="talk">
 
             <div class="talk__left">
               <h2 class="talk__q" id="siTitle"></h2>
-              <div class="talk__factors" id="siFactors"></div>
-              <p class="talk__foot" id="siLead"></p>
+              <p class="talk__lead" id="siLead"></p>
+
+              <!-- 그 시점의 경영진이 알 수 있었던 것 -->
+              <div class="factors">
+                <div class="factors__col">
+                  <div class="factors__label">국내</div>
+                  <div class="factors__list" id="siDomestic"></div>
+                </div>
+                <div class="factors__col">
+                  <div class="factors__label">세계</div>
+                  <div class="factors__list" id="siGlobal"></div>
+                </div>
+              </div>
+
+              <div class="riskbox">
+                <span class="riskbox__label">리스크</span>
+                <div class="riskbox__list" id="siRisk"></div>
+              </div>
+
+              <div id="siEvent" class="eventbox hidden">
+                <div class="eventbox__label" id="siEventLabel">돌발상황</div>
+                <div class="eventbox__title" id="siEventTitle"></div>
+                <div class="eventbox__body" id="siEventBody"></div>
+              </div>
+
+              <p class="talk__foot" id="siFoot"></p>
             </div>
 
             <aside class="talk__right">
+              <!-- 전망 선명도 — 시대가 갈수록 흐려집니다 -->
+              <div class="clarity" id="siClarity">
+                <div class="clarity__row">
+                  <span class="clarity__label">전망 선명도</span>
+                  <span class="spacer"></span>
+                  <span class="clarity__value num" id="siClarityValue">85</span>
+                  <span class="clarity__unit">%</span>
+                </div>
+                <div class="clarity__bar"><div class="clarity__fill" id="siClarityFill"></div></div>
+                <p class="clarity__note" id="siClarityNote"></p>
+              </div>
+
+              <!-- 이번 국면에 쓸 수 있는 것 -->
+              <dl class="phasebox" id="siPhaseList"></dl>
+
               <div class="talk__timerrow">
                 <span class="talk__timerlabel">지금은 대화 시간</span>
                 <span class="spacer"></span>
@@ -201,19 +240,13 @@
 
               <div class="rolelist" id="siRoles"></div>
 
-              <div id="siEvent" class="eventbox hidden">
-                <div class="eventbox__label" id="siEventLabel">돌발상황</div>
-                <div class="eventbox__title" id="siEventTitle"></div>
-                <div class="eventbox__body" id="siEventBody"></div>
-              </div>
-
               <div class="talk__actions">
                 <button class="btn btn--ghost" id="btnNextSpeaker">다음 사람</button>
                 <button class="btn btn--primary btn--lg" id="btnSitGo">이야기 끝 · 배분하기 <span class="btn__arrow">→</span></button>
               </div>
 
               <div class="talk__more">
-                <button class="linkbtn" id="btnSitBrief">브리핑 자세히 보기</button>
+                <button class="linkbtn" id="btnSitBrief">시대 전체 브리핑 보기</button>
                 <p class="hint hidden" id="siBody"></p>
                 <div class="env hidden" id="siEnv"></div>
                 <div class="hidden" id="siFigure"></div>

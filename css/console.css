@@ -12,6 +12,13 @@
 
 /* ---------- 0. 어두운 톤 되돌리기 ---------- */
 body.fac-body {
+  /* ★ 빔프로젝터로 쏘는 화면입니다. 참가자 노트북보다 또 한 단계 큽니다.
+       뒷자리에서 읽혀야 합니다. */
+  --fs-lead:  22px;
+  --fs-body:  19px;
+  --fs-small: 17px;
+  --fs-tiny:  15px;
+
   --fac-panel:  var(--bg-2);
   --fac-raised: var(--bg-2);
   --fac-line:   var(--line);

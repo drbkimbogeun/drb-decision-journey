@@ -1138,8 +1138,8 @@
 
   function showSessionDetails(creds) {
     /* 링크는 하나입니다. 조는 각자 자기 코드를 칩니다. */
-    var base = location.origin + location.pathname.replace(/facilitator(?:\.html)?$/, "");
-    var joinUrl = base + "?s=" + encodeURIComponent(creds.sessionId);
+    var base = location.origin + location.pathname.replace(/(?:facilitator(?:\.html)?|index\.html)?$/, "");
+    var joinUrl = base + "play?s=" + encodeURIComponent(creds.sessionId);
 
     var codes = (CFG.teamNames || []).slice(0, creds.teamCount || 6).map(function (name) {
       var code = creds.teamClaims && creds.teamClaims[name];
