@@ -325,10 +325,12 @@
   /* 소리는 있으면 내고 없으면 조용히 넘어갑니다 */
   function sfx(name) { if (window.DRBAudio) window.DRBAudio.play(name); }
 
-  /* 배경음악은 시대를 따라갑니다. 돌발상황에서는 음악이 물러나고 알람이 옵니다. */
+  /* 배경음악은 지금 무엇을 하는 중인가를 따라갑니다 — 평상시 / 시대흐름 / 엔딩.
+     어느 화면이 어느 곡인지는 config 의 musicByScreen 에 있습니다.
+     돌발상황에서는 음악이 물러나고 알람이 옵니다. */
   function musicForScreen(name) {
     if (!window.DRBAudio) return;
-    window.DRBAudio.era(S.round().no - 1);
+    window.DRBAudio.scene(name);
     window.DRBAudio.duck(name === "event");
   }
 

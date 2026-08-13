@@ -54,18 +54,29 @@ window.DRB_CONFIG = {
        그래서 파일을 .m4a 로 넣어두고, 게임이 내용을 보고 알아서 재생합니다.
        (확장자와 실제 형식이 달라도 됩니다)
 
-     곡을 바꾸려면 아래 파일명만 서로 바꾸세요. 파일을 옮길 필요가 없습니다.
-       track-a.m4a  Scale The Mountain · Density & Time
-       track-b.m4a  Wildfire · Jessie Villa
-       track-c.m4a  The Great Pig In The Sty · Ezra Lipp
-       shock.m4a    Alarm Clock  (돌발상황 효과음) */
+     배경음악은 딱 세 곡입니다. 시대가 아니라 '무엇을 하는 중인가' 로 갈립니다.
+       music-normal.m4a  평상시   국면 시작부터 선택이 끝날 때까지 (6개 국면 모두 같은 곡)
+       music-lapse.m4a   시대흐름 선택이 끝나고 연도가 넘어가는 구간
+       music-ending.m4a  엔딩     2026 이후 엔딩 · 최종 · What If
+       shock.m4a         Alarm Clock (돌발상황 효과음, 한 번만)
+
+     곡을 바꾸려면 파일만 같은 이름으로 덮어쓰면 됩니다.
+     ★ 세 곡 다 무한 반복입니다. 2분짜리 곡이라도 5분 국면 내내 끊기지 않습니다. */
   audio: {
-    /* 시대가 바뀌면 배경음악도 바뀝니다. ERA 1 · 2 · 3 순서입니다. */
-    era: [
-      "assets/audio/track-a.m4a",   // ERA 1  창업기      Scale The Mountain
-      "assets/audio/track-b.m4a",   // ERA 2  확장기      Wildfire
-      "assets/audio/track-c.m4a"    // ERA 3  전환기      The Great Pig In The Sty
-    ],
+    music: {
+      normal: "assets/audio/music-normal.m4a",
+      lapse:  "assets/audio/music-lapse.m4a",
+      ending: "assets/audio/music-ending.m4a"
+    },
+
+    /* 어느 화면에서 어느 곡을 트는가. 여기 적히지 않은 화면은 normal 입니다.
+       화면 하나를 다른 곡으로 옮기고 싶으면 이 표에서만 바꾸세요. */
+    musicByScreen: {
+      roundOpen: "normal",  situation: "normal",  invest: "normal",  policy: "normal",
+      timelapse: "lapse",   event:     "lapse",   result: "lapse",   actual: "lapse",
+      ending:    "ending",  final:     "ending",  whatif: "ending"
+    },
+
     shock: "assets/audio/shock.m4a",   // 돌발상황이 뜨는 순간 한 번
 
     /* 첫 화면에 깔리는 영상. 없으면 그냥 딥퍼플 배경입니다.

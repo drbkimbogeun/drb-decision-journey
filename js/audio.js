@@ -4,8 +4,12 @@
    ◆ 효과음은 파일이 없습니다. 브라우저가 그 자리에서 소리를 만듭니다.
      저작권 문제가 없고, 인터넷이 없어도, 어느 PC에서나 똑같이 납니다.
 
-   ◆ 배경음악은 시대마다 다릅니다. ERA 1 · 2 · 3 에 한 곡씩.
-     어느 파일을 쓸지는 `data/config.js` 의 audio 에서 정합니다.
+   ◆ 배경음악은 세 곡뿐입니다. 시대가 아니라 '무엇을 하는 중인가' 로 갈립니다.
+       평상시   국면 시작 ~ 선택이 끝날 때까지 (6개 국면 모두 같은 곡)
+       시대흐름 선택이 끝나고 연도가 넘어가는 구간
+       엔딩     2026 이후
+     어느 화면에서 어느 곡을 트는지는 `data/config.js` 의 audio 에서 정합니다.
+     세 곡 다 무한 반복입니다. 2분짜리라도 5분 국면 내내 끊기지 않습니다.
      파일이 없으면 조용히 넘어갑니다. 게임은 그대로 돌아갑니다.
 
    ◆ 브라우저 규칙상 사용자가 한 번 클릭하기 전에는 소리를 낼 수 없습니다.
@@ -107,10 +111,10 @@ window.DRBAudio = (function () {
      파일이 없거나 읽지 못하면 조용히 넘어갑니다. 게임은 그대로 돌아갑니다.
      ============================================================ */
   var cfg = (window.DRB_CONFIG && window.DRB_CONFIG.audio) || {};
-  var eraTracks = [];
+  var tracks = {};         // { normal, lapse, ending }
   var shockTrack = null;
-  var playing = null;      // 지금 울리고 있는 시대 트랙
-  var eraIndex = -1;
+  var playing = null;      // 지금 울리고 있는 곡
+  var playingName = "";    // 그 곡의 이름 (음소거를 풀 때 되돌아갑니다)
   var ducked = false;
 
   /* 파일 앞머리를 보고 형식을 알아냅니다 */
@@ -125,12 +129,28 @@ window.DRBAudio = (function () {
     return "audio/mpeg";
   }
 
-  function loadTrack(src, loop) {
+  function loadTrack(src, loop, eager) {
     var el = new Audio();
     el.loop = !!loop;
     el.volume = 0;
-    el.preload = "auto";
+    /* ★ 곡 하나가 7MB 쯤 됩니다. 조가 여섯이면 교육장 와이파이로 40MB 를 동시에
+         당기게 됩니다. 그래서 처음엔 지금 쓸 곡만 받고, 나머지는 첫 곡이 다 들어온
+         뒤에 조용히 뒤에서 받습니다 (첫 국면이 몇 분이라 충분합니다). */
+    el.preload = eager ? "auto" : "metadata";
     el.src = src;
+
+    /* ★ 곡이 2분이고 국면이 5분입니다. 끝까지 가면 처음으로 되감아 다시 겁니다.
+         el.loop 만으로는 브라우저·형식에 따라 한 번 돌고 멈추는 경우가 있어
+         ended 를 직접 받아 되감습니다. 이중 안전장치입니다. */
+    if (loop) {
+      el.addEventListener("ended", function () {
+        try {
+          el.currentTime = 0;
+          var p = el.play();
+          if (p && p.catch) p.catch(function () {});
+        } catch (e) { /* 소리는 실패해도 게임을 막지 않습니다 */ }
+      });
+    }
 
     /* 못 읽으면 파일을 직접 받아 형식을 붙여 다시 넘깁니다.
        (file:// 로 열었을 때는 fetch 가 막히므로 여기서 조용히 포기합니다) */
@@ -143,6 +163,8 @@ window.DRBAudio = (function () {
         return r.arrayBuffer();
       }).then(function (buf) {
         el.src = URL.createObjectURL(new Blob([buf], { type: sniff(new Uint8Array(buf.slice(0, 16))) }));
+        /* src 를 바꾸면 loop 는 유지되지만, 재생 중이었다면 다시 걸어줘야 합니다 */
+        if (playing === el && !muted) fade(el, baseVolume(), 600);
       }).catch(function () { el.dataset.missing = "1"; });
     });
 
@@ -150,9 +172,31 @@ window.DRBAudio = (function () {
   }
 
   function ensureTracks() {
-    if (eraTracks.length || shockTrack) return;
-    (cfg.era || []).forEach(function (src) { eraTracks.push(loadTrack(src, true)); });
-    if (cfg.shock) shockTrack = loadTrack(cfg.shock, false);
+    if (tracks.normal || shockTrack) return;
+    var files = cfg.music || {};
+    Object.keys(files).forEach(function (name) {
+      tracks[name] = loadTrack(files[name], true, name === "normal");
+    });
+    /* 알람은 작고(0.2MB) 언제 터질지 모르므로 미리 받아둡니다 */
+    if (cfg.shock) shockTrack = loadTrack(cfg.shock, false, true);
+
+    /* 평상시 곡이 다 들어오면 나머지를 뒤에서 받습니다 */
+    var first = tracks.normal;
+    if (!first) { warmRest(); return; }
+    first.addEventListener("canplaythrough", warmRest, { once: true });
+    setTimeout(warmRest, 20000);   // 못 받아도 언젠가는 시작합니다
+  }
+
+  var warmed = false;
+  function warmRest() {
+    if (warmed) return;
+    warmed = true;
+    Object.keys(tracks).forEach(function (name) {
+      var el = tracks[name];
+      /* load() 는 재생을 처음으로 되돌립니다. 지금 울리는 곡은 건드리지 않습니다. */
+      if (name === "normal" || el === playing) return;
+      try { el.preload = "auto"; el.load(); } catch (e) {}
+    });
   }
 
   /* 소리는 어떤 경우에도 게임을 막지 않습니다.
@@ -181,20 +225,30 @@ window.DRBAudio = (function () {
   }
 
   /* ============================================================
-     시대가 바뀌면 배경음악도 바뀝니다 (0 = ERA 1)
-     ============================================================ */
-  function era(n) {
-    ensureTracks();
-    if (muted) { stopAll(); return; }
-    if (!eraTracks.length) return;
+     화면이 바뀌면 그 화면에 맞는 곡으로 넘어갑니다.
 
-    var next = eraTracks[Math.max(0, Math.min(eraTracks.length - 1, n || 0))];
+     screen 을 주면 config 의 musicByScreen 표에서 곡을 찾고,
+     곡 이름(normal / lapse / ending)을 바로 줘도 됩니다.
+     ============================================================ */
+  function scene(screen) {
+    var map = cfg.musicByScreen || {};
+    var name = tracks[screen] ? screen : (map[screen] || "normal");
+
+    ensureTracks();
+    if (muted) { playingName = name; stopAll(); return; }
+
+    var next = tracks[name];
+    if (!next) return;
+
+    var changed = playingName !== name;
+    playingName = name;
     if (next === playing) { fade(playing, baseVolume(), 400); return; }
 
-    if (playing) fade(playing, 0, 900);      // 앞 시대는 천천히 사라지고
+    if (playing) fade(playing, 0, 900);      // 앞 곡은 천천히 사라지고
     playing = next;
-    eraIndex = n;
-    fade(playing, baseVolume(), 1400);       // 새 시대는 천천히 올라옵니다
+    /* 곡이 바뀌었을 때만 처음부터. 음소거를 풀 때는 멈춘 자리에서 이어집니다. */
+    if (changed) { try { next.currentTime = 0; } catch (e) {} }
+    fade(playing, baseVolume(), 1400);       // 새 곡은 천천히 올라옵니다
   }
 
   /* 돌발상황 동안 배경음악을 낮춥니다 */
@@ -216,7 +270,7 @@ window.DRBAudio = (function () {
   }
 
   function stopAll() {
-    eraTracks.forEach(function (el) { fade(el, 0, 300); });
+    Object.keys(tracks).forEach(function (name) { fade(tracks[name], 0, 300); });
     playing = null;
   }
 
@@ -229,8 +283,8 @@ window.DRBAudio = (function () {
     if (muted) {
       stopAll();
       try { if (shockTrack) shockTrack.pause(); } catch (e) {}
-    } else if (eraIndex >= 0) {
-      era(eraIndex);
+    } else if (playingName) {
+      scene(playingName);
     }
     return muted;
   }
@@ -244,6 +298,20 @@ window.DRBAudio = (function () {
     document.removeEventListener("pointerdown", once);
   }, { once: true });
 
-  return { play: play, era: era, duck: duck, alarm: alarm, stopAll: stopAll,
-           toggle: toggle, setMuted: setMuted, isMuted: isMuted };
+  /* 지금 무슨 곡이 어떤 상태로 걸려 있는지 — tools/audiocheck.js 가 이걸로 검사합니다 */
+  function nowPlaying() {
+    if (!playing) return { name: playingName, playing: false };
+    return {
+      name: playingName,
+      playing: !playing.paused,
+      loop: !!playing.loop,
+      duration: playing.duration,
+      readyState: playing.readyState,
+      missing: playing.dataset.missing === "1",
+      volume: playing.volume
+    };
+  }
+
+  return { play: play, scene: scene, duck: duck, alarm: alarm, stopAll: stopAll,
+           toggle: toggle, setMuted: setMuted, isMuted: isMuted, nowPlaying: nowPlaying };
 })();
