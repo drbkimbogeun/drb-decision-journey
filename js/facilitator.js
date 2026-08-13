@@ -6,7 +6,7 @@
   var PASTED_KEY = CFG.storage.key + "_pasted";
   var FAC_KEY = CFG.storage.key + "_facilitator";
   var TEAM_COLORS = ["#e31d38", "#f2c14e", "#4dd4c0", "#7aa2f7", "#f78fb3", "#7fd18a"];
-  var STAGES = ["briefing", "decisions", "event", "actual", "debrief", "map"];
+  var STAGES = ["briefing", "decisions", "event", "actual", "debrief", "map", "award"];
   var timeline = [];
   var selectedTurn = 0;
   var currentStage = "briefing";
@@ -242,14 +242,343 @@
 
     var item = timeline[selectedTurn];
     var era = window.DRB_ERAS[item.round.era];
-    el("bYear").textContent = item.sub.year;
+    el("bEraChip").textContent = "ERA " + item.round.no + " · " + item.sub.year;
     el("bEra").textContent = era.name;
     el("bProgress").textContent = "국면 " + (selectedTurn + 1) + " / " + timeline.length;
+    renderDots();
+    renderTimer(era);
     el("btnPrev").disabled = selectedTurn === 0;
     el("btnNext").disabled = selectedTurn >= Math.min(safeTurn, timeline.length - 1);
     el("bPace").textContent = active.length
       ? "가장 느린 조의 완료 수 " + minTurns + "회를 공개 기준으로 사용합니다. 진행이 빠른 조의 미래 배경은 빔에서 숨깁니다."
       : "조가 시작하면 가장 느린 조를 기준으로 미래 배경을 잠급니다.";
+  }
+
+  /* ============================================================
+     상단 — 진행 점과 토론 타이머
+     ============================================================ */
+  function renderDots() {
+    var box = el("bDots");
+    box.innerHTML = timeline.map(function (item, i) {
+      var cls = i < selectedTurn ? " is-done" : i === selectedTurn ? " is-active" : "";
+      return (i ? "<span class='dots__link'></span>" : "") +
+             "<span class='dots__dot" + cls + "' title='" + item.sub.year + "'></span>";
+    }).join("");
+  }
+
+  /* 토론 시간은 진행자가 직접 누르는 것이 아니라 시대 설정을 그대로 보여줍니다.
+     실제로 재는 것은 참가자 화면의 타이머입니다. 여기서는 기준 시간만 표시합니다. */
+  function renderTimer(era) {
+    var seconds = (era.pace && era.pace.discussSeconds) || CFG.timer.discussSeconds;
+    var m = Math.floor(seconds / 60);
+    var s = seconds % 60;
+    el("bTimerText").textContent = (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
+  }
+
+  /* ============================================================
+     왼쪽 — 참가 조 카드
+
+     여섯 지표를 작은 막대로, 그리고 참가자에게는 마지막까지 숨겨져 있는
+     변화 대응력을 진행자에게만 보여줍니다.
+     ============================================================ */
+  function renderTeamCards(teams) {
+    var box = el("bTeamCards");
+    if (!teams.length) {
+      box.innerHTML = "<p class='hint'>참가 조가 아직 없습니다.</p>";
+      return;
+    }
+
+    var leadScore = Math.max.apply(null, teams.map(totalScore).concat([0]));
+
+    box.innerHTML = teams.map(function (team, idx) {
+      var decided = !!historyAt(team, selectedTurn);
+      var adapt = adaptiveOf(team);
+      var style = styleOf(team);
+
+      var bars = (CFG.metrics || []).map(function (m) {
+        var pct = Math.max(0, Math.min(100, ((team.state[m.key] || 0) / m.max) * 100));
+        return "<span class='fac-team__bar' title='" + esc(m.name) + " " + fmt(team.state[m.key] || 0) +
+               "'><span style='width:" + pct + "%'></span></span>";
+      }).join("");
+
+      return "<div class='fac-team" + (totalScore(team) >= leadScore && leadScore > 0 ? " is-lead" : "") + "'>" +
+        "<div class='fac-team__head'>" +
+          "<span class='fac-team__no num'>" + (idx + 1) + "</span>" +
+          "<span class='fac-team__name'>" + esc(team.name) + "</span>" +
+          "<span class='fac-team__style'>" + esc(style) + "</span>" +
+          "<span class='fac-team__state" + (decided ? "" : " is-waiting") + "'>" +
+            (team.placeholder ? "미접속" : decided ? "입력 완료" : "배분 중") +
+          "</span>" +
+        "</div>" +
+        "<div class='fac-team__bars'>" + bars + "</div>" +
+        "<div class='fac-team__adapt'>" +
+          "<span class='fac-team__adapt-label'>변화 대응력</span>" +
+          "<span class='fac-team__adapt-track'><span class='fac-team__adapt-fill' style='width:" +
+            Math.max(0, Math.min(100, adapt)) + "%'></span></span>" +
+          "<span class='fac-team__adapt-value num'>" + adapt + "</span>" +
+        "</div>" +
+      "</div>";
+    }).join("");
+  }
+
+  /* 조의 경영 성향을 한 단어로 (엔진이 이미 판단합니다) */
+  function styleOf(team) {
+    try { return window.DRBEngine.judgeStyle(team.state).name; }
+    catch (err) { return ""; }
+  }
+
+  function adaptiveOf(team) {
+    try { return window.DRBEngine.adaptiveCapacity(team.state).score; }
+    catch (err) { return 0; }
+  }
+
+  /* 현재 경쟁력 — 참가자 최종 화면과 같은 식으로 계산합니다 */
+  function powerOf(team) {
+    var s = team.state || {};
+    return Math.round(
+      (s.capacity || 0) * 0.3 + (s.tech || 0) * 0.25 + (s.quality || 0) * 0.2 +
+      (s.trust || 0) * 0.15 + Math.max(0, Math.min(1, (s.cash || 0) / 200)) * 100 * 0.1
+    );
+  }
+
+  /* 종합 = 현재 경쟁력 + 변화 대응력.
+     "지금 잘 되는 회사"와 "다시 움직일 수 있는 회사"를 같은 무게로 봅니다. */
+  function totalScore(team) { return powerOf(team) + adaptiveOf(team); }
+
+  /* ============================================================
+     오른쪽 — 산업 뉴스
+
+     조가 무엇에 얼마를 넣었는지, 그리고 그 국면에 산업 전체에
+     무슨 일이 있었는지를 기사처럼 보여줍니다.
+     ============================================================ */
+  function renderNews(teams) {
+    var box = el("bNewsFeed");
+    var news = [];
+    var item = timeline[selectedTurn];
+
+    /* 이번 국면에 각 조가 가장 크게 건 곳 */
+    teams.forEach(function (team) {
+      var h = historyAt(team, selectedTurn);
+      if (!h) return;
+      var top = topAlloc(h.allocation, 1)[0];
+      if (!top) return;
+      news.push({
+        when: h.year || item.sub.year,
+        text: team.name + " — " + investName(top.id) + "에 " + top.amount + " 투입"
+      });
+    });
+
+    /* 이정표 — 기술 도약 · 생산능력 확대 · 해외 진출 */
+    teams.forEach(function (team) {
+      var h = historyAt(team, selectedTurn);
+      if (!h) return;
+      var before = h.before || {};
+      var after = h.after || {};
+      if (after.tech !== undefined && before.tech !== undefined && after.tech - before.tech >= 5) {
+        news.push({ kind: "milestone", when: h.year, text: team.name + " — 기술이 한 단계 도약했습니다" });
+      }
+      if (after.capacity !== undefined && before.capacity !== undefined && after.capacity - before.capacity >= 8) {
+        news.push({ kind: "milestone", when: h.year, text: team.name + " — 생산능력을 크게 늘렸습니다" });
+      }
+      Object.keys(h.choices || {}).forEach(function (key) {
+        var where = h.choices[key] && h.choices[key].where;
+        if (where) news.push({ kind: "milestone", when: h.year, text: team.name + " — " + countryName(where) + " 진출을 결정했습니다" });
+      });
+    });
+
+    /* 산업 전체에 벌어진 일 */
+    var event = item.sub.event && window.DRB_EVENTS[item.sub.event];
+    if (event) news.push({ kind: "market", when: "산업 전체", text: event.title });
+
+    box.innerHTML = news.slice(0, 14).map(function (n) {
+      return "<div class='news" + (n.kind ? " news--" + n.kind : "") + "'>" +
+        "<span class='news__when num'>" + esc(String(n.when)) + "</span>" +
+        "<span class='news__text'>" + esc(n.text) + "</span>" +
+      "</div>";
+    }).join("");
+  }
+
+  /* ============================================================
+     몰림 경고 — 같은 분야에 조가 몰리면 경쟁강도가 실제로 올라갑니다
+     ============================================================ */
+  function renderCrowd(teams) {
+    var box = el("bCrowd");
+    var decided = teams.filter(function (team) { return !!historyAt(team, selectedTurn); });
+    if (decided.length < 2) { box.classList.add("hidden"); return; }
+
+    var byTop = {};
+    decided.forEach(function (team) {
+      var top = topAlloc(historyAt(team, selectedTurn).allocation, 1)[0];
+      if (!top) return;
+      if (!byTop[top.id]) byTop[top.id] = [];
+      byTop[top.id].push(team.name);
+    });
+
+    var crowded = Object.keys(byTop)
+      .filter(function (id) { return byTop[id].length >= 2; })
+      .sort(function (a, b) { return byTop[b].length - byTop[a].length; });
+
+    if (!crowded.length) {
+      box.classList.remove("hidden");
+      box.innerHTML = "<span class='fac-crowd__label'>몰림 없음</span>" +
+        "<span>이번 국면은 조마다 다른 곳에 걸었습니다. 경쟁강도가 오르지 않습니다.</span>";
+      box.style.background = "var(--bg-1)";
+      return;
+    }
+
+    box.style.background = "";
+    box.classList.remove("hidden");
+    box.innerHTML = "<span class='fac-crowd__label'>몰림 주의</span>" +
+      crowded.map(function (id) {
+        return "<span><b>" + esc(byTop[id].join(" · ")) + "</b> 가 <b>" + esc(investName(id)) +
+               "</b> 에 몰렸습니다 (" + byTop[id].length + "조)</span>";
+      }).join("") +
+      "<span class='hint'>같은 분야에 몰리면 고객 확보가 어려워집니다. 결과에 실제로 반영됩니다.</span>";
+  }
+
+  /* ============================================================
+     순위 — 이 화면에만 나옵니다
+
+     ★ 참가자 화면에는 순위를 절대 보내지 않습니다.
+       참가자는 마지막까지 "순위를 매기지 않습니다" 를 봅니다.
+     ============================================================ */
+  function renderRank(teams) {
+    var box = el("bRank");
+    var played = teams.filter(function (team) { return team.turns > 0; });
+    if (played.length < 2) { box.innerHTML = ""; return; }
+
+    var rows = played.map(function (team) {
+      return { name: team.name, total: totalScore(team), power: powerOf(team), adapt: adaptiveOf(team), turns: team.turns };
+    }).sort(function (a, b) { return b.total - a.total; });
+
+    var max = rows[0].total || 1;
+    var prevOrder = readJson(FAC_KEY + "_rankorder", []);
+
+    box.innerHTML =
+      "<div class='fac-rank__head'>" +
+        "<span class='fac-rank__title'>지금 순위</span>" +
+        "<span class='fac-rank__note'>진행자 화면 전용 · 참가자에게 보이지 않습니다</span>" +
+      "</div>" +
+      "<div class='fac-rank__list'>" +
+      rows.map(function (r, i) {
+        var was = prevOrder.indexOf(r.name);
+        var move = was < 0 ? 0 : was - i;
+        var moveCls = move > 0 ? "is-up" : move < 0 ? "is-down" : "is-flat";
+        var moveText = move > 0 ? "▲" + move : move < 0 ? "▼" + Math.abs(move) : "—";
+        return "<div class='fac-rank__row" + (i === 0 ? " is-first" : "") + "'>" +
+          "<span class='fac-rank__pos num'>" + (i + 1) + "위</span>" +
+          "<span class='fac-rank__name'>" + esc(r.name) + "</span>" +
+          "<span class='fac-rank__track'><span class='fac-rank__fill' style='width:" +
+            Math.round(r.total / max * 100) + "%'></span></span>" +
+          "<span class='fac-rank__value num'>" + r.total + "</span>" +
+          "<span class='fac-rank__move " + moveCls + "'>" + moveText + "</span>" +
+        "</div>";
+      }).join("") +
+      "</div>";
+
+    writeJson(FAC_KEY + "_rankorder", rows.map(function (r) { return r.name; }));
+  }
+
+  /* ============================================================
+     시상 — 종합 순위 + 부문상
+
+     종합은 '현재 경쟁력 + 변화 대응력' 입니다. 부문상은 순위와 다른 축이라
+     한 조가 다 가져가지 않습니다.
+     ============================================================ */
+  function renderAward(teams) {
+    var body = el("bAwardBody");
+    var state = el("bAwardState");
+    var done = teams.filter(function (team) { return team.finished || team.turns >= timeline.length; });
+
+    if (!teams.length || done.length < teams.length) {
+      state.textContent = done.length + " / " + teams.length + "조 완주";
+      body.innerHTML = "<p class='hint'>모든 조가 2026년까지 마치면 종합 순위와 부문상이 열립니다.<br>" +
+        "그 전에 열면 아직 결정을 남긴 조가 불리해집니다.</p>";
+      return;
+    }
+    state.textContent = "전 조 완주 · 공개 가능";
+
+    var rows = teams.map(function (team) {
+      return {
+        name: team.name,
+        style: styleOf(team),
+        power: powerOf(team),
+        adapt: adaptiveOf(team),
+        total: totalScore(team),
+        team: team
+      };
+    }).sort(function (a, b) { return b.total - a.total; });
+
+    var podium = "<div class='podium'>" + rows.map(function (r, i) {
+      return "<div class='podium__row" + (i === 0 ? " is-winner" : "") + "'>" +
+        "<span class='podium__pos num'>" + (i + 1) + "</span>" +
+        "<span><span class='podium__name'>" + esc(r.name) + "</span> " +
+          "<span class='podium__style'>" + esc(r.style) + "</span></span>" +
+        "<span class='podium__cell'>현재 경쟁력<b class='num'>" + r.power + "</b></span>" +
+        "<span class='podium__cell'>변화 대응력<b class='num'>" + r.adapt + "</b></span>" +
+        "<span class='podium__total num'>" + r.total + "</span>" +
+      "</div>";
+    }).join("") + "</div>";
+
+    body.innerHTML =
+      "<div><div class='fac-award__section-label'>종합 순위 · 현재 경쟁력 + 변화 대응력</div>" + podium + "</div>" +
+      "<div><div class='fac-award__section-label'>부문상 · 순위와 다른 축으로 봅니다</div>" +
+        "<div class='awards'>" + buildAwards(teams, rows) + "</div></div>" +
+      "<p class='fac-award__note'>종합 1위만 부르지 마시고 부문상을 함께 부르세요. " +
+      "이 게임은 한 줄로 줄 세우려고 만든 것이 아닙니다.<br>" +
+      "시상 뒤에는 각 조의 <b>결정 카드</b>를 대표이사 세션으로 넘깁니다.</p>";
+  }
+
+  function buildAwards(teams, rows) {
+    var out = [];
+
+    /* 가장 멀리 볼 수 있는 회사 */
+    var adaptBest = rows.slice().sort(function (a, b) { return b.adapt - a.adapt; })[0];
+    if (adaptBest) out.push(awardCard("변화 대응력상", adaptBest.name,
+      "무엇이 오든 다시 시작할 수 있는 여력을 가장 많이 남겼습니다 (" + adaptBest.adapt + "점)"));
+
+    /* 가장 일관된 조 — 정책을 가장 적게 바꾼 조 */
+    var steady = teams.map(function (team) {
+      var changes = 0, prev = null;
+      (team.history || []).forEach(function (h) {
+        if (prev && h.policyId && h.policyId !== prev) changes++;
+        if (h.policyId) prev = h.policyId;
+      });
+      return { name: team.name, changes: changes };
+    }).sort(function (a, b) { return a.changes - b.changes; })[0];
+    if (steady) out.push(awardCard("일관성상", steady.name,
+      "여섯 번의 결정 내내 방향을 " + steady.changes + "번만 바꿨습니다"));
+
+    /* 가장 크게 방향을 바꾼 조 */
+    var boldest = teams.map(function (team) {
+      var changes = 0, prev = null;
+      (team.history || []).forEach(function (h) {
+        if (prev && h.policyId && h.policyId !== prev) changes++;
+        if (h.policyId) prev = h.policyId;
+      });
+      return { name: team.name, changes: changes };
+    }).sort(function (a, b) { return b.changes - a.changes; })[0];
+    if (boldest && boldest.changes > 0 && boldest.name !== steady.name) {
+      out.push(awardCard("전환상", boldest.name,
+        "필요할 때 방향을 " + boldest.changes + "번 바꿨습니다. 바꾸는 데에도 대가를 치렀습니다"));
+    }
+
+    /* 가장 넓게 나간 조 */
+    var widest = teams.map(function (team) {
+      return { name: team.name, sites: (team.state.sites || []).length };
+    }).sort(function (a, b) { return b.sites - a.sites; })[0];
+    if (widest && widest.sites > 0) out.push(awardCard("개척상", widest.name,
+      "해외 거점을 " + widest.sites + "곳 만들었습니다"));
+
+    return out.join("");
+  }
+
+  function awardCard(label, name, why) {
+    return "<div class='award'>" +
+      "<div class='award__label'>" + esc(label) + "</div>" +
+      "<div class='award__team'>" + esc(name) + "</div>" +
+      "<div class='award__why'>" + esc(why) + "</div>" +
+    "</div>";
   }
 
   function renderBrief() {
@@ -510,6 +839,11 @@
     renderPrompts();
     renderRail(teams);
     renderMap(teams);
+    renderTeamCards(teams);
+    renderNews(teams);
+    renderCrowd(teams);
+    renderRank(teams);
+    renderAward(teams);
     showStage(currentStage, false);
   }
 
@@ -518,7 +852,10 @@
     currentStage = stage;
     document.querySelectorAll("[data-stage-panel]").forEach(function (panel) { panel.classList.toggle("hidden", panel.dataset.stagePanel !== stage); });
     document.querySelectorAll("[data-stage]").forEach(function (button) { button.classList.toggle("is-active", button.dataset.stage === stage); });
-    if (publish && window.DRBLive && window.DRBLive.hasFacilitatorSession && window.DRBLive.hasFacilitatorSession()) {
+    /* ★ 시상 단계는 참가자에게 내보내지 않습니다. 순위가 들어 있습니다.
+       참가자 화면은 마지막까지 "순위를 매기지 않습니다" 를 유지해야 합니다. */
+    if (publish && stage !== "award" &&
+        window.DRBLive && window.DRBLive.hasFacilitatorSession && window.DRBLive.hasFacilitatorSession()) {
       window.DRBLive.control({ currentTurn: selectedTurn, stage: stage }).catch(function () {});
     }
     renderRail(collectTeams());
@@ -653,6 +990,48 @@
       if (window.DRBLive && window.DRBLive.hasFacilitatorSession && window.DRBLive.hasFacilitatorSession()) window.DRBLive.control({ currentTurn: selectedTurn, stage: "actual", revealedActual: round.id }).catch(function () {});
       render();
     };
+    /* 돌발상황 공개 — 모든 조가 결정을 확정한 뒤에만 누르세요 */
+    el("btnRevealEvent").onclick = function () { showStage("event", true); };
+
+    /* 다음 단계 — 진행 단계를 하나 넘기고, 마지막 단계면 다음 국면으로 */
+    el("btnNextStep").onclick = function () {
+      var at = STAGES.indexOf(currentStage);
+      if (at < 0 || at >= STAGES.indexOf("map")) {
+        el("btnNext").click();
+        return;
+      }
+      showStage(STAGES[at + 1], true);
+    };
+
+    el("btnTeamDetail").onclick = function () {
+      var teams = collectTeams();
+      openModal("조별 상세 · 결정 카드", teams.map(function (team) {
+        var h = historyAt(team, selectedTurn);
+        return "<div class='breakdown__row'><span class='breakdown__label'><b>" + esc(team.name) + "</b> · " +
+          esc(styleOf(team)) + "<br><span class='hint'>" +
+          (h ? esc(topAlloc(h.allocation, 3).map(function (a) { return investName(a.id) + " " + a.amount; }).join(" · ")) +
+               " · 정책 " + esc(policyName(h.policyId, h.policyName))
+             : "이번 국면 미확정") +
+          "</span></span><span class='breakdown__value num'>" + totalScore(team) + "</span></div>";
+      }).join("") || "<p class='hint'>참가 조가 없습니다.</p>");
+    };
+
+    el("btnAddTeam").onclick = openPaste;
+
+    el("btnEraCompare").onclick = function () {
+      var teams = collectTeams();
+      openModal("시대 비교", "<div class='breakdown'>" + timeline.map(function (item, turn) {
+        var line = teams.map(function (team) {
+          var h = (team.history || []).filter(function (x) { return x.subroundId === item.sub.id; })[0];
+          if (!h) return null;
+          var top = topAlloc(h.allocation, 1)[0];
+          return esc(team.name) + " " + (top ? esc(investName(top.id)) : "투자 없음");
+        }).filter(Boolean).join(" / ");
+        return "<div class='breakdown__row'><span class='breakdown__label'><b class='num'>" + item.sub.year +
+               "</b> " + (line || "기록 없음") + "</span></div>";
+      }).join("") + "</div>");
+    };
+
     el("btnSession").onclick = openSession;
     el("btnPaste").onclick = openPaste;
     el("btnPrint").onclick = function () { window.print(); };

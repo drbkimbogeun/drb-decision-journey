@@ -498,9 +498,14 @@ window.DRBEngine = (function () {
        여러 요소가 곱해져야 결과가 나온다 (어느 하나만 잘해선 안 됨)
        ============================================================ */
     /* 같은 시장에 여러 회사가 몰리면 경쟁이 심해진다.
-       ctx.crowding = 0~1 (우리가 고른 주력 분야에 몇 곳이 몰렸는가) */
-    var crowding = ctx.crowding || 0;
-    var effectiveCompetition = clamp(m.competition + crowding * 0.22, 0, 0.85);
+       ctx.crowding = 0~1 (우리가 고른 주력 분야에 몇 곳이 몰렸는가)
+
+       ★ 시대가 주는 기본 경쟁강도와, 조들이 몰려서 생기는 압력을 따로 곱합니다.
+         기본값은 건드리지 않고 '남들이 나와 같은 곳에 걸었다'는 것만 아프게 만들어야
+         참가자가 경쟁을 실제로 체감합니다. 세기는 config.js 의 crowdingPenalty. */
+    var crowding = clamp(ctx.crowding || 0, 0, 1);
+    var crowdWeight = E.crowdingPenalty === undefined ? 0.18 : E.crowdingPenalty;
+    var effectiveCompetition = clamp(m.competition + crowding * 0.38, 0, 0.92);
 
     var factors = {
       base:        (m.demand + s.demandBonus),
@@ -510,7 +515,7 @@ window.DRBEngine = (function () {
       trust:       0.65 + 0.35 * (s.trust / 100),
       reach:       0.65 + 0.35 * (s.reach / 100),
       techFit:     clamp(1.00 + (s.tech - m.techRequirement) / 100, 0.55, 1.35),
-      competition: 1 - effectiveCompetition * 0.30
+      competition: (1 - m.competition * 0.30) * (1 - crowding * crowdWeight)
     };
     report.crowding = Math.round(crowding * 100);
     report.competitionLevel = Math.round(effectiveCompetition * 100);

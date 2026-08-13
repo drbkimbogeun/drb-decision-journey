@@ -457,9 +457,14 @@ function checkParticipantAvailability(W, timeline) {
 }
 
 function checkFacilitatorStages() {
-  section("8. Facilitator six stages / Worker CONTROL_STAGES");
+  section("8. Facilitator stages / Worker CONTROL_STAGES");
 
+  /* 참가자에게 공개되는 6단계. Worker 가 검증하는 목록과 정확히 같아야 합니다. */
   const expectedStages = ["briefing", "decisions", "event", "actual", "debrief", "map"];
+  /* 시상은 진행자 화면에만 있는 7번째 탭입니다. 순위가 들어 있어
+     참가자에게 절대 내보내지 않으므로 Worker 목록에는 없어야 합니다. */
+  const facilitatorOnlyStages = ["award"];
+  const allTabStages = expectedStages.concat(facilitatorOnlyStages);
   const html = read("facilitator.html");
   const worker = read("worker.js");
   const tabStages = Array.from(html.matchAll(/\bdata-stage=[\"']([^\"']+)[\"']/g), function (match) {
@@ -476,9 +481,13 @@ function checkFacilitatorStages() {
     return stage !== "lobby" && stage !== "complete";
   });
 
-  expect(sameList(tabStages, expectedStages), "facilitator tabs have the expected six stages in order");
-  expect(sameList(panelStages, expectedStages), "facilitator panels match the six tabs in order");
+  expect(sameList(tabStages, allTabStages), "facilitator tabs have the expected stages in order");
+  expect(sameList(panelStages, allTabStages), "facilitator panels match the tabs in order");
   expect(!!controlBlock, "worker.js defines CONTROL_STAGES");
+  expect(facilitatorOnlyStages.every(function (stage) { return workerStages.indexOf(stage) < 0; }),
+    "facilitator-only stages are never accepted by the Worker (rankings must not reach participants)");
+  expect(/stage\s*!==\s*"award"/.test(read("js/facilitator.js")),
+    "facilitator never publishes the award stage to participants");
   expect(sameList(workerFacilitatorStages, expectedStages),
     "Worker facilitator CONTROL_STAGES match the HTML stages");
   expect(workerStages[0] === "lobby" && workerStages[workerStages.length - 1] === "complete",
