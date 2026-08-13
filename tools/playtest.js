@@ -99,6 +99,15 @@ const server = http.createServer((req, res) => {
   if (!visible("intro")) bad("시작 화면이 보이지 않습니다");
   else ok("시작 화면 표시");
 
+  /* 표지 → 우리 조 고르기 */
+  if ($("intro").getAttribute("data-step") !== "0") bad("표지가 먼저 보이지 않습니다");
+  click("btnCoverGo");
+  if ($("intro").getAttribute("data-step") !== "1") bad("'우리 조 고르기' 로 넘어가지 않았습니다");
+  else ok("표지 → 우리 조 고르기");
+
+  if ($("roleChips").children.length !== win.DRB_CONFIG.roles.length) bad("역할 표시가 맞지 않습니다");
+  else ok(`역할 ${$("roleChips").children.length}개 표시`);
+
   if ($("teamCountPicker").children.length === 0) bad("조 수 선택 버튼이 그려지지 않았습니다");
   else ok(`조 수 선택 ${$("teamCountPicker").children.length}개`);
 
@@ -188,6 +197,12 @@ const server = http.createServer((req, res) => {
       log.push(`  정책 — ${list[guard % list.length].querySelector(".policy__name").textContent.trim()}`);
       click("btnPolicyGo");
 
+    } else if (screen === "event") {
+      if (!$("evTitle").textContent.trim()) bad("돌발상황 제목이 비어 있습니다");
+      if (!$("evCards").children.length) bad("돌발상황 영향 카드가 비어 있습니다");
+      log.push(`  돌발상황 — ${$("evTitle").textContent.trim()}`);
+      click("btnEventGo");
+
     } else if (screen === "timelapse") {
       if (!$("tlYear").textContent.trim()) bad("타임랩스 연도가 비어 있습니다");
       click("btnSkipLapse");
@@ -197,18 +212,18 @@ const server = http.createServer((req, res) => {
       /* 2026 엔딩 — 한 화면이 3단계로 열린다 */
       if (!$("endYears").children.length) bad("엔딩의 연도 칩이 비어 있습니다");
       let step = 0;
-      while (step < 3) {
+      while (step < 2) {
         if ($("ending").getAttribute("data-step") !== String(step)) {
           bad(`엔딩 단계가 ${step} 이 아닙니다`); break;
         }
-        if (step === 2 && !$("endMarket").children.length) {
+        if (step === 1 && !$("endMarket").children.length) {
           bad("엔딩의 '시장은 멈추지 않습니다' 목록이 비어 있습니다");
         }
         click("btnEndNext");
         step++;
       }
       if ($("sc-ending").classList.contains("is-active")) bad("엔딩이 끝나지 않았습니다");
-      log.push("  2026 UNKNOWN 엔딩 3단계 통과");
+      log.push("  2026 UNKNOWN 엔딩 2단계 통과");
 
     } else if (screen === "result") {
       if (!$("reHeadline").textContent.trim()) bad("결과 요약 문장이 비어 있습니다");
@@ -225,16 +240,14 @@ const server = http.createServer((req, res) => {
 
     } else if (screen === "actual") {
       if (!$("acOurs").textContent.trim()) bad("'우리 조의 선택' 이 비어 있습니다");
-      if (!$("acDrb").textContent.trim()) bad("'실제 DRB의 선택' 칸이 비어 있습니다");
+      /* DRB 실제 기록은 진행자 화면에서만 공개합니다.
+         참가자 DOM 에 들어 있으면 스포일러가 됩니다. */
       {
-        /* 실제 기록이 입력돼 있으면 그 내용이, 비어 있으면 안내가 나와야 한다 */
-        const a = win.DRB_ACTUAL[S.round().actualId];
-        const t = $("acDrb").textContent;
-        if (a.filled && t.indexOf("입력 예정") >= 0) bad("실제 기록이 있는데 placeholder 가 나옵니다");
-        if (!a.filled && t.indexOf("입력 예정") < 0) bad("실제 기록이 없는데 안내가 나오지 않습니다");
+        const leaked = $("acDrb").textContent.trim();
+        if (leaked) bad("참가자 화면에 DRB 실제 기록이 들어 있습니다: " + leaked.slice(0, 40));
       }
       if (!$("acRivals").children.length) bad("경쟁사 비교 칸이 비어 있습니다");
-      log.push(`  ACTUAL DRB + 경쟁사 비교 (${$("acRivals").children.length}칸)`);
+      log.push(`  DRB 공개 대기 + 경쟁사 비교 (${$("acRivals").children.length}칸)`);
 
       /* ERA 클리어 체크포인트 — 세 문장을 채워야 다음 시대가 열린다 */
       if (!$("btnActualGo").disabled) bad("체크포인트가 비었는데 다음 시대가 열려 있습니다");
@@ -245,21 +258,6 @@ const server = http.createServer((req, res) => {
       if ($("btnActualGo").disabled) bad("세 문장을 채웠는데도 다음 시대가 열리지 않습니다");
       else ok("ERA 클리어 체크포인트 통과");
       click("btnActualGo");
-
-    } else if (screen === "whatif") {
-      const rows = $("wiBody").children;
-      const expected = 1 + (win.DRB_WHATIF || []).length;
-      if (rows.length !== expected) {
-        bad(`What If 표가 ${rows.length}줄 (예상 ${expected}줄)`);
-      }
-      if (!rows[0] || !rows[0].classList.contains("is-ours")) {
-        bad("What If 첫 줄이 '우리 조'가 아닙니다");
-      }
-      if ($("wiHead").children.length !== 1 + (win.DRB_WHATIF_AXES || []).length) {
-        bad("What If 표 머리글 개수가 맞지 않습니다");
-      }
-      log.push(`  What If 비교 — ${rows.length}개 전략 × ${win.DRB_WHATIF_AXES.length}개 축`);
-      click("btnWhatifGo");
 
     } else {
       bad("알 수 없는 화면: " + screen);
@@ -340,9 +338,11 @@ const server = http.createServer((req, res) => {
   if (!$("fiStanding").children.length) bad("최종 경쟁사 비교가 비어 있습니다");
   else ok("경쟁사 대비 위치 표시");
 
-  /* ---------- 회사 상태 (자원 배분 화면 왼쪽 레일) ---------- */
-  if ($("inState").children.length < CFG.metrics.length) bad("레일의 회사 상태가 다 그려지지 않았습니다");
-  else ok("회사 상태 " + CFG.metrics.length + "개 표시");
+  /* ---------- 회사 상태는 상단 [상태] 모달에서만 봅니다 ---------- */
+  click("btnDetail");
+  if (!$("modal").classList.contains("is-open")) bad("회사 상태 모달이 열리지 않았습니다");
+  else ok("회사 상태 모달 표시");
+  click("modalClose");
 
   /* ---------- 조 전환 ---------- */
   const other = S.g().teamNames.find(n => n !== S.g().activeTeam);
@@ -367,9 +367,25 @@ const server = http.createServer((req, res) => {
   if ($("modal").classList.contains("is-open")) bad("모달이 닫히지 않았습니다");
   else ok("모달 닫힘");
 
+  /* ---------- 최종 → What If ---------- */
+  click("btnFinalGo");
+  if (activeScreen() !== "whatif") bad("최종 화면에서 What If 로 넘어가지 않았습니다");
+  else {
+    const rows = $("wiBody").children;
+    const expected = 1 + (win.DRB_WHATIF || []).length;
+    if (rows.length !== expected) bad(`What If 표가 ${rows.length}줄 (예상 ${expected}줄)`);
+    else if (!rows[0] || !rows[0].classList.contains("is-ours")) bad("What If 첫 줄이 '우리 조'가 아닙니다");
+    else if ($("wiHead").children.length !== 1 + (win.DRB_WHATIF_AXES || []).length) bad("What If 표 머리글 개수가 맞지 않습니다");
+    else ok(`What If 비교 — ${rows.length}개 전략 × ${win.DRB_WHATIF_AXES.length}개 축`);
+  }
+
   /* ---------- 진행자 화면 ---------- */
   const facDom = await JSDOM.fromURL(`http://127.0.0.1:${PORT}/facilitator.html`, {
-    runScripts: "dangerously", resources: "usable", pretendToBeVisual: true
+    runScripts: "dangerously", resources: "usable", pretendToBeVisual: true,
+    /* 부팅 중에 난 오류도 잡으려면 파싱 전에 붙여야 합니다 */
+    beforeParse(w) {
+      w.addEventListener("error", e => errors.push("진행자화면 오류: " + ((e.error && e.error.stack) || e.message)));
+    }
   });
   facDom.window.addEventListener("error", e => errors.push("진행자화면 오류: " + e.message));
   const facErr = facDom.window.console.error;
@@ -377,7 +393,8 @@ const server = http.createServer((req, res) => {
     errors.push("진행자화면 console.error: " + Array.from(arguments).join(" "));
     facErr.apply(facDom.window.console, arguments);
   };
-  await new Promise(r => setTimeout(r, 900));
+  /* 진행자 화면은 CSS 여러 장을 받은 뒤에야 첫 render 가 끝납니다 */
+  await new Promise(r => setTimeout(r, 1600));
   const fdoc = facDom.window.document;
   if (!fdoc.getElementById("bDecisionRows")) bad("진행자 화면이 그려지지 않았습니다");
   else if (!fdoc.getElementById("bMap").children.length) bad("진행자 지도가 비어 있습니다");

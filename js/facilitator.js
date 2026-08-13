@@ -737,7 +737,8 @@
     var summaries = teams.filter(function (team) { return completedRound(team, item.round); }).map(function (team) {
       return "<p style='margin:5px 0'><b style='color:" + teamColor(team.name) + "'>" + esc(team.name) + "</b> · " + esc(teamEraSummary(team, item.round) || "기록 없음") + "</p>";
     }).join("") || "<p class='hint'>이 시대를 완료한 조가 아직 없습니다.</p>";
-    var timelineHtml = (actual.timeline || []).filter(function (milestone) { return milestone.key; }).slice(0, 5).map(function (milestone) {
+    /* 연표는 분기점(key)만. 빔에 12줄을 띄우면 아무도 읽지 않습니다. */
+    var timelineHtml = (actual.timeline || []).filter(function (milestone) { return milestone.key; }).slice(0, 4).map(function (milestone) {
       return "<div class='fac-drb__milestone'><div class='fac-drb__year'>" + esc(milestone.year) + "</div>" + esc(milestone.text) + "</div>";
     }).join("");
     el("bActualContent").innerHTML =

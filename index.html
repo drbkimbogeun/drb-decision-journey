@@ -18,69 +18,68 @@
 <body>
 
 <!-- ============================================================
-     시작 화면
+     시작 — 1) 표지  2) 우리 조 고르기
      ============================================================ -->
-<div id="intro" class="intro">
-  <div class="intro__panel">
+<div id="intro" class="intro" data-step="0">
 
-    <div class="intro__brand">
-      <span class="intro__mark"></span>
-      <span class="intro__theme" id="introTheme">DRB의 여정 : 여기, 그리고 다음</span>
+  <!-- ---------- 1) 표지 ---------- -->
+  <section class="cover intro__step" data-intro-step="0">
+    <div class="cover__brand">
+      <span class="cover__mark">DRB</span>
+      <span class="cover__kicker">경영전략 시뮬레이션</span>
     </div>
 
-    <h1 class="intro__title" id="introTitle">80년의 선택<br>그때, 당신이라면?</h1>
+    <h1 class="cover__title" id="introTitle">80년의 선택</h1>
 
-    <p class="intro__lead">
-      여러분은 지금부터 <b>과거 어느 시점의 경영진</b>입니다.<br>
-      결과를 알 수 없는 상태에서 자원을 배분하고, 정책을 정하고, 결정을 내립니다.<br>
-      각 시대가 끝나면 <b>그때 DRB는 실제로 무엇을 선택했는지</b> 공개됩니다.
-    </p>
+    <p class="cover__lead">1947년의 회사를 물려받아<br>2026년까지 경영합니다.</p>
 
-    <div class="intro__rules">
-      <div class="intro__rule">
-        <b>1945 → 2026 · 3개 시대, 6번의 결정</b>
-        <span>세 시대를 지납니다. 뒤로 갈수록 시간은 짧아지고 정보는 많아집니다.</span>
-      </div>
-      <div class="intro__rule">
-        <b>토론 → 토큰 → 입력</b>
-        <span>테이블에서 먼저 토론하고 실물 토큰을 옮긴 뒤, 화면에 같은 숫자를 넣습니다.</span>
-      </div>
-      <div class="intro__rule">
-        <b>정답은 없습니다</b>
-        <span>순위를 매기지 않습니다. 같은 시작에서 서로 다른 회사가 되는 것이 목표입니다.</span>
-      </div>
-      <div class="intro__rule">
-        <b>모든 선택에는 대가가 있습니다</b>
-        <span>한쪽에 넣으면 다른 쪽이 비고, 효과는 대체로 늦게 옵니다.</span>
-      </div>
-      <div class="intro__rule">
-        <b>경쟁사도 함께 움직입니다</b>
-        <span>우리가 고민하는 동안에도 같은 산업의 다른 회사들은 계속 결정합니다.</span>
-      </div>
+    <div class="cover__stats">
+      <div class="statbox"><span class="statbox__label">국면</span><span class="statbox__value num" id="coverTurns">6</span></div>
+      <div class="statbox"><span class="statbox__label">조</span><span class="statbox__value num" id="coverTeams">4</span></div>
+      <div class="statbox"><span class="statbox__label">시간</span><span class="statbox__value num" id="coverTime">60분</span></div>
     </div>
 
-    <div class="intro__setup">
-      <div class="row row--between" style="margin-bottom:var(--sp-4)">
-        <div>
-          <div class="section-label">참가 조 수</div>
-          <div class="team-picker" id="teamCountPicker"></div>
-        </div>
-        <div style="text-align:right">
-          <div class="section-label">우리 조</div>
-          <div class="team-picker" id="teamPicker"></div>
-        </div>
-      </div>
+    <div class="cover__foot">
+      <span class="cover__hint" id="introHint">진행자가 시작하면 넘어갑니다</span>
+      <span class="spacer"></span>
+      <button class="btn btn--white btn--lg" id="btnCoverGo">우리 조 고르기 <span class="btn__arrow">→</span></button>
+    </div>
+  </section>
 
-      <div class="row">
-        <button class="btn btn--primary btn--lg" id="btnStart">게임 시작</button>
-        <button class="btn btn--ghost hidden" id="btnContinue">이어서 하기</button>
+  <!-- ---------- 2) 우리 조 ---------- -->
+  <section class="page intro__step" data-intro-step="1">
+    <header class="page__top">
+      <span class="page__title">우리 조</span>
+      <span class="spacer"></span>
+      <span class="page__meta" id="setupMeta">노트북 1대 · 4명</span>
+    </header>
+
+    <div class="page__body">
+      <h2 class="page__q">누구의 회사입니까</h2>
+
+      <div class="teampick" id="teamPicker"></div>
+
+      <div class="rolebar">
+        <span class="rolebar__label">역할을 하나씩 가져가세요</span>
         <span class="spacer"></span>
-        <a class="btn btn--ghost" href="facilitator.html" target="_blank" rel="noopener">진행자 화면 ↗</a>
+        <div class="rolebar__chips" id="roleChips"></div>
       </div>
-      <p class="hint" style="margin-top:var(--sp-3)" id="introHint"></p>
+
+      <!-- 조 수는 진행자가 정합니다. 라이브 세션에서는 잠깁니다. -->
+      <div class="setup-count">
+        <span class="setup-count__label">참가 조 수</span>
+        <div class="team-picker" id="teamCountPicker"></div>
+        <span class="spacer"></span>
+        <button class="btn btn--ghost btn--sm hidden" id="btnContinue">이어서 하기</button>
+        <a class="btn btn--ghost btn--sm" href="facilitator.html" target="_blank" rel="noopener">진행자 화면 ↗</a>
+      </div>
     </div>
 
-  </div>
+    <footer class="page__foot">
+      <span class="spacer"></span>
+      <button class="btn btn--primary btn--lg" id="btnStart">준비 완료 <span class="btn__arrow">→</span></button>
+    </footer>
+  </section>
 </div>
 
 
@@ -90,35 +89,26 @@
 <div id="app" class="app hidden">
 
   <header class="topbar">
-    <div class="topbar__left">
-      <!-- 왼쪽 표식 — 보통은 우리 조, ACTUAL DRB/최종 화면에서는 다른 도장이 됩니다 -->
-      <span class="stamp stamp--team" id="tbStamp">
-        <span class="stamp__no num" id="tbStampNo">1</span>
-        <span class="stamp__name" id="tbStampName">1조</span>
-      </span>
+    <span class="topbar__stamp" id="tbStamp"></span>
+    <span class="topbar__title" id="tbTitle"></span>
+    <span class="topbar__sub" id="tbSub"></span>
+    <div class="dots" id="tbDots" aria-hidden="true"></div>
 
-      <span class="topbar__rule"></span>
+    <span class="spacer"></span>
 
-      <!-- 6번의 결정 진행 표시 (브리핑 화면에서만) -->
-      <div class="dots" id="tbDots" aria-hidden="true"></div>
-      <span class="dots__count num" id="tbDotsCount">1/6</span>
+    <span class="budgetmini hidden" id="tbBudget">
+      <span class="budgetmini__label">남은 예산</span>
+      <span class="budgetmini__value num" id="inRemain">50</span>
+      <span class="budgetmini__of">/ <span class="num" id="inBudget">50</span></span>
+    </span>
+    <span class="topbar__meta" id="tbMeta"></span>
+    <span class="timer hidden" id="tbTimer"><span class="timer__value num" id="tbTimerText">05:00</span></span>
 
-      <!-- 그 밖의 화면에서는 여기 한 줄 설명이 들어갑니다 -->
-      <span class="topbar__context" id="tbContext" aria-live="polite"></span>
-    </div>
-
-    <div class="topbar__right">
-      <span class="topbar__note" id="tbNote"></span>
-      <span class="timer hidden" id="tbTimer">
-        <span class="timer__label">토론</span>
-        <span class="timer__value num" id="tbTimerText">05:00</span>
-      </span>
-      <div class="topbar__util no-print">
-        <select class="input input--sm" id="tbTeam" title="조 전환"></select>
-        <button class="btn btn--sm btn--ghost" id="btnDetail" title="회사 상태 상세">상태</button>
-        <button class="btn btn--sm btn--ghost" id="btnAdmin" title="계산 근거 보기">관리자</button>
-        <button class="btn btn--sm btn--ghost" id="btnReset" title="처음부터">↺</button>
-      </div>
+    <div class="topbar__util no-print">
+      <select class="input input--sm" id="tbTeam" title="조 전환"></select>
+      <button class="btn btn--sm btn--ghost" id="btnDetail" title="회사 상태 상세">상태</button>
+      <button class="btn btn--sm btn--ghost" id="btnAdmin" title="계산 근거 보기">관리자</button>
+      <button class="btn btn--sm btn--ghost" id="btnReset" title="처음부터">↺</button>
     </div>
   </header>
 
@@ -126,69 +116,65 @@
     <main class="stage__main">
       <div class="stage__inner">
 
-        <!-- ---------- 라운드 시작 ---------- -->
+        <!-- ---------- 시대 브리핑 (자세히 보기) ---------- -->
         <section class="screen" id="sc-roundOpen">
-          <div class="round-open">
-            <div class="screen-head__eyebrow" id="roMeta">ROUND 1</div>
-            <div class="round-open__era num" id="roYear">1960년대 후반</div>
-            <h2 class="round-open__name" id="roName">성장기 · 만들 수 있는가</h2>
-            <p class="round-open__desc" id="roDesc"></p>
+          <div class="page">
+            <div class="page__body">
+              <div class="round-open">
+                <div class="screen-head__eyebrow" id="roMeta">ERA 1</div>
+                <div class="round-open__era num" id="roYear">1940~60년대</div>
+                <h2 class="round-open__name" id="roName">창업기</h2>
+                <p class="round-open__desc" id="roDesc"></p>
 
-            <div class="round-open__env">
-              <div class="section-label">산업 브리핑 — 지금 알 수 있는 것</div>
-              <div class="brief" id="roBrief"></div>
+                <div class="round-open__env">
+                  <div class="section-label">산업 브리핑 — 지금 알 수 있는 것</div>
+                  <div class="brief" id="roBrief"></div>
+                </div>
+
+                <div class="visibility" id="roVisibility"></div>
+
+                <div class="round-open__env">
+                  <div class="section-label">이 시대의 질문</div>
+                  <p id="roQuestion" class="round-open__question"></p>
+                </div>
+
+                <div class="round-open__env" id="roRivalsWrap">
+                  <div class="section-label">같은 산업의 경쟁사들</div>
+                  <div id="roRivals"></div>
+                </div>
+              </div>
             </div>
-
-            <div class="visibility" id="roVisibility"></div>
-
-            <div class="round-open__env">
-              <div class="section-label">이 시대의 질문</div>
-              <p id="roQuestion" style="font-size:var(--fs-lead);font-weight:700"></p>
-            </div>
-
-            <div class="round-open__env" id="roRivalsWrap">
-              <div class="section-label">같은 산업의 경쟁사들</div>
-              <div id="roRivals"></div>
-            </div>
-
-            <div class="screen-actions">
-              <button class="btn btn--primary btn--lg" id="btnRoundGo">상황 확인하기</button>
-              <span class="hint" id="roGuide"></span>
-            </div>
+            <footer class="page__foot">
+              <span class="page__hint" id="roGuide"></span>
+              <span class="spacer"></span>
+              <button class="btn btn--primary btn--lg" id="btnRoundGo">상황 보기 <span class="btn__arrow">→</span></button>
+            </footer>
           </div>
         </section>
 
-        <!-- ---------- 상황 · 국면 브리핑 ---------- -->
+        <!-- ---------- 상황 · 대화 시간 ---------- -->
         <section class="screen" id="sc-situation">
-          <div class="brief-page">
+          <div class="talk">
 
-            <div class="brief-page__main">
-              <div class="brief-head">
-                <span class="era-badge" id="siEraBadge">ERA 1</span>
-                <span class="brief-head__span" id="siSpan">1945 – 1978 · 첫 번째 결정</span>
-                <span class="brief-head__year num" id="siYear">1947</span>
+            <div class="talk__left">
+              <h2 class="talk__q" id="siTitle"></h2>
+              <div class="talk__factors" id="siFactors"></div>
+              <p class="talk__foot" id="siLead"></p>
+            </div>
+
+            <aside class="talk__right">
+              <div class="talk__timerrow">
+                <span class="talk__timerlabel">지금은 대화 시간</span>
+                <span class="spacer"></span>
+                <span class="talk__timer num" id="siTimerText">05:00</span>
               </div>
 
-              <h2 class="brief-page__q" id="siTitle"></h2>
-              <p class="brief-page__lead" id="siLead"></p>
-
-              <div class="factors">
-                <div class="factors__col">
-                  <div class="factors__label">국내</div>
-                  <div class="factors__list" id="siDomestic"></div>
-                  <p class="factors__foot" id="siFootDomestic"></p>
-                </div>
-                <div class="factors__col">
-                  <div class="factors__label">세계</div>
-                  <div class="factors__list" id="siGlobal"></div>
-                  <p class="factors__foot" id="siFootGlobal"></p>
-                </div>
+              <div class="talkcard">
+                <div class="talkcard__label">지금 이야기할 것</div>
+                <p class="talkcard__q" id="siTalkQ"></p>
               </div>
 
-              <div class="riskbox">
-                <span class="riskbox__label">리스크</span>
-                <div class="riskbox__list" id="siRisk"></div>
-              </div>
+              <div class="rolelist" id="siRoles"></div>
 
               <div id="siEvent" class="eventbox hidden">
                 <div class="eventbox__label" id="siEventLabel">돌발상황</div>
@@ -196,411 +182,330 @@
                 <div class="eventbox__body" id="siEventBody"></div>
               </div>
 
-              <details class="foldout" id="siMore">
-                <summary>조별 경영회의 — 네 가지 관점으로 한 번씩 말하고 시작하세요</summary>
-                <div class="roles" id="siRoles"></div>
-                <div class="section-label" style="margin-top:var(--sp-4)">지금 판단에 중요한 것</div>
-                <div class="env" id="siEnv"></div>
-                <p class="hint" id="siBody"></p>
-              </details>
-
-              <div class="screen-actions">
-                <span class="hint">토론이 끝나면 실물 토큰을 먼저 옮깁니다</span>
-                <span class="spacer"></span>
-                <button class="btn btn--ghost" id="btnSitBrief">브리핑 다시 읽기</button>
-                <button class="btn btn--primary btn--lg" id="btnSitGo">자원 배분하기 <span class="btn__arrow">→</span></button>
-              </div>
-            </div>
-
-            <aside class="brief-page__rail">
-              <div class="clarity">
-                <div class="rail-label">전망 선명도</div>
-                <div class="clarity__row">
-                  <span class="clarity__value num" id="siClarity">85</span>
-                  <span class="clarity__unit">%</span>
-                  <span class="clarity__ref" id="siClarityRef"></span>
-                </div>
-                <div class="clarity__bar"><div class="clarity__fill" id="siClarityFill"></div></div>
-                <p class="clarity__note" id="siClarityNote"></p>
+              <div class="talk__actions">
+                <button class="btn btn--ghost" id="btnNextSpeaker">다음 사람</button>
+                <button class="btn btn--primary btn--lg" id="btnSitGo">이야기 끝 · 배분하기 <span class="btn__arrow">→</span></button>
               </div>
 
-              <div class="phasebox">
-                <div class="rail-label">이번 국면</div>
-                <dl class="phasebox__list" id="siPhaseList"></dl>
+              <div class="talk__more">
+                <button class="linkbtn" id="btnSitBrief">브리핑 자세히 보기</button>
+                <p class="hint hidden" id="siBody"></p>
+                <div class="env hidden" id="siEnv"></div>
+                <div class="hidden" id="siFigure"></div>
               </div>
-
-              <figure class="railfig" id="siFigure"></figure>
             </aside>
 
           </div>
         </section>
 
-        <!-- ---------- 투자 배분 ---------- -->
+        <!-- ---------- 자원 배분 ---------- -->
         <section class="screen" id="sc-invest">
-          <div class="alloc-page">
-
-            <aside class="alloc-page__rail">
-              <div class="budget">
-                <div class="rail-label">남은 예산</div>
-                <div class="budget__row">
-                  <span class="budget__value num" id="inRemain">50</span>
-                  <span class="budget__of">/ <span class="num" id="inBudget">50</span></span>
-                </div>
-                <div class="budget__bar"><div class="budget__fill" id="inBar"></div></div>
+          <div class="page">
+            <div class="page__body">
+              <div class="alloc-head">
+                <h2 class="page__q">어디에 넣을 것인가</h2>
+                <span class="spacer"></span>
+                <span class="tokenrow">
+                  <span class="tokenrow__label">남은 토큰</span>
+                  <span class="tokenrow__dots" id="inTokenDots"></span>
+                  <span class="sr-only" id="inTokens"></span>
+                  <span class="sr-only" id="inTokenUnit">10</span>
+                </span>
               </div>
 
-              <div class="tokens">
-                <div class="tokens__head">
-                  <span class="rail-label">실물 토큰</span>
-                  <span class="tokens__count num" id="inTokens">5 / 5 남음</span>
-                </div>
-                <div class="tokens__dots" id="inTokenDots"></div>
-                <p class="tokens__note">토큰 1개 = <span class="num" id="inTokenUnit">10</span>.<br>테이블 위 토큰을 먼저 옮기세요.</p>
-              </div>
-
-              <div class="rail-state" id="inState"></div>
-
-              <div class="rail-spacer"></div>
-
-              <div class="otherteams" id="inOtherTeams"></div>
-
-              <button class="btn btn--ghost btn--sm rail-reset" id="btnAllocReset">배분 초기화</button>
-            </aside>
-
-            <div class="alloc-page__main">
-              <div class="screen-head">
-                <h2 class="screen-head__title">어디에 넣을 것인가
-                  <span class="screen-head__aside">넣은 만큼 다른 칸이 비웁니다</span>
-                </h2>
-                <p class="screen-head__sub" id="inSub"></p>
-              </div>
-
-              <div class="decision-scope" id="inDecisionScope" aria-live="polite"></div>
+              <p class="page__warn hidden" id="inSub"></p>
+              <div class="decision-scope hidden" id="inDecisionScope" aria-live="polite"></div>
 
               <div class="alloc-list" id="inList"></div>
-
-              <div class="alloc-guide">
-                <span id="inGuide">남긴 예산은 자동으로 <b>현금</b>으로 넘어갑니다. 아끼는 것도 하나의 전략입니다.</span>
-              </div>
-
-              <div class="screen-actions">
-                <span class="hint">확정하면 되돌릴 수 없습니다</span>
-                <span class="spacer"></span>
-                <button class="btn btn--ghost" id="btnInvestBack">상황 다시 보기</button>
-                <button class="btn btn--primary btn--lg" id="btnInvestGo">정책 정하기 <span class="btn__arrow">→</span></button>
-              </div>
             </div>
 
+            <footer class="page__foot">
+              <span class="page__hint" id="inGuide">카드를 길게 누르면 효과를 봅니다</span>
+              <span class="spacer"></span>
+              <button class="btn btn--ghost btn--sm" id="btnAllocReset">초기화</button>
+              <button class="btn btn--ghost" id="btnInvestBack">상황 다시</button>
+              <button class="btn btn--primary btn--lg" id="btnInvestGo">정책 정하기 <span class="btn__arrow">→</span></button>
+            </footer>
           </div>
         </section>
 
-        <!-- ---------- 정책 ---------- -->
+        <!-- ---------- 경영정책 ---------- -->
         <section class="screen" id="sc-policy">
-          <div class="screen-head">
-            <h2 class="screen-head__title">우리는 어떤 회사로 운영할 것인가
-              <span class="screen-head__aside">정책은 보너스가 아닙니다. 얻는 것이 있으면 반드시 잃는 것이 있습니다</span>
-            </h2>
-          </div>
+          <div class="page">
+            <div class="page__body">
+              <h2 class="page__q">어떤 회사로 운영할 것인가</h2>
 
-          <div class="policy-list" id="poList"></div>
+              <div class="policy-list" id="poList"></div>
 
-          <!-- 정책 목록 마지막 칸에 들어갑니다 (renderPolicy 가 옮겨 붙입니다) -->
-          <div class="policy-note" id="poNote">
-            <div class="policy-note__title">정책은 하나만</div>
-            <p class="policy-note__body">다음 국면에 바꿀 수 있지만,<br>바꾸는 턴은 투자 효율이<br><b class="num" id="poNotePct">15%</b> 떨어집니다</p>
-          </div>
+              <!-- 목록 마지막 칸으로 들어갑니다 (renderPolicy 가 옮겨 붙입니다) -->
+              <div class="policy-note" id="poNote">
+                <div class="policy-note__title">바꾸면 대가가 있습니다</div>
+                <p class="policy-note__body">변경한 국면은 투자효율 <b class="num" id="poNotePct">−15%</b></p>
+              </div>
 
-          <div class="policy-warn hidden" id="poWarn"></div>
+              <div class="policy-warn hidden" id="poWarn"></div>
+            </div>
 
-          <div class="screen-actions">
-            <span class="hint">확정하면 시간이 흐릅니다</span>
-            <span class="spacer"></span>
-            <button class="btn btn--ghost" id="btnPolicyBack">자원 배분 다시</button>
-            <button class="btn btn--primary btn--lg" id="btnPolicyGo" disabled>결정 확정 · 시간 진행 <span class="btn__arrow">→</span></button>
+            <footer class="page__foot">
+              <span class="spacer"></span>
+              <button class="btn btn--ghost" id="btnPolicyBack">자원 배분 다시</button>
+              <button class="btn btn--primary btn--lg" id="btnPolicyGo" disabled>확정 <span class="btn__arrow">→</span></button>
+            </footer>
           </div>
         </section>
 
-        <!-- ---------- 시간 진행 (타임랩스) ---------- -->
+        <!-- ---------- 시간 진행 ---------- -->
         <section class="screen" id="sc-timelapse">
-          <div class="timelapse">
-            <div class="timelapse__year num" id="tlYear">1950</div>
-            <div class="timelapse__caption" id="tlCaption">시간이 흐릅니다…</div>
-            <div class="timelapse__feed" id="tlFeed"></div>
-            <div class="timelapse__skip">
-              <button class="btn btn--ghost btn--sm" id="btnSkipLapse">건너뛰기</button>
+          <div class="lapse">
+            <p class="lapse__span" id="tlCaption">18년이 흐릅니다</p>
+            <div class="lapse__years">
+              <span class="lapse__from num" id="tlFrom">1947</span>
+              <span class="lapse__arrow">→</span>
+              <span class="lapse__to num" id="tlYear">1965</span>
             </div>
+            <div class="lapse__bar"><div class="lapse__fill" id="tlFill"></div></div>
+            <p class="lapse__note" id="tlNote">결정의 결과를 계산하는 중</p>
+            <div class="lapse__feed" id="tlFeed"></div>
+            <button class="btn btn--ghost btn--sm lapse__skip" id="btnSkipLapse">건너뛰기</button>
+          </div>
+        </section>
+
+        <!-- ---------- 돌발상황 ---------- -->
+        <section class="screen" id="sc-event">
+          <div class="page page--shock">
+            <header class="page__top">
+              <span class="stamp-chip stamp-chip--shock">돌발</span>
+              <span class="page__sub num" id="evYear">1955</span>
+            </header>
+
+            <div class="page__body">
+              <h2 class="shock__title" id="evTitle">원료가 끊겼습니다</h2>
+              <div class="shock__cards" id="evCards"></div>
+              <p class="shock__body" id="evBody"></p>
+            </div>
+
+            <footer class="page__foot">
+              <span class="page__hint">피해는 이미 반영되었습니다</span>
+              <span class="spacer"></span>
+              <button class="btn btn--dark btn--lg" id="btnEventGo">확인 <span class="btn__arrow">→</span></button>
+            </footer>
           </div>
         </section>
 
         <!-- ---------- 결과 ---------- -->
         <section class="screen" id="sc-result">
-          <div class="result-page">
+          <div class="page">
+            <div class="page__body">
+              <p class="result-lead" id="reHeadline"></p>
 
-            <p class="result-lead" id="reHeadline"></p>
-            <div id="reEvents"></div>
+              <div class="kpi-row" id="reKpi"></div>
 
-            <div class="kpi-row" id="reKpi"></div>
-
-            <div class="tokenstrip">
-              <div class="tokenstrip__head">
-                <span class="tokenstrip__label">자원 변화</span>
-                <span class="tokenstrip__title">실물 토큰을 이만큼 옮기세요</span>
-              </div>
-              <div class="tokenstrip__chips" id="reTokens"></div>
-            </div>
-
-            <div class="result-grid">
-
-              <div class="card">
-                <div class="card__head"><span class="card__title">매출이 이렇게 나온 이유</span></div>
-
-                <div class="pnl" id="rePnlBar"></div>
-                <div class="pnl__caption">
-                  <span id="rePnlBase"></span>
-                  <span class="spacer"></span>
-                  <span id="rePnlMargin"></span>
-                </div>
-
-                <ul class="whylist" id="reWhy"></ul>
-
-                <details class="foldout foldout--tight" id="reAdmin">
-                  <summary>모든 지표 변화 내역 · 계산 근거</summary>
-                  <div class="breakdown" id="reAdminBody"></div>
-                  <div class="section-label" style="margin-top:var(--sp-4)">매출 귀인</div>
-                  <div class="breakdown" id="reRevWhy"></div>
-                  <div class="section-label" style="margin-top:var(--sp-4)">손익 구성</div>
-                  <div class="breakdown" id="reProfitWhy"></div>
-                </details>
+              <div class="tokenstrip">
+                <span class="tokenstrip__title">토큰을 옮기세요</span>
+                <span class="spacer"></span>
+                <div class="tokenstrip__chips" id="reTokens"></div>
               </div>
 
-              <div class="card">
+              <div class="card teamcard">
                 <div class="card__head"><span class="card__title" id="reTeamsTitle">4개 조</span></div>
                 <div class="teambars" id="reTeamBars"></div>
-                <p class="card__foot">순위를 매기지 않습니다.<br>같은 시작에서 다른 회사가 되는 중입니다</p>
+                <p class="card__foot">순위를 매기지 않습니다. 같은 시작에서 다른 회사가 되는 중입니다</p>
               </div>
 
+              <details class="foldout" id="reAdmin">
+                <summary>왜 이렇게 됐나</summary>
+                <div class="pnl" id="rePnlBar"></div>
+                <div class="pnl__caption"><span id="rePnlBase"></span><span class="spacer"></span><span id="rePnlMargin"></span></div>
+                <ul class="whylist" id="reWhy"></ul>
+                <div class="section-label" style="margin-top:var(--sp-4)">모든 지표 변화</div>
+                <div class="breakdown" id="reAdminBody"></div>
+                <div class="section-label" style="margin-top:var(--sp-4)">매출 귀인</div>
+                <div class="breakdown" id="reRevWhy"></div>
+                <div class="section-label" style="margin-top:var(--sp-4)">손익 구성</div>
+                <div class="breakdown" id="reProfitWhy"></div>
+                <div class="section-label" style="margin-top:var(--sp-4)">경쟁사 <span id="reCrowd"></span></div>
+                <div class="standing" id="reStanding"></div>
+                <div style="margin-top:var(--sp-4)" id="reRivalMoves"></div>
+                <div class="hidden" id="reMapWrap">
+                  <div class="section-label" style="margin-top:var(--sp-4)">거점 현황</div>
+                  <div class="worldmap"><div class="worldmap__inner" id="reMap"></div></div>
+                  <div class="map-legend" id="reMapLegend"></div>
+                </div>
+              </details>
             </div>
 
-            <details class="foldout" id="reRivalFold">
-              <summary>같은 시대의 경쟁사 <span class="foldout__note" id="reCrowd"></span></summary>
-              <div class="standing" id="reStanding"></div>
-              <div style="margin-top:var(--sp-4)" id="reRivalMoves"></div>
-              <div class="hidden" id="reMapWrap">
-                <div class="section-label" style="margin-top:var(--sp-4)">거점 현황</div>
-                <div class="worldmap"><div class="worldmap__inner" id="reMap"></div></div>
-                <div class="map-legend" id="reMapLegend"></div>
-              </div>
-            </details>
-
-            <div class="screen-actions">
-              <span class="hint" id="reHint"></span>
+            <footer class="page__foot">
+              <span class="page__hint" id="reHint"></span>
               <span class="spacer"></span>
               <button class="btn btn--primary btn--lg" id="btnResultGo">다음 <span class="btn__arrow">→</span></button>
-            </div>
-
+            </footer>
           </div>
         </section>
 
-        <!-- ---------- ACTUAL DRB ---------- -->
+        <!-- ---------- DRB 기록 공개 대기 ----------
+             실제 기록은 진행자 화면(빔)에서만 공개합니다.
+             참가자는 그것을 보면서 한 문장씩 남깁니다. -->
         <section class="screen" id="sc-actual">
-          <div class="actual">
+          <div class="page">
+            <div class="page__body">
+              <h2 class="page__q">진행자 화면을 보세요</h2>
+              <p class="page__lead">그때 DRB가 실제로 무엇을 선택했는지 지금 공개됩니다.</p>
 
-            <h2 class="actual__title">그때, DRB는 이렇게 했습니다</h2>
+              <div class="watchbox">
+                <div class="watchbox__label" id="acNotice"></div>
+                <div class="watchbox__ours">
+                  <span class="watchbox__ourslabel">우리 조의 선택</span>
+                  <div id="acOurs"></div>
+                </div>
+                <div class="hidden" id="acDrb"></div>
+                <div class="hidden" id="acDetail"></div>
+              </div>
 
-            <div class="actual__compare">
-
-              <div class="ourscol">
-                <div class="ourscol__label">우리 조의 선택</div>
-                <div id="acOurs"></div>
-
-                <div class="checkpoint" id="acCheckpoint">
-                  <div class="checkpoint__label">ERA CLEAR · 한 문장으로 남기기</div>
+              <div class="checkpoint" id="acCheckpoint">
+                <div class="checkpoint__label">보면서 한 문장씩 남기세요</div>
+                <div class="checkpoint__grid">
                   <label><span>우리가 끝까지 지킨 것</span><input class="input" id="acKept" maxlength="80" placeholder="예: 위기에도 현금을 남겼다"></label>
                   <label><span>우리가 감수한 대가</span><input class="input" id="acTradeoff" maxlength="80" placeholder="예: 성장 속도를 포기했다"></label>
                   <label><span>DRB 기록에서 새로 본 관점</span><input class="input" id="acLesson" maxlength="80" placeholder="예: 시장이 없을 때 기술을 먼저 준비했다"></label>
-                  <p class="checkpoint__status" id="acCheckpointStatus">세 문장을 모두 작성하면 다음 시대가 열립니다.</p>
                 </div>
-
-                <p class="ourscol__foot">이 칸은 시뮬레이션 결과입니다</p>
+                <p class="checkpoint__status" id="acCheckpointStatus">세 문장을 모두 작성하면 다음 시대가 열립니다.</p>
               </div>
 
-              <div class="drbcol">
-                <div class="drbcol__head">
-                  <span class="drbcol__label">D R B &nbsp; 기 록</span>
-                  <span class="chip chip--fact">검증된 자료만</span>
-                </div>
-                <div class="drbcol__body" id="acDrb"></div>
-                <div id="acDetail"></div>
-                <p class="drbcol__foot" id="acNotice"></p>
-              </div>
-
+              <details class="foldout" id="acRivalFold">
+                <summary>같은 산업, 다른 선택 <span class="foldout__note">◆ 검증된 자료만</span></summary>
+                <p class="hint" id="acRivalHead"></p>
+                <div class="rivals" id="acRivals"></div>
+                <p class="hint" id="acRivalLesson" style="margin-top:var(--sp-3)"></p>
+              </details>
             </div>
 
-            <details class="foldout" id="acRivalFold">
-              <summary>같은 산업, 다른 선택 <span class="foldout__note">◆ 검증된 자료만</span></summary>
-              <p class="hint" id="acRivalHead"></p>
-              <div class="rivals" id="acRivals"></div>
-              <p class="hint" id="acRivalLesson" style="margin-top:var(--sp-3)"></p>
-            </details>
-
-            <div class="screen-actions">
-              <span class="hint">같은 산업, 다른 선택 ◆ 검증된 자료만</span>
+            <footer class="page__foot">
+              <span class="page__hint">DRB의 실제 기록은 진행자 화면에서만 공개됩니다</span>
               <span class="spacer"></span>
-              <button class="btn btn--primary btn--lg" id="btnActualGo">다음 라운드로 <span class="btn__arrow">→</span></button>
-            </div>
+              <button class="btn btn--primary btn--lg" id="btnActualGo">다음 시대 <span class="btn__arrow">→</span></button>
+            </footer>
           </div>
         </section>
 
-        <!-- ---------- 2026 엔딩 ----------
-             이 게임의 클라이맥스입니다. 한 화면에서 단계적으로 열립니다. -->
+        <!-- ---------- 2026 엔딩 ---------- -->
         <section class="screen" id="sc-ending">
           <div class="ending" id="ending" data-step="0">
-
             <div class="ending__top">
               <span class="ending__year num">2026</span>
               <span class="ending__rule"></span>
-              <span class="ending__q">?</span>
             </div>
-
-            <p class="ending__text">지금까지 여러분은<br>결과가 이미 존재하는 시대를 경영했습니다.</p>
 
             <div class="ending__years" id="endYears"></div>
 
-            <div class="ending__big">하지만 2026년 다음에는<br>아직 결과가 없습니다.</div>
+            <div class="ending__big">여기서부터는<br>정답이 없습니다</div>
 
+            <p class="ending__text">지금까지 여러분은 결과가 이미 존재하는 시대를 경영했습니다.</p>
             <div class="ending__market" id="endMarket"></div>
 
             <div class="ending__foot">
               <span class="ending__hint">그래도 시장은 멈추지 않습니다</span>
               <span class="spacer"></span>
-              <button class="btn btn--white btn--lg" id="btnEndNext">다음 <span class="btn__arrow">→</span></button>
-            </div>
-
-          </div>
-        </section>
-
-        <!-- ---------- What If ---------- -->
-        <section class="screen" id="sc-whatif">
-          <div class="whatif">
-            <div class="screen-head">
-              <div class="screen-head__eyebrow">WHAT IF</div>
-              <h2 class="screen-head__title">다른 선택을 했다면, 어떤 회사가 되었을까</h2>
-              <p class="screen-head__sub">
-                아래는 상상이 아니라 같은 계산 엔진으로 6국면을 다시 돌린 결과입니다.
-                <b>총점도 순위도 없습니다.</b> 전략마다 얻는 것과 포기하는 것이 다를 뿐입니다.
-              </p>
-            </div>
-
-            <div class="whatif__table-wrap">
-              <table class="whatif-table">
-                <thead><tr id="wiHead"></tr></thead>
-                <tbody id="wiBody"></tbody>
-              </table>
-            </div>
-
-            <div class="whatif__note" id="wiNote"></div>
-
-            <div class="screen-actions">
-              <button class="btn btn--primary btn--lg" id="btnWhatifGo">최종 결과 보기</button>
-              <span class="spacer"></span>
-              <span class="hint">어느 줄이 '좋은' 줄인지 정해져 있지 않다는 점을 팀에서 이야기해 보세요.</span>
+              <button class="btn btn--white btn--lg" id="btnEndNext">마지막 결정 <span class="btn__arrow">→</span></button>
             </div>
           </div>
         </section>
 
         <!-- ---------- 최종 ---------- -->
         <section class="screen" id="sc-final">
-          <div class="final">
+          <div class="page">
+            <div class="page__body">
+              <h2 class="final__style">
+                <span id="fiStyleName"></span>
+                <span class="final__stylenote">우리가 만든 회사</span>
+              </h2>
 
-            <h2 class="final__title">우리는 이런 회사가 되었습니다
-              <span class="stylechip" id="fiStyleName"></span>
-            </h2>
-
-            <!-- 여기서 처음 공개되는 지표 -->
-            <div class="scores">
-              <div class="scorebox">
-                <div class="scorebox__label">현재 경쟁력</div>
-                <div class="scorebox__row">
-                  <span class="scorebox__value num" id="fiPowerScore">0</span>
-                  <span class="scorebox__cap">지금 잘 되는 회사인가</span>
+              <div class="scores">
+                <div class="scorebox">
+                  <div class="scorebox__label">현재 경쟁력</div>
+                  <div class="scorebox__value num" id="fiPowerScore">0</div>
+                  <div class="scorebox__bar"><div class="scorebox__fill" id="fiPowerFill"></div></div>
                 </div>
-                <div class="scorebox__bar"><div class="scorebox__fill" id="fiPowerFill"></div></div>
-              </div>
-              <div class="scorebox scorebox--main">
-                <div class="scorebox__label">변화 대응력 <span class="chip chip--accent">지금 공개</span></div>
-                <div class="scorebox__row">
-                  <span class="scorebox__value num" id="fiAdaptScore">0</span>
-                  <span class="scorebox__cap">다시 움직일 수 있는가</span>
+                <div class="scorebox scorebox--main">
+                  <div class="scorebox__label">변화 대응력</div>
+                  <div class="scorebox__value num" id="fiAdaptScore">0</div>
+                  <div class="scorebox__bar"><div class="scorebox__fill" id="fiAdaptFill"></div></div>
                 </div>
-                <div class="scorebox__bar"><div class="scorebox__fill" id="fiAdaptFill"></div></div>
               </div>
-            </div>
 
-            <div class="card">
-              <div class="card__head">
-                <span class="card__title">변화 대응력은 무엇으로 만들어졌나</span>
-                <span class="card__note">게임 내내 숨겨져 있던 지표입니다</span>
-              </div>
-              <div class="partchips" id="fiAdaptParts"></div>
-              <p class="hint" id="fiVerdict" style="margin-top:var(--sp-4)"></p>
-            </div>
+              <p class="final__message">잘 맞히는 것이 아니라,<br>다시 선택할 수 있는 힘.</p>
 
-            <div class="final-grid">
-              <div class="card">
-                <div class="card__head"><span class="card__title">최종 회사 상태</span></div>
+              <details class="foldout" id="fiDetail">
+                <summary>지표 자세히</summary>
+                <p class="hint" id="fiVerdict"></p>
+                <div class="section-label" style="margin-top:var(--sp-4)">변화 대응력은 무엇으로 만들어졌나</div>
+                <div class="partchips" id="fiAdaptParts"></div>
+                <div class="section-label" style="margin-top:var(--sp-4)">최종 회사 상태</div>
                 <div class="statebars" id="fiMetrics"></div>
-              </div>
-
-              <div class="card">
-                <div class="card__head"><span class="card__title">가장 고민했던 결정</span></div>
-                <p class="card__note">하나만 고르세요. 대표이사에게 가져갈 결정 카드가 됩니다</p>
+                <div class="section-label" style="margin-top:var(--sp-4)">가장 고민했던 결정</div>
                 <div class="gap-picker" id="fiGap"></div>
-              </div>
+                <div class="section-label" style="margin-top:var(--sp-4)">우리 회사의 80년</div>
+                <div class="replay" id="fiReplay"></div>
+                <div class="section-label" style="margin-top:var(--sp-4)">국면별 손익</div>
+                <div class="journey" id="fiJourney"></div>
+                <div class="section-label" style="margin-top:var(--sp-4)">가장 많이 투자한 곳</div>
+                <div class="breakdown" id="fiInvest"></div>
+                <div class="section-label" style="margin-top:var(--sp-4)">우리와 경쟁사</div>
+                <div class="standing" id="fiStanding"></div>
+                <div style="margin-top:var(--sp-4)" id="fiRivals"></div>
+                <div class="hidden" id="fiMapWrap">
+                  <div class="section-label" style="margin-top:var(--sp-4)">우리가 만든 지도</div>
+                  <div class="worldmap"><div class="worldmap__inner" id="fiMap"></div></div>
+                  <div class="map-legend" id="fiMapLegend"></div>
+                </div>
+                <div class="section-label" style="margin-top:var(--sp-4)">왜 그렇게 결정했는지</div>
+                <p class="hint" id="fiStyleDesc"></p>
+                <label class="field__label" for="fiReason">우리 조는 왜 그렇게 결정했습니까?</label>
+                <textarea class="textarea" id="fiReason" placeholder="예) 지금 확실한 현금흐름을 지키는 것이 먼저라고 판단했습니다."></textarea>
+                <div class="row" style="margin-top:var(--sp-3)">
+                  <button class="btn btn--ghost btn--sm" id="btnSaveReason">결정 카드 저장</button>
+                  <button class="btn btn--ghost btn--sm" id="btnCopyCode">결과 코드 복사</button>
+                </div>
+                <div class="decision-card" id="fiCard">
+                  <div class="decision-card__head" id="fiCardHead">우리 조의 결정</div>
+                  <div class="decision-card__body" id="fiCardBody"></div>
+                </div>
+              </details>
             </div>
 
-            <details class="foldout">
-              <summary>우리 회사의 80년 · 국면별 손익 · 누적 투자</summary>
-              <div class="section-label">우리 회사의 80년</div>
-              <div class="replay" id="fiReplay"></div>
-              <div class="section-label" style="margin-top:var(--sp-5)">국면별 손익</div>
-              <div class="journey" id="fiJourney"></div>
-              <div class="section-label" style="margin-top:var(--sp-5)">가장 많이 투자한 곳</div>
-              <div class="breakdown" id="fiInvest"></div>
-              <div class="section-label" style="margin-top:var(--sp-5)">우리와 경쟁사</div>
-              <div class="standing" id="fiStanding"></div>
-              <div style="margin-top:var(--sp-4)" id="fiRivals"></div>
-              <div class="hidden" id="fiMapWrap">
-                <div class="section-label" style="margin-top:var(--sp-5)">우리가 만든 지도</div>
-                <div class="worldmap"><div class="worldmap__inner" id="fiMap"></div></div>
-                <div class="map-legend" id="fiMapLegend"></div>
-              </div>
-            </details>
-
-            <details class="foldout" id="fiReasonFold">
-              <summary>왜 그렇게 결정했는지 적기 <span class="foldout__note">결정 카드에 들어갑니다</span></summary>
-              <p class="hint" id="fiStyleDesc" style="margin-bottom:var(--sp-3)"></p>
-              <label class="field__label" for="fiReason">우리 조는 왜 그렇게 결정했습니까?</label>
-              <textarea class="textarea" id="fiReason"
-                placeholder="예) 지금 확실한 현금흐름을 지키는 것이 먼저라고 판단했습니다."></textarea>
-              <div class="decision-card" id="fiCard">
-                <div class="decision-card__head" id="fiCardHead">우리 조의 결정</div>
-                <div class="decision-card__body" id="fiCardBody"></div>
-              </div>
-            </details>
-
-            <div class="screen-actions">
-              <span class="final__quote">좋은 경영은 미래를 정확히 맞히는 것이 아니라,<br>변화가 왔을 때 다시 선택할 수 있는 힘을 만드는 것입니다.</span>
+            <footer class="page__foot">
               <span class="spacer"></span>
-              <button class="btn btn--ghost" id="btnCopyCode">결과 코드 복사</button>
-              <button class="btn btn--primary btn--lg" id="btnSaveReason">결정 카드 저장 <span class="btn__arrow">→</span></button>
+              <button class="btn btn--primary btn--lg" id="btnFinalGo">What If 해보기 <span class="btn__arrow">→</span></button>
+            </footer>
+          </div>
+        </section>
+
+        <!-- ---------- What If ---------- -->
+        <section class="screen" id="sc-whatif">
+          <div class="page">
+            <div class="page__body">
+              <h2 class="page__q">다른 선택을 했다면</h2>
+              <p class="page__lead">같은 계산 엔진으로 6국면을 다시 돌린 결과입니다. 총점도 순위도 없습니다.</p>
+
+              <div class="whatif__table-wrap">
+                <table class="whatif-table">
+                  <thead><tr id="wiHead"></tr></thead>
+                  <tbody id="wiBody"></tbody>
+                </table>
+              </div>
+
+              <div class="whatif__note" id="wiNote"></div>
             </div>
 
+            <footer class="page__foot">
+              <span class="page__hint">어느 줄이 '좋은' 줄인지 정해져 있지 않습니다</span>
+              <span class="spacer"></span>
+              <button class="btn btn--primary btn--lg" id="btnWhatifGo">마무리</button>
+            </footer>
           </div>
         </section>
 
       </div>
     </main>
-
   </div>
 </div>
 

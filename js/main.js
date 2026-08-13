@@ -83,17 +83,26 @@
     if (!liveUrl) return;
     el("btnStart").disabled = liveJoinPending || (!assignedLiveTeam && !liveJoinError);
     el("btnContinue").disabled = liveJoinPending || !assignedLiveTeam;
-    el("btnStart").textContent = liveJoinPending ? "세션 연결 중…" : (liveJoinError ? "연결 다시 시도" : "게임 시작");
+    el("btnStart").innerHTML = liveJoinPending ? "세션 연결 중…"
+      : (liveJoinError ? "연결 다시 시도" : "준비 완료 <span class='btn__arrow'>→</span>");
     el("teamCountPicker").setAttribute("aria-disabled", "true");
     el("teamPicker").setAttribute("aria-disabled", "true");
   }
 
   function initIntro() {
-    el("introTheme").textContent = CFG.eduTheme;
     document.title = CFG.gameTitle;
+    el("introTitle").textContent = "80년의 선택";
 
     var lockedCount = liveUrl && assignedLiveTeamCount ? assignedLiveTeamCount : setupTeamCount;
     var lockedTeam = liveUrl && assignedLiveTeam ? assignedLiveTeam : setupTeamName;
+
+    /* ---------- 표지의 숫자 ---------- */
+    el("coverTurns").textContent = S.totalTurns ? S.totalTurns() : 6;
+    el("coverTeams").textContent = lockedCount;
+    el("coverTime").textContent = (CFG.totalMinutes || 60) + "분";
+    el("setupMeta").textContent = "노트북 1대 · " + (CFG.roles || []).length + "명";
+
+    /* ---------- 조 수 ---------- */
     var cp = el("teamCountPicker");
     cp.innerHTML = "";
     (liveUrl ? [lockedCount] : CFG.teamCountOptions).forEach(function (n) {
@@ -109,28 +118,44 @@
       cp.appendChild(b);
     });
 
+    /* ---------- 우리 조 ---------- */
     var tp = el("teamPicker");
     tp.innerHTML = "";
-    (liveUrl ? [lockedTeam || liveParams.get("team") || "배정 확인 중"] : CFG.teamNames.slice(0, setupTeamCount)).forEach(function (name) {
+    var names = liveUrl
+      ? [lockedTeam || liveParams.get("team") || "배정 확인 중"]
+      : CFG.teamNames.slice(0, setupTeamCount);
+    names.forEach(function (name, i) {
+      var picked = name === lockedTeam;
       var b = document.createElement("button");
-      b.className = "team-picker__btn" + (name === lockedTeam ? " is-selected" : "");
-      b.textContent = name;
+      b.className = "teampick__btn" + (picked ? " is-selected" : "");
       b.disabled = liveUrl;
+      b.innerHTML =
+        "<span class='teampick__no num'>" + (i + 1) + "</span>" +
+        "<span class='teampick__name'>" + UI.escapeHtml(name) + "</span>" +
+        "<span class='teampick__state'>" +
+          (picked ? (CFG.roles || []).length + "명 참여" : "대기 중") +
+        "</span>";
       b.onclick = function () { setupTeamName = name; initIntro(); };
       tp.appendChild(b);
     });
 
+    /* ---------- 역할 (표시만 합니다. 배정 기능은 없습니다) ---------- */
+    var rc = el("roleChips");
+    rc.innerHTML = (CFG.roles || []).map(function (role) {
+      return "<span class='rolechip'>" + UI.escapeHtml(role.name.replace(" 관점", "")) + "</span>";
+    }).join("");
+
     if (liveUrl) {
       el("btnContinue").classList.add("hidden");
       el("introHint").textContent = liveJoinError || (assignedLiveTeam
-        ? assignedLiveTeam + " 전용 새 게임으로 시작합니다. 이전 연습 기록은 이 세션에 전송하지 않습니다."
-        : "진행자 세션에 연결 중입니다.");
+        ? assignedLiveTeam + " 으로 연결되었습니다"
+        : "진행자 세션에 연결 중입니다");
     } else if (S.hasSave()) {
       el("btnContinue").classList.remove("hidden");
-      el("introHint").textContent = "이전에 하던 게임이 저장되어 있습니다. [게임 시작]을 누르면 초기화됩니다.";
+      el("introHint").textContent = "이전에 하던 게임이 저장되어 있습니다";
     } else {
       el("btnContinue").classList.add("hidden");
-      el("introHint").textContent = "";
+      el("introHint").textContent = "진행자가 시작하면 넘어갑니다";
     }
     setLiveJoinUi();
   }
@@ -175,7 +200,7 @@
   /* ============================================================
      화면 전환
      ============================================================ */
-  var SCREENS = ["roundOpen", "situation", "invest", "policy", "timelapse", "result",
+  var SCREENS = ["roundOpen", "situation", "invest", "policy", "timelapse", "event", "result",
                  "actual", "ending", "whatif", "final"];
 
   function showScreen(name) {
@@ -198,6 +223,7 @@
   function render() {
     UI.renderTopbar();
     UI.renderSide();
+    publishLiveState();      /* 국면이 바뀔 때마다 진행자 화면에 현재 상태를 올립니다 */
 
     if (waitingBriefing && !liveNextBriefingOpen()) {
       showScreen('timelapse');
@@ -231,6 +257,19 @@
         el("btnPolicyGo").disabled = !pickedPolicy;
         showScreen("policy");
         startTimer();
+        break;
+
+      case "event":
+        if (!lastResult) {
+          var eh = S.lastHistory();
+          if (eh) lastResult = { report: eh.report };
+        }
+        if (lastResult && UI.renderEvent(lastResult)) {
+          showScreen("event");
+        } else {
+          S.setPhase("result");
+          render();
+        }
         break;
 
       case "result":
@@ -325,8 +364,9 @@
     function tick() {
       var m = Math.floor(Math.abs(timerRemain) / 60);
       var s = Math.abs(timerRemain) % 60;
-      el("tbTimerText").textContent = (timerRemain < 0 ? "-" : "") +
-        (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
+      var text = (timerRemain < 0 ? "-" : "") + (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
+      el("tbTimerText").textContent = text;
+      el("siTimerText").textContent = text;      /* 대화 화면의 큰 타이머 */
       box.classList.toggle("is-urgent", timerRemain <= CFG.timer.warnSeconds);
       timerRemain--;
     }
@@ -404,6 +444,7 @@
 
     lastResult = S.commitSubround(alloc, pickedPolicy, choices);
 
+    UI.resetSpeakers();
     alloc = {};
     choices = {};
     pickedPolicy = null;
@@ -428,7 +469,7 @@
     stopLapse = UI.renderTimelapse(hist, function () {
       if (lapseTurn !== turn || S.phase() !== "timelapse") return;
       stopLapse = null;
-      S.setPhase("result");
+      S.setPhase("event");
       render();
     });
   }
@@ -437,7 +478,7 @@
     if (liveControl() && !liveEventOpen()) return;
     if (stopLapse) { stopLapse(); stopLapse = null; }
     lapseTurn = -1;
-    S.setPhase("result");
+    S.setPhase("event");
     render();
   }
 
@@ -514,8 +555,8 @@
 
   function nextEnding() {
     endingStep++;
-    if (endingStep > 2) {
-      S.setPhase("whatif");
+    if (endingStep > 1) {
+      S.advance();          // 최종 화면으로
       render();
       return;
     }
@@ -523,8 +564,7 @@
   }
 
   function afterWhatIf() {
-    S.advance();            // 최종 화면으로
-    render();
+    UI.toast("수고하셨습니다. 진행자 화면에서 마무리합니다.");
   }
 
   /* ============================================================
@@ -600,8 +640,18 @@
      연결
      ============================================================ */
   function bind() {
+    el("btnCoverGo").onclick  = function () { el("intro").setAttribute("data-step", "1"); };
     el("btnStart").onclick    = startNewGame;
     el("btnContinue").onclick = continueGame;
+
+    /* 대화 시간 — 다음 사람에게 넘깁니다 (역할마다 시간을 재지는 않습니다) */
+    el("btnNextSpeaker").onclick = UI.nextSpeaker;
+
+    /* 돌발상황은 [확인] 말고는 넘어갈 방법이 없습니다 */
+    el("btnEventGo").onclick  = function () { S.setPhase("result"); render(); };
+
+    /* 최종 → What If */
+    el("btnFinalGo").onclick  = function () { S.setPhase("whatif"); render(); };
 
     el("btnRoundGo").onclick  = function () { S.setPhase("situation"); render(); };
     el("btnSitGo").onclick    = function () { S.setPhase("invest"); render(); };
