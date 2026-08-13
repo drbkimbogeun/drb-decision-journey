@@ -365,7 +365,16 @@
   async function joinWithCode(code) {
     var params = new URLSearchParams(window.location.search);
     var sessionId = params.get("s") || params.get("session");
-    if (!sessionId) throw new Error("진행자가 준 링크로 접속해주세요.");
+
+    /* 주소에 세션이 없으면(맨 주소로 들어온 경우) 지금 열려 있는 교육을 찾습니다.
+       진행 중인 세션이 하나뿐일 때만 알려줍니다. */
+    if (!sessionId) {
+      var found = await api("/api/session/current", { method: "GET" });
+      sessionId = found && found.sessionId;
+      if (!sessionId) {
+        throw new Error("진행 중인 교육을 찾지 못했습니다. 진행자가 세션을 만들었는지 확인해주세요.");
+      }
+    }
 
     sessionId = normalizeSessionId(sessionId);
     code = String(code || "").trim();

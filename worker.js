@@ -431,6 +431,15 @@ export class RequestGate extends DurableObject {
         return json({ exists: !!this.first("SELECT code FROM live_sessions WHERE code = ? AND expires_at > ?", body.sessionId, now) });
       }
 
+      /* 지금 열려 있는 세션이 딱 하나면 알려줍니다.
+         교육은 한 번에 한 세션만 도는 것이 보통이라, 참가자가 맨 주소로 들어와도
+         조 코드만으로 들어올 수 있게 하는 장치입니다.
+         두 개 이상이면 알려주지 않습니다 — 엉뚱한 교육에 들어가면 안 되니까요. */
+      if (url.pathname === "/current") {
+        const rows = [...this.sql.exec("SELECT code FROM live_sessions WHERE expires_at > ? LIMIT 2", now)];
+        return json({ sessionId: rows.length === 1 ? rows[0].code : null, count: rows.length });
+      }
+
       if (url.pathname === "/remove") {
         if (!SESSION_CODE.test(body.sessionId)) throw new ApiError(400, "Invalid session code.", "INVALID_SESSION_CODE");
         this.sql.exec("DELETE FROM live_sessions WHERE code = ?", body.sessionId);
@@ -796,6 +805,24 @@ async function handleApi(request, env) {
   if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders(request) });
 
   const url = new URL(request.url);
+  /* 진행 중인 세션이 하나뿐이면 그 코드를 알려줍니다.
+     세션 코드를 알아도 조 코드가 없으면 못 들어옵니다 (join-fail 제한이 지킵니다). */
+  if (url.pathname === "/api/session/current") {
+    if (request.method !== "GET") methodNotAllowed(["GET"]);
+    await enforceRateLimits(env, request, [
+      { key: "current:ip:{ip}", limit: 60, windowMs: RATE_WINDOW_MS },
+      { key: "current:global", limit: 3000, windowMs: RATE_WINDOW_MS },
+    ]);
+    const gate = env.REQUEST_GATE.get(env.REQUEST_GATE.idFromName("gate"));
+    const res = await gate.fetch("https://gate/current", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{}",
+    });
+    const payload = await res.json();
+    return json({ sessionId: payload.sessionId }, 200, corsHeaders(request));
+  }
+
   if (url.pathname === "/api/session") {
     if (request.method !== "POST") methodNotAllowed(["POST"]);
     assertBrowserSameOrigin(request);
