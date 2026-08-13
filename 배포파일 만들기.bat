@@ -32,6 +32,13 @@ if exist "assets\fonts" (
   del /q "_deploy\assets\fonts\*.md" 2>nul
 )
 
+rem Background music (optional - the game runs fine without it)
+if exist "assets\audio" (
+  mkdir "_deploy\assets" 2>nul
+  xcopy /e /i /y /q "assets\audio" "_deploy\assets\audio" >nul
+  del /q "_deploy\assets\audio\*.md" 2>nul
+)
+
 echo. > "_deploy\.nojekyll"
 
 echo ============================================================

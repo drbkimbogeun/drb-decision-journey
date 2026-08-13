@@ -776,7 +776,20 @@
 
   function renderRail(teams) {
     var connected = teams.filter(function (team) { return team.source === "live"; }).length;
-    el("bSessionStatus").textContent = connected ? "실시간 연결" : "로컬·코드 수집";
+    var live = window.DRBLive && window.DRBLive.hasFacilitatorSession && window.DRBLive.hasFacilitatorSession();
+
+    /* 세션이 없으면 다른 PC의 조는 절대 보이지 않습니다.
+       조용히 비어 있으면 고장으로 오해하므로 크게 알립니다. */
+    var warn = el("bNoSession");
+    if (warn) {
+      warn.classList.toggle("hidden", !!live);
+      warn.innerHTML = live ? "" :
+        "<b>교육 세션이 없습니다.</b> 지금은 이 브라우저에 저장된 기록만 보입니다. " +
+        "다른 PC·태블릿의 조를 보려면 <b>[교육 세션 만들기]</b> 를 누르고, " +
+        "만들어진 <b>조별 전용 링크</b>를 각 조에 전달하세요.";
+    }
+
+    el("bSessionStatus").textContent = connected ? "실시간 연결" : (live ? "연결 대기" : "세션 없음");
     el("bSessionStatus").classList.toggle("fac-session__status--paused", !connected);
     el("bSessionMeta").innerHTML = "<span class='fac-session__meta'>참가 " + teams.length + "조 · 라이브 " + connected + "조 · 15초 이내 자동 갱신</span>";
     el("bTeamStatus").innerHTML = teams.map(function (team) {

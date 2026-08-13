@@ -152,10 +152,13 @@
         : "진행자 세션에 연결 중입니다");
     } else if (S.hasSave()) {
       el("btnContinue").classList.remove("hidden");
-      el("introHint").textContent = "이전에 하던 게임이 저장되어 있습니다";
+      el("introHint").textContent = "이전에 하던 게임이 저장되어 있습니다 · 진행자 화면과 연결되지 않았습니다";
     } else {
       el("btnContinue").classList.add("hidden");
-      el("introHint").textContent = "진행자가 시작하면 넘어갑니다";
+      /* 세션 링크로 들어온 것이 아니면 진행자 화면에 아무것도 전송되지 않습니다.
+         조용히 실패하면 고장으로 보이므로 여기서 분명히 밝힙니다. */
+      el("introHint").textContent =
+        "연습 모드 — 진행자 화면과 연결되지 않았습니다. 교육 때는 진행자가 준 조별 링크로 접속하세요.";
     }
     setLiveJoinUi();
   }
@@ -194,8 +197,13 @@
   function enterGame() {
     el("intro").classList.add("hidden");
     el("app").classList.remove("hidden");
+    music("calm");
     render();
   }
+
+  /* 소리는 있으면 내고 없으면 조용히 넘어갑니다 */
+  function sfx(name) { if (window.DRBAudio) window.DRBAudio.play(name); }
+  function music(mood) { if (window.DRBAudio) window.DRBAudio.music(mood); }
 
   /* ============================================================
      화면 전환
@@ -205,6 +213,7 @@
 
   function showScreen(name) {
     el("app").setAttribute("data-screen", name);
+    music(name === "event" ? "tense" : "calm");
     SCREENS.forEach(function (s) {
       var node = el("sc-" + s);
       if (node) node.classList.toggle("is-active", s === name);
@@ -266,6 +275,7 @@
         }
         if (lastResult && UI.renderEvent(lastResult)) {
           showScreen("event");
+          sfx("shock");
         } else {
           S.setPhase("result");
           render();
@@ -289,6 +299,7 @@
         }
         if (lastResult) UI.renderResult(lastResult);
         showScreen("result");
+        sfx("result");
         break;
 
       case "timelapse":
@@ -398,6 +409,7 @@
     }
 
     alloc[id] = next;
+    sfx(delta > 0 ? "tokenUp" : "tokenDown");
     if (next === 0) delete choices[id];
     UI.renderInvest(alloc, changeAlloc, choices, pickChoice);
   }
@@ -420,6 +432,7 @@
      ============================================================ */
   function pickPolicy(id) {
     pickedPolicy = id;
+    sfx("pick");
     UI.renderPolicy(pickedPolicy, pickPolicy);
     el("btnPolicyGo").disabled = false;
   }
@@ -443,6 +456,7 @@
     }
 
     lastResult = S.commitSubround(alloc, pickedPolicy, choices);
+    sfx("commit");
 
     UI.resetSpeakers();
     alloc = {};
@@ -679,6 +693,11 @@
 
     el("tbTeam").onchange = function () { switchTeam(this.value); };
     if (liveUrl) el("tbTeam").disabled = true;
+    el("btnSound").onclick = function () {
+      var off = window.DRBAudio ? window.DRBAudio.toggle() : true;
+      el("btnSound").textContent = off ? "🔇" : "🔊";
+      el("btnSound").setAttribute("aria-pressed", off ? "true" : "false");
+    };
     el("btnAdmin").onclick = toggleAdmin;
     el("btnReset").onclick = resetGame;
     el("btnDetail").onclick = UI.showDetail;

@@ -408,3 +408,14 @@ body.fac-body {
   .fac-teams, .fac-news, .fac-main { overflow: visible; }
   .fac-top, .fac-stage-tabs { display: none; }
 }
+
+/* 교육 세션이 없을 때 — 조용히 비어 있으면 고장으로 보입니다 */
+.fac-nosession {
+  padding: var(--sp-3) var(--sp-5);
+  border-bottom: 1px solid var(--coral-line);
+  background: var(--coral-tint);
+  color: var(--text-1);
+  font-size: var(--fs-small);
+  line-height: 1.55;
+}
+.fac-nosession b { color: var(--coral); }
