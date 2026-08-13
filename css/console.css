@@ -1,23 +1,31 @@
 /* ============================================================================
-   console.css — 진행자 콘솔의 CORAL PURPLE 디자인 레이어 (가장 마지막에 읽힙니다)
+   console.css — 진행자 화면 (가장 마지막에 읽힙니다)
 
-   facilitator.css 가 만든 뼈대 위에, 어두운 톤을 밝은 팔레트로 되돌리고
-   3단 레이아웃(참가 조 / 진행 화면 / 산업 뉴스)을 얹습니다.
-   참가자 쪽의 product.css 와 같은 역할입니다.
+   ◆ 이 화면은 빔프로젝터로 쏩니다. 웹사이트가 아니라 대본입니다.
+
+   구조는 위에서 아래로 다섯 줄뿐입니다.
+
+     머리띠     지금 어느 시대인가
+     조 한 줄   누가 들어왔고 누가 확정했나
+     챕터 띠    지금 할 말 (가장 큰 글씨)
+     본문       그 말을 뒷받침하는 것 하나
+     조작 띠    ← 뒤로 · 지금 할 일 · [ 다음 ▶ ]
+
+   손은 [다음] 하나에만 둡니다. 나머지 조작은 [도구] 안에 있습니다.
 
    ★ 순위 · 몰림 경고 · 시상은 이 화면에만 있습니다.
      참가자 화면으로는 절대 내보내지 않습니다.
    ★ 색·간격 값은 여기서 정하지 않습니다. tokens.css 의 변수만 씁니다.
    ============================================================================ */
 
-/* ---------- 0. 어두운 톤 되돌리기 ---------- */
+/* ---------- 0. 바탕 ---------- */
 body.fac-body {
-  /* ★ 빔프로젝터로 쏘는 화면입니다. 참가자 노트북보다 또 한 단계 큽니다.
-       뒷자리에서 읽혀야 합니다. */
-  --fs-lead:  22px;
-  --fs-body:  19px;
+  /* ★ 뒷자리에서 읽혀야 합니다. 참가자 노트북보다 또 한 단계 큽니다.
+       작게 줄이지 마세요. */
+  --fs-lead:  24px;
+  --fs-body:  20px;
   --fs-small: 17px;
-  --fs-tiny:  15px;
+  --fs-tiny:  14px;
 
   --fac-panel:  var(--bg-2);
   --fac-raised: var(--bg-2);
@@ -32,45 +40,56 @@ body.fac-body {
 }
 
 .fac-body *::-webkit-scrollbar-thumb { background: var(--line-strong); }
-
 .num { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
-
-.fac-console__panel, .fac-brief, .fac-decision-grid, .fac-event,
-.fac-drb, .fac-prompts, .fac-session, .fac-map-panel, .fac-award {
-  padding: var(--sp-5);
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  background: var(--bg-2);
-  box-shadow: none;
-}
-
-.fac-console {
-  display: grid;
-  grid-template-rows: auto auto auto minmax(0, 1fr) auto;   /* 상단 · 탭 · 경고 · 본문 · 아래띠 */
-  height: 100vh;
-  overflow: hidden;
-}
 .fac-label { color: var(--text-3); font-size: var(--fs-tiny); font-weight: var(--fw-strong); letter-spacing: 0.1em; }
-.fac-console__eyebrow, .fac-brief__eyebrow, .fac-event__eyebrow,
-.fac-drb__eyebrow, .fac-prompts__eyebrow { color: var(--accent); letter-spacing: 0.12em; }
-.fac-brief__title, .fac-decision-grid__title, .fac-event__title,
-.fac-drb__title, .fac-prompts__title { letter-spacing: -0.03em; }
 
 .btn { border-radius: var(--r-sm); }
 .btn--primary { background: var(--accent); border-color: var(--accent); color: var(--text-on-accent); }
 .btn--primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+.btn--white { background: #FFFFFF; border-color: #FFFFFF; color: var(--accent-deep); }
+.btn--lg    { min-height: 52px; padding: 14px 28px; font-size: 16px; }
 .chip { border-color: var(--line); background: var(--bg-2); color: var(--text-2); }
 .chip--accent { background: var(--accent); border-color: var(--accent); color: var(--text-on-accent); }
 .chip--fact { background: var(--fact-bg); border-color: var(--fact-line); color: var(--fact-text); }
 
 
-/* ---------- 1. 상단 ---------- */
+/* ============================================================================
+   1. 껍데기 — 다섯 줄
+
+   ★ grid 로 줄 수를 세지 마세요. 줄을 하나 더 넣는 순간 본문이 화면 밖으로
+     밀려납니다 (실제로 두 번 그랬습니다). flex 로 두면 본문이 남는 만큼 씁니다.
+   ============================================================================ */
+.fac-console {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--bg-0);
+}
+.fac-main {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: clamp(18px, 2vw, 30px) clamp(20px, 2.2vw, 44px);
+  overflow: hidden;
+}
+.fac-stage { height: 100%; }
+.fac-stage > article {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+
+/* ---------- 2. 머리띠 ---------- */
 .fac-top {
   display: flex;
   align-items: center;
   gap: var(--sp-4);
-  min-height: 62px;
-  padding: 0 var(--sp-5);
+  flex: 0 0 auto;
+  min-height: 58px;
+  padding: 0 clamp(20px, 2.2vw, 44px);
   border-bottom: 1px solid var(--line);
   background: var(--bg-0);
 }
@@ -100,429 +119,491 @@ body.fac-body {
 .dots__dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent-track); flex: 0 0 auto; }
 .dots__dot.is-done { background: var(--accent-line); }
 .dots__dot.is-active { background: var(--accent); }
-.dots__link { width: 30px; height: 2px; background: var(--accent-track); }
-
-/* 토론 타이머 — 이 화면에서 코랄을 쓰는 거의 유일한 곳입니다 */
-.fac-top .timer { display: inline-flex; align-items: baseline; gap: var(--sp-2); padding: 0; border: 0; background: none; }
-.fac-top .timer__label { color: var(--text-3); font-size: var(--fs-small); font-weight: var(--fw-mid); }
-.fac-top .timer__value { color: var(--coral); font-size: 24px; font-weight: var(--fw-strong); line-height: 1; }
-.fac-top .timer.is-urgent .timer__value { animation: fac-timer-pulse 1s steps(2, jump-none) infinite; }
-@keyframes fac-timer-pulse { 50% { opacity: 0.45; } }
+.dots__link { width: 26px; height: 2px; background: var(--accent-track); }
 
 
-/* ---------- 2. 진행 단계 탭 ---------- */
-.fac-stage-tabs {
+/* ---------- 3. 조 현황 한 줄 ----------
+   왼쪽 300px 레일을 이 한 줄로 줄였습니다.
+   진행자가 알고 싶은 것은 "다 했나" 하나뿐입니다. */
+.fac-strip {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: var(--sp-2) var(--sp-5);
+  gap: var(--sp-2);
+  flex: 0 0 auto;
+  padding: 9px clamp(20px, 2.2vw, 44px);
   border-bottom: 1px solid var(--line);
   background: var(--bg-1);
   overflow-x: auto;
 }
-.fac-stage-tabs__tab {
+.fac-strip.hidden { display: none; }
+.fac-strip__empty { color: var(--text-3); font-size: var(--fs-small); }
+.fac-strip__empty b { color: var(--accent); }
+
+.tchip {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  min-height: 36px;
-  padding: 5px 11px;
-  border: 1px solid transparent;
-  border-radius: var(--r-sm);
-  background: none;
-  color: var(--text-3);
+  gap: var(--sp-2);
+  padding: 5px 15px 5px 5px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--bg-2);
+  white-space: nowrap;
+}
+.tchip:hover { border-color: var(--line-strong); }
+.tchip__no {
+  display: grid; place-items: center;
+  width: 27px; height: 27px;
+  border-radius: 50%;
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: var(--fw-strong);
+}
+.tchip__name { font-size: var(--fs-small); font-weight: var(--fw-strong); }
+.tchip__state { font-size: var(--fs-tiny); font-weight: var(--fw-strong); color: var(--text-3); }
+.tchip.is-done { border-color: var(--accent); background: var(--accent-tint); }
+.tchip.is-done .tchip__state { color: var(--accent-deep); }
+.tchip.is-busy .tchip__state { color: var(--coral); }
+.tchip.is-off { opacity: 0.45; }
+
+/* 교육 세션이 없을 때 — 조용히 비어 있으면 고장으로 보입니다 */
+.fac-nosession {
+  flex: 0 0 auto;
+  padding: var(--sp-2) clamp(20px, 2.2vw, 44px);
+  border-bottom: 1px solid var(--coral-line);
+  background: var(--coral-tint);
+  color: var(--text-1);
   font-size: var(--fs-small);
+  line-height: 1.5;
+}
+.fac-nosession b { color: var(--coral); }
+.fac-nosession.hidden { display: none; }
+
+
+/* ---------- 4. 챕터 띠 — 지금 할 말 ---------- */
+.fac-chap {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  flex: 0 0 auto;
+  padding: clamp(12px, 1.3vw, 18px) clamp(20px, 2.2vw, 44px);
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-0);
+}
+.fac-chap__no {
+  display: grid; place-items: center;
+  min-width: 78px; height: 58px;
+  padding: 0 var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--accent-tint);
+  color: var(--accent-deep);
+  font-size: 18px;
+  font-weight: var(--fw-strong);
+  white-space: nowrap;
+}
+.fac-chap__text { min-width: 0; }
+.fac-chap__where { display: block; color: var(--text-3); font-size: var(--fs-small); font-weight: var(--fw-mid); }
+.fac-chap__title {
+  margin-top: 2px;
+  font-size: clamp(26px, 2.4vw, 38px);
+  font-weight: var(--fw-strong);
+  line-height: 1.1;
+  letter-spacing: -0.045em;
+}
+
+/* 이 국면의 챕터들 — 어디쯤 왔는지만 보여줍니다 */
+.fac-steps { display: flex; gap: 4px; flex: 0 0 auto; }
+.fac-steps__item {
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--bg-2);
+  color: var(--text-3);
+  font-size: var(--fs-tiny);
   font-weight: var(--fw-mid);
   white-space: nowrap;
 }
-.fac-stage-tabs__tab:hover { background: var(--bg-3); color: var(--text-1); }
-.fac-stage-tabs__tab.is-active {
+.fac-steps__item:hover { border-color: var(--line-strong); color: var(--text-1); }
+.fac-steps__item.is-done { border-color: var(--accent-line); color: var(--accent); }
+.fac-steps__item.is-now {
   border-color: var(--accent);
-  background: var(--bg-2);
-  color: var(--accent-deep);
+  background: var(--accent);
+  color: var(--text-on-accent);
   font-weight: var(--fw-strong);
 }
-.fac-stage-tabs__tab[disabled] { opacity: 0.4; cursor: not-allowed; }
-.fac-stage-tabs__num {
-  display: grid; place-items: center;
-  width: 17px; height: 17px;
-  border-radius: 50%;
-  background: var(--accent-track);
-  color: var(--text-2);
-  font-size: 10px;
-  font-weight: var(--fw-strong);
-}
-.fac-stage-tabs__tab.is-active .fac-stage-tabs__num { background: var(--accent); color: var(--text-on-accent); }
 
-
-/* ---------- 3. 3단 본문 ---------- */
-.fac-body-grid {
-  display: grid;
-  grid-template-columns: 268px minmax(0, 1fr) 300px;
-  min-height: 0;
-}
-.fac-teams, .fac-news {
-  display: flex;
+/* 토론 시계 — 눌러서 재고, 국면이 바뀌면 되돌아갑니다.
+   이 화면에서 코랄을 쓰는 거의 유일한 곳입니다. */
+.fac-chap .timer {
+  display: inline-flex;
   flex-direction: column;
-  min-width: 0;
-  padding: var(--sp-4);
+  align-items: flex-end;
+  gap: 1px;
+  flex: 0 0 auto;
+  padding: 7px 16px;
+  border: 1px solid var(--coral-line);
+  border-radius: var(--r-md);
+  background: var(--coral-tint);
+}
+.fac-chap .timer.hidden { display: none; }
+.fac-chap .timer__label { color: var(--coral); font-size: var(--fs-tiny); font-weight: var(--fw-mid); }
+.fac-chap .timer__value { color: var(--coral); font-size: 32px; font-weight: var(--fw-strong); line-height: 1; }
+.fac-chap .timer.is-running { border-color: var(--coral); box-shadow: 0 0 0 1px var(--coral); }
+.fac-chap .timer.is-urgent .timer__value { animation: fac-timer-pulse 1s steps(2, jump-none) infinite; }
+@keyframes fac-timer-pulse { 50% { opacity: 0.4; } }
+
+
+/* ---------- 5. 조작 띠 — 손은 여기에만 ---------- */
+.fac-drive {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  flex: 0 0 auto;
+  padding: var(--sp-3) clamp(20px, 2.2vw, 44px);
+  border-top: 1px solid var(--line);
   background: var(--bg-1);
-  overflow-y: auto;
 }
-.fac-teams { border-right: 1px solid var(--line); }
-.fac-news  { border-left: 1px solid var(--line); }
-.fac-main  { min-width: 0; overflow-y: auto; padding: var(--sp-4); }
-
-
-/* ---------- 4. 참가 조 카드 ---------- */
-.fac-teams__head { display: flex; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-3); }
-.fac-teams__list { display: flex; flex-direction: column; gap: var(--sp-2); }
-.fac-teams__note {
-  margin-top: auto;
-  padding-top: var(--sp-4);
-  color: var(--text-3);
-  font-size: var(--fs-tiny);
-  line-height: 1.6;
-}
-
-.fac-team {
-  padding: var(--sp-3);
+.fac-drive__back {
+  display: flex; align-items: center; gap: 7px;
+  flex: 0 0 auto;
+  min-height: 58px;
+  padding: 0 20px;
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   background: var(--bg-2);
-}
-.fac-team.is-lead { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-.fac-team__head { display: flex; align-items: center; gap: var(--sp-2); }
-.fac-team__no {
-  display: grid; place-items: center;
-  width: 22px; height: 22px;
-  border-radius: var(--r-sm);
-  background: var(--accent-track);
   color: var(--text-2);
-  font-size: 12px;
+  font-size: var(--fs-small);
+  font-weight: var(--fw-mid);
+}
+.fac-drive__back:hover:not(:disabled) { border-color: var(--line-strong); color: var(--text-1); }
+.fac-drive__back:disabled { opacity: 0.32; }
+
+.fac-drive__cue { flex: 1 1 auto; min-width: 0; }
+.fac-drive__cuelist { display: flex; gap: var(--sp-5); flex-wrap: wrap; margin-top: 2px; }
+.fac-drive__cueitem { color: var(--text-3); font-size: var(--fs-small); }
+.fac-drive__cueitem.is-key { color: var(--text-1); font-size: var(--fs-body); font-weight: var(--fw-strong); }
+
+.fac-drive__lock {
+  display: flex; align-items: center; gap: var(--sp-3);
+  flex: 0 0 auto;
+  padding: var(--sp-2) var(--sp-4);
+  border: 1px solid var(--coral-line);
+  border-radius: var(--r-md);
+  background: var(--coral-tint);
+}
+.fac-drive__lock.hidden { display: none; }
+.fac-drive__locktext { color: var(--coral); font-size: var(--fs-small); font-weight: var(--fw-strong); }
+
+.fac-drive__next {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 1px;
+  flex: 0 0 auto;
+  min-width: 268px; min-height: 66px;
+  padding: 8px 26px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--accent);
+  color: var(--text-on-accent);
+  text-align: right;
+}
+.fac-drive__next:hover:not(:disabled) { background: var(--accent-hover); }
+.fac-drive__next:disabled { background: var(--accent-track); color: var(--text-3); }
+.fac-drive__nexthint { font-size: var(--fs-tiny); opacity: 0.75; }
+.fac-drive__nextlabel { font-size: 26px; font-weight: var(--fw-strong); letter-spacing: -0.03em; line-height: 1.05; }
+
+
+/* ---------- 6. 도구 — 평소에는 닫혀 있습니다 ---------- */
+.fac-tools {
+  position: fixed; inset: 0; z-index: 60;
+  display: none;
+  background: rgba(26, 19, 39, 0.42);
+}
+.fac-tools.is-open { display: flex; justify-content: flex-end; }
+.fac-tools__panel {
+  display: flex; flex-direction: column; gap: var(--sp-5);
+  width: min(580px, 94vw);
+  height: 100%;
+  padding: var(--sp-5);
+  border-left: 1px solid var(--line);
+  background: var(--bg-0);
+  overflow-y: auto;
+}
+.fac-tools__head { display: flex; align-items: center; gap: var(--sp-3); }
+.fac-tools__head b { font-size: 20px; font-weight: var(--fw-strong); letter-spacing: -0.03em; }
+.fac-tools__group {
+  display: flex; flex-direction: column; gap: var(--sp-3);
+  padding-bottom: var(--sp-5);
+  border-bottom: 1px solid var(--line);
+}
+.fac-tools__group:last-of-type { border-bottom: 0; padding-bottom: 0; }
+.fac-tools__row { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
+.fac-tools .breakdown__row { padding: 4px var(--sp-2); background: none; font-size: var(--fs-tiny); }
+
+.fac-jump { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.fac-jump__item {
+  padding: 11px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--bg-2);
+  color: var(--text-2);
+  font-size: var(--fs-small);
+  font-weight: var(--fw-mid);
+}
+.fac-jump__item:hover { border-color: var(--line-strong); color: var(--text-1); }
+.fac-jump__item.is-active {
+  border-color: var(--accent);
+  background: var(--accent-tint);
+  color: var(--accent-deep);
   font-weight: var(--fw-strong);
 }
-.fac-team.is-lead .fac-team__no { background: var(--accent); color: var(--text-on-accent); }
-.fac-team__name { font-size: var(--fs-body); font-weight: var(--fw-strong); }
-.fac-team__style { color: var(--text-3); font-size: var(--fs-tiny); }
-.fac-team__state { margin-left: auto; font-size: var(--fs-tiny); font-weight: var(--fw-strong); color: var(--accent); }
-.fac-team__state.is-waiting { color: var(--coral); }
-
-/* 지표 6개를 아주 작게 — 숫자가 아니라 모양만 봅니다 */
-.fac-team__bars { display: flex; gap: 3px; margin-top: var(--sp-3); }
-.fac-team__bar { flex: 1 1 0; height: 5px; border-radius: var(--r-pill); background: var(--accent-track); overflow: hidden; }
-.fac-team__bar span { display: block; height: 100%; border-radius: var(--r-pill); background: var(--accent-line); }
-
-/* 변화 대응력 — 진행자만 볼 수 있는 숨은 지표 */
-.fac-team__adapt { display: flex; align-items: center; gap: var(--sp-2); margin-top: var(--sp-2); }
-.fac-team__adapt-label { color: var(--text-3); font-size: 10px; white-space: nowrap; }
-.fac-team__adapt-track { flex: 1 1 auto; height: 5px; border-radius: var(--r-pill); background: var(--accent-track); overflow: hidden; }
-.fac-team__adapt-fill { display: block; height: 100%; border-radius: var(--r-pill); background: var(--accent); }
-.fac-team__adapt-value { font-size: var(--fs-tiny); font-weight: var(--fw-strong); color: var(--accent); }
 
 
-/* ---------- 5. 산업 뉴스 ---------- */
-.fac-news__head { margin-bottom: var(--sp-3); }
-.fac-news__feed { display: flex; flex-direction: column; gap: var(--sp-3); }
-.fac-news__note {
-  margin-top: auto;
-  padding-top: var(--sp-4);
-  color: var(--text-3);
-  font-size: var(--fs-tiny);
-  line-height: 1.6;
+/* ============================================================================
+   7. 시대 설명 — 질문 하나, 배경 한 문단, 조건 네 개
+   ============================================================================ */
+.fac-brief {
+  display: flex;
+  flex-direction: column;
+  padding: clamp(24px, 2.6vw, 44px);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--bg-2);
+  box-shadow: none;
 }
-.news { padding-left: var(--sp-3); border-left: 2px solid var(--accent-line); }
-.news__when { display: block; color: var(--text-3); font-size: 10px; font-weight: var(--fw-strong); letter-spacing: 0.06em; }
-.news__text { display: block; margin-top: 2px; font-size: var(--fs-small); line-height: 1.45; }
-.news--market { border-left-color: var(--coral); }
-.news--market .news__when { color: var(--coral); }
-.news--milestone { border-left-color: var(--accent-deep); }
-.news--milestone .news__when { color: var(--accent-deep); }
-.fac-news__feed:empty::after {
-  content: "아직 들어온 결정이 없습니다.";
+.fac-brief__head { display: flex; align-items: center; gap: var(--sp-4); margin-bottom: 0; }
+.fac-brief__year {
+  padding: 6px 14px;
+  border-radius: var(--r-sm);
+  background: var(--accent-deep);
+  color: #FFFFFF;
+  font-size: 19px;
+  font-weight: var(--fw-strong);
+  letter-spacing: 0.02em;
+}
+.fac-brief__title {
+  font-size: clamp(26px, 2.4vw, 36px);
+  font-weight: var(--fw-strong);
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+}
+/* ★ 진행자가 소리 내어 읽는 문장입니다. 한 줄이 1700px 이면 읽다가 줄을 놓칩니다.
+     글자를 키우고 단 폭을 좁혀 눈이 줄을 따라가게 합니다. */
+.fac-brief__q {
+  max-width: 30em;
+  margin-top: clamp(18px, 2vw, 30px);
+  color: var(--accent);
+  font-size: clamp(26px, 2.5vw, 40px);
+  font-weight: var(--fw-strong);
+  letter-spacing: -0.035em;
+  line-height: 1.25;
+}
+.fac-brief__context {
+  max-width: 42em;
+  margin: var(--sp-4) 0 0;
+  color: var(--text-1);
+  font-size: clamp(20px, 1.6vw, 28px);
+  font-weight: 400;
+  line-height: 1.7;
+}
+.fac-brief__facts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--sp-3);
+  margin-top: auto;
+  padding-top: clamp(20px, 2.2vw, 32px);
+}
+.fac-brief__fact {
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg-1);
+}
+.fac-brief__fact-label { color: var(--text-3); font-size: var(--fs-tiny); font-weight: var(--fw-strong); letter-spacing: 0.06em; }
+.fac-brief__fact-value { margin-top: 6px; color: var(--text-1); font-size: var(--fs-body); font-weight: var(--fw-strong); line-height: 1.4; }
+.fac-brief__source { margin-top: var(--sp-4); color: var(--text-3); font-size: var(--fs-tiny); line-height: 1.5; }
+
+
+/* ============================================================================
+   8. 조별 결정 — 표가 아니라 카드입니다. 빔에서 표는 읽히지 않습니다.
+   ============================================================================ */
+.fac-decision-grid {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  overflow: hidden;
+}
+/* 빔에 띄우는 화면이라 카드가 남는 높이를 채웁니다 — 작은 카드 네 장이 위에만 붙어 있으면
+   뒷자리에서 안 읽힙니다. 조가 많아 두 줄이 되면 두 줄이 반씩 나눠 갖습니다. */
+.fac-decision-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(238px, 1fr));
+  grid-auto-rows: minmax(0, 1fr);
+  gap: var(--sp-3);
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+.fac-decision-cards__empty {
+  display: grid;
+  place-items: center;
+  grid-column: 1 / -1;
+  align-self: stretch;
+  padding: var(--sp-5);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-lg);
+  color: var(--text-3);
+  font-size: var(--fs-lead);
+  text-align: center;
+}
+.fac-decision-grid__foot { display: flex; align-items: center; gap: var(--sp-4); flex: 0 0 auto; margin-top: var(--sp-4); }
+.fac-decision-grid__note { color: var(--text-3); font-size: var(--fs-small); }
+
+.dcard {
+  display: flex;
+  flex-direction: column;
+  padding: var(--sp-4) var(--sp-5);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--bg-2);
+}
+.dcard.is-waiting { border-style: dashed; background: var(--bg-1); }
+.dcard__head { display: flex; align-items: center; gap: var(--sp-2); }
+.dcard__no {
+  display: grid; place-items: center;
+  width: 30px; height: 30px;
+  border-radius: var(--r-sm);
+  color: #FFFFFF;
+  font-size: 15px;
+  font-weight: var(--fw-strong);
+}
+.dcard__name { font-size: var(--fs-body); font-weight: var(--fw-strong); letter-spacing: -0.02em; }
+.dcard__state { margin-left: auto; color: var(--accent); font-size: var(--fs-tiny); font-weight: var(--fw-strong); }
+.dcard.is-waiting .dcard__state { color: var(--coral); }
+
+.dcard__alloc { display: flex; flex-direction: column; gap: 5px; margin-top: var(--sp-4); }
+.dcard__row { display: flex; align-items: baseline; gap: var(--sp-3); font-size: var(--fs-small); }
+.dcard__row b { margin-left: auto; font-size: 22px; font-weight: var(--fw-strong); letter-spacing: -0.03em; }
+.dcard__row.is-none { color: var(--text-3); }
+.dcard__policy {
+  margin-top: var(--sp-3);
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--line);
+  color: var(--accent-deep);
+  font-size: var(--fs-small);
+  font-weight: var(--fw-strong);
+}
+.dcard__extra { margin-top: 4px; color: var(--text-3); font-size: var(--fs-tiny); line-height: 1.5; }
+.dcard__result { display: flex; gap: var(--sp-5); margin-top: auto; padding-top: var(--sp-3); }
+.dcard__result span { color: var(--text-3); font-size: var(--fs-tiny); }
+.dcard__result b { display: block; margin-top: 1px; color: var(--text-1); font-size: 21px; font-weight: var(--fw-strong); letter-spacing: -0.03em; }
+.dcard__result.is-down b { color: var(--coral); }
+
+.dcard__wait {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--sp-3);
+  flex: 1 1 auto;
+  min-height: 120px;
   color: var(--text-3);
   font-size: var(--fs-small);
 }
+.dcard__dots { display: flex; gap: 6px; }
+.dcard__dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--accent-line); animation: dcard-blink 1.2s infinite; }
+.dcard__dots i:nth-child(2) { animation-delay: 0.2s; }
+.dcard__dots i:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dcard-blink { 0%, 60%, 100% { opacity: 0.22; } 30% { opacity: 1; } }
 
-
-/* ---------- 6. 몰림 경고 · 순위 (진행자 전용) ---------- */
+/* 몰림 경고 — 같은 분야에 조가 몰리면 경쟁강도가 실제로 올라갑니다 */
 .fac-crowd {
   display: flex;
   align-items: baseline;
   gap: var(--sp-3);
   flex-wrap: wrap;
-  margin-bottom: var(--sp-4);
+  flex: 0 0 auto;
+  margin-bottom: var(--sp-3);
   padding: var(--sp-3) var(--sp-4);
   border-radius: var(--r-md);
   background: var(--coral-tint);
   font-size: var(--fs-small);
   line-height: 1.5;
 }
+.fac-crowd.hidden { display: none; }
+.fac-crowd.is-clear { background: var(--bg-1); }
 .fac-crowd__label { color: var(--coral); font-size: var(--fs-tiny); font-weight: var(--fw-strong); letter-spacing: 0.08em; }
+.fac-crowd.is-clear .fac-crowd__label { color: var(--accent); }
 .fac-crowd b { color: var(--coral); }
 
-.fac-rank { margin-top: var(--sp-5); padding-top: var(--sp-4); border-top: 1px solid var(--line); }
-.fac-rank__head { display: flex; align-items: baseline; gap: var(--sp-3); margin-bottom: var(--sp-3); }
-.fac-rank__title { font-size: 15px; font-weight: var(--fw-strong); }
-.fac-rank__note { color: var(--coral); font-size: var(--fs-tiny); font-weight: var(--fw-strong); }
-.fac-rank__list { display: flex; flex-direction: column; gap: 6px; }
-.fac-rank__row {
-  display: grid;
-  grid-template-columns: 30px 78px minmax(0, 1fr) 64px 44px;
-  gap: var(--sp-3);
-  align-items: center;
-  padding: 6px var(--sp-3);
-  border-radius: var(--r-sm);
-  background: var(--bg-1);
-  font-size: var(--fs-small);
-}
-.fac-rank__row.is-first { background: var(--accent-tint); }
-.fac-rank__pos { color: var(--text-3); font-weight: var(--fw-strong); }
-.fac-rank__row.is-first .fac-rank__pos { color: var(--accent-deep); }
-.fac-rank__name { font-weight: var(--fw-strong); }
-.fac-rank__track { height: 7px; border-radius: var(--r-pill); background: var(--accent-track); overflow: hidden; }
-.fac-rank__fill { display: block; height: 100%; border-radius: var(--r-pill); background: var(--accent); }
-.fac-rank__value { text-align: right; font-weight: var(--fw-strong); }
-.fac-rank__move { text-align: right; font-size: var(--fs-tiny); font-weight: var(--fw-strong); }
-.fac-rank__move.is-up { color: var(--accent); }
-.fac-rank__move.is-down { color: var(--coral); }
-.fac-rank__move.is-flat { color: var(--text-3); }
-
-
-/* ---------- 7. 산업 지도 ---------- */
-.fac-map-panel__head { display: flex; align-items: baseline; gap: var(--sp-3); margin-bottom: var(--sp-4); }
-.fac-map-panel__title { font-size: 18px; font-weight: var(--fw-strong); letter-spacing: -0.02em; }
-.fac-map-panel__legend { color: var(--text-3); font-size: var(--fs-small); }
-.fac-map-panel__actions { display: flex; align-items: center; gap: var(--sp-2); margin-top: var(--sp-4); }
-.bigmap { border: 1px solid var(--line); border-radius: var(--r-md); background: var(--bg-1); }
-.bigmap__land { fill: var(--accent-track); stroke: var(--line-strong); }
-.region__name { color: var(--text-2); }
-.pin__dot { border-color: var(--bg-0); }
-.boardbar { color: var(--text-3); }
-.boardbar__v { color: var(--text-1); font-weight: var(--fw-strong); }
-
-
-/* ---------- 8. 시상 ---------- */
-.fac-award__head { display: flex; align-items: baseline; gap: var(--sp-3); margin-bottom: var(--sp-5); }
-.fac-award__title { font-size: 22px; font-weight: var(--fw-strong); letter-spacing: -0.03em; }
-.fac-award__body { display: grid; gap: var(--sp-5); }
-.fac-award__section-label {
-  color: var(--text-3);
-  font-size: var(--fs-tiny);
-  font-weight: var(--fw-strong);
-  letter-spacing: 0.1em;
-  margin-bottom: var(--sp-3);
-}
-
-.podium { display: flex; flex-direction: column; gap: var(--sp-2); }
-.podium__row {
-  display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) 72px 72px 80px;
-  gap: var(--sp-3);
-  align-items: center;
-  padding: var(--sp-3) var(--sp-4);
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
-  background: var(--bg-2);
-  font-size: var(--fs-small);
-}
-.podium__row.is-winner { border-color: var(--accent); background: var(--accent-tint); }
-.podium__pos { font-size: 17px; font-weight: var(--fw-strong); color: var(--text-3); }
-.podium__row.is-winner .podium__pos { color: var(--accent-deep); }
-.podium__name { font-size: 15px; font-weight: var(--fw-strong); }
-.podium__style { color: var(--text-3); font-size: var(--fs-tiny); }
-.podium__cell { text-align: right; color: var(--text-3); font-size: var(--fs-tiny); }
-.podium__cell b { display: block; font-size: 16px; color: var(--text-1); }
-.podium__total { text-align: right; font-size: 20px; font-weight: var(--fw-strong); color: var(--accent); }
-
-.awards { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: var(--sp-3); }
-.award { padding: var(--sp-4); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--bg-2); }
-.award__label { color: var(--accent); font-size: var(--fs-tiny); font-weight: var(--fw-strong); letter-spacing: 0.08em; }
-.award__team { margin: var(--sp-2) 0 4px; font-size: 19px; font-weight: var(--fw-strong); }
-.award__why { color: var(--text-3); font-size: var(--fs-small); line-height: 1.5; }
-.fac-award__note { color: var(--text-3); font-size: var(--fs-small); line-height: 1.6; }
-
-
-/* ---------- 9. 아래 띠 ---------- */
-.fac-foot {
-  display: grid;
-  grid-template-columns: 268px minmax(0, 1fr) 300px;
-  max-height: 168px;
-  border-top: 1px solid var(--line);
-  background: var(--bg-1);
-  overflow: hidden;
-}
-.fac-foot > div { padding: var(--sp-3) var(--sp-4); overflow-y: auto; }
-.fac-foot__cue { border-inline: 1px solid var(--line); }
-.fac-foot .breakdown__row { padding: 3px var(--sp-2); background: none; font-size: var(--fs-tiny); }
-.fac-foot .hint { margin: 4px 0 var(--sp-2); }
-.fac-prompts__item {
-  padding: 6px var(--sp-3);
-  border-left: 2px solid var(--line-strong);
-  color: var(--text-2);
-  font-size: var(--fs-small);
-  line-height: 1.5;
-}
-.fac-prompts__item--key { border-left-color: var(--accent); color: var(--text-1); font-weight: var(--fw-mid); }
-.fac-session__status {
-  padding: 3px 9px;
-  border-radius: var(--r-pill);
-  background: var(--accent-tint);
-  color: var(--accent-deep);
-  font-size: 10px;
-  font-weight: var(--fw-strong);
-}
-.fac-session__status--paused { background: var(--coral-tint); color: var(--coral); }
-.fac-session__team { display: flex; align-items: baseline; gap: var(--sp-2); font-size: var(--fs-tiny); }
-.fac-session__team-state { margin-left: auto; color: var(--text-3); }
-
-
-/* ---------- 10. 스포일러 잠금 ---------- */
-.fac-spoiler-lock__cover { background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(6px); }
-.fac-spoiler-lock__icon { color: var(--accent-line); }
-.fac-spoiler-lock__title { color: var(--text-1); }
-.fac-spoiler-lock__text { color: var(--text-3); }
-.fac-spoiler-lock__action {
-  min-height: 42px;
-  padding: 10px 20px;
-  border: 0;
-  border-radius: var(--r-md);
-  background: var(--accent);
-  color: var(--text-on-accent);
-  font-weight: var(--fw-strong);
-}
-.fac-spoiler-lock__action:disabled { background: var(--accent-track); color: var(--text-3); }
-
-
-/* ---------- 11. 표 · 모달 ---------- */
-.fac-decision-table th { background: var(--bg-1); color: var(--text-3); }
-.fac-decision-table td { border-bottom: 1px solid var(--line); }
-.fac-decision-table tr:hover td { background: var(--bg-1); }
-.modal { background: rgba(26, 19, 39, 0.42); }
-.modal__panel { border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--bg-2); }
-.toast { background: var(--text-1); border-color: var(--text-1); color: #FFFFFF; }
-
-
-/* ---------- 12. 좁은 화면 ---------- */
-@media (max-width: 1400px) {
-  .fac-body-grid, .fac-foot { grid-template-columns: 232px minmax(0, 1fr) 262px; }
-}
-@media (max-width: 1180px) {
-  body.fac-body { min-width: 0; }
-  .fac-body-grid, .fac-foot { grid-template-columns: 1fr; }
-  .fac-teams, .fac-news { border: 0; border-bottom: 1px solid var(--line); }
-  .fac-foot { max-height: none; }
-  .fac-foot__cue { border-inline: 0; border-block: 1px solid var(--line); }
-}
-
-@media print {
-  .fac-console { height: auto; overflow: visible; }
-  .fac-body-grid, .fac-foot { grid-template-columns: 1fr; }
-  .fac-teams, .fac-news, .fac-main { overflow: visible; }
-  .fac-top, .fac-stage-tabs { display: none; }
-}
-
-/* 교육 세션이 없을 때 — 조용히 비어 있으면 고장으로 보입니다 */
-.fac-nosession {
-  padding: var(--sp-2) var(--sp-5);
-  border-bottom: 1px solid var(--coral-line);
-  background: var(--coral-tint);
-  color: var(--text-1);
-  font-size: var(--fs-small);
-  line-height: 1.55;
-}
-.fac-nosession b { color: var(--coral); }
-.fac-nosession.hidden { display: none; }
 
 /* ============================================================================
-   진행자 전용 전체화면 — 표지 · 진행 방법 · 국면 결과 · 경쟁 현황
-
-   빔프로젝터에 띄우는 화면이라 글자를 크게 씁니다.
-   이 네 화면은 참가자에게 전송되지 않습니다.
+   9. 돌발상황 — 한 문장을 크게
    ============================================================================ */
-
-.btn--white { background: #FFFFFF; border-color: #FFFFFF; color: var(--accent-deep); }
-.btn--fact  { background: var(--fact-line); border-color: var(--fact-line); color: #4A3C10; }
-.btn--dark  { background: var(--text-1); border-color: var(--text-1); color: #FFFFFF; }
-.btn--lg    { min-height: 52px; padding: 14px 28px; font-size: 16px; }
-
-/* ---------- 표지 · 시상 : 딥퍼플 전면 ---------- */
-.fac-cover, .fac-award {
+.fac-event {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  min-height: calc(100vh - 270px);
-  padding: clamp(32px, 4vw, 64px);
-  border: 0;
+  padding: clamp(24px, 2.6vw, 44px);
+  border: 1px solid var(--coral-line);
+  border-left: 6px solid var(--coral);
   border-radius: var(--r-lg);
-  background: var(--accent-deep);
-  color: #FFFFFF;
+  background: var(--coral-tint);
+  box-shadow: none;
 }
-.fac-cover__brand { display: flex; align-items: center; gap: var(--sp-4); margin-bottom: var(--sp-5); }
-.fac-cover__mark {
-  padding: 6px 16px;
-  border: 1px solid rgba(255, 255, 255, 0.32);
+.fac-event__head { display: flex; align-items: center; gap: var(--sp-3); margin-bottom: 0; }
+.fac-event__eyebrow { color: var(--coral); font-size: var(--fs-tiny); font-weight: var(--fw-strong); letter-spacing: 0.14em; text-transform: none; }
+.fac-event__time { color: var(--coral); font-size: var(--fs-body); font-weight: var(--fw-strong); }
+.fac-event__headline {
+  max-width: 22em;
+  margin: clamp(16px, 1.8vw, 26px) 0 0;
+  color: var(--text-1);
+  font-size: clamp(32px, 3.2vw, 52px);
+  font-weight: var(--fw-strong);
+  line-height: 1.2;
+  letter-spacing: -0.045em;
+}
+.fac-event__description {
+  max-width: 40em;
+  margin: var(--sp-4) 0 0;
+  color: var(--text-1);
+  font-size: clamp(20px, 1.6vw, 28px);
+  line-height: 1.65;
+}
+.fac-event__delivery { display: block; margin-top: auto; padding-top: clamp(18px, 2vw, 30px); }
+.fac-event__impact {
+  padding: var(--sp-4) var(--sp-5);
+  border: 1px solid var(--coral-line);
+  border-radius: var(--r-md);
+  background: #FFFFFF;
+}
+.fac-event__label { margin-bottom: var(--sp-2); color: var(--coral); font-size: var(--fs-tiny); font-weight: var(--fw-strong); letter-spacing: 0.08em; }
+.fac-event__reaction { margin-top: 6px; font-size: var(--fs-small); line-height: 1.5; }
+.fac-event__teams { display: flex; gap: 6px; flex-wrap: wrap; margin-top: var(--sp-3); }
+.fac-event__team {
+  padding: 5px 13px;
+  border: 1px solid var(--coral-line);
   border-radius: var(--r-pill);
-  font-size: var(--fs-small);
-  font-weight: var(--fw-strong);
-  letter-spacing: 0.16em;
-}
-.fac-cover__kicker { color: rgba(255, 255, 255, 0.6); font-size: var(--fs-body); font-weight: var(--fw-mid); }
-.fac-cover__title { font-size: clamp(48px, 5.6vw, 88px); font-weight: var(--fw-strong); line-height: 1; letter-spacing: -0.055em; }
-.fac-cover__lead { margin-top: clamp(24px, 3vw, 42px); font-size: clamp(19px, 1.9vw, 28px); font-weight: var(--fw-strong); line-height: 1.5; letter-spacing: -0.03em; }
-.fac-cover__stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-3); margin-top: clamp(28px, 3.4vw, 48px); }
-.fac-statbox { padding: var(--sp-4) var(--sp-5); border: 1px solid rgba(255, 255, 255, 0.18); border-radius: var(--r-md); }
-.fac-statbox b { display: block; color: var(--accent-line); font-size: 24px; font-weight: var(--fw-strong); letter-spacing: -0.03em; }
-.fac-statbox span { display: block; margin-top: 5px; color: rgba(255, 255, 255, 0.55); font-size: var(--fs-small); }
-.fac-cover__foot { display: flex; align-items: center; margin-top: auto; padding-top: clamp(28px, 3.4vw, 50px); }
-.fac-cover__hint { color: rgba(255, 255, 255, 0.42); font-size: var(--fs-small); }
-
-/* ---------- 진행 방법 ---------- */
-.fac-howto { display: flex; flex-direction: column; min-height: calc(100vh - 270px); }
-.fac-howto__head { display: flex; align-items: baseline; gap: var(--sp-3); margin-bottom: var(--sp-5); }
-.fac-howto__title { font-size: 20px; font-weight: var(--fw-strong); letter-spacing: -0.03em; }
-.fac-howto__sub, .fac-howto__total { color: var(--text-3); font-size: var(--fs-small); }
-.fac-howto__cards { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--sp-3); flex: 1 1 auto; min-height: 0; }
-
-.howtocard {
-  display: flex;
-  flex-direction: column;
-  padding: var(--sp-5);
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  background: var(--bg-2);
-}
-.howtocard--now  { border-color: var(--accent); background: var(--accent-tint); }
-.howtocard--fact { border-color: var(--fact-line); background: var(--fact-bg); }
-.howtocard__no {
-  display: grid; place-items: center;
-  width: 34px; height: 34px;
-  border-radius: var(--r-sm);
-  background: var(--accent-track);
+  background: #FFFFFF;
   color: var(--text-2);
-  font-size: 15px;
-  font-weight: var(--fw-strong);
+  font-size: var(--fs-tiny);
+  font-weight: var(--fw-mid);
 }
-.howtocard--now  .howtocard__no { background: var(--accent); color: var(--text-on-accent); }
-.howtocard--fact .howtocard__no { background: var(--fact-line); color: #4A3C10; }
-.howtocard__name { margin-top: var(--sp-4); font-size: 19px; font-weight: var(--fw-strong); line-height: 1.3; letter-spacing: -0.03em; }
-.howtocard__min { margin-top: auto; padding-top: var(--sp-4); font-size: 17px; font-weight: var(--fw-strong); color: var(--text-3); }
-.howtocard--now  .howtocard__min { color: var(--accent); }
-.howtocard--fact .howtocard__min { color: var(--fact-text); }
+.fac-event__team.is-delivered { border-color: var(--accent-line); background: var(--accent-tint); color: var(--accent-deep); }
 
-.fac-howto__foot { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); margin-top: var(--sp-4); }
-.fac-howto__box { display: flex; align-items: baseline; gap: var(--sp-3); padding: var(--sp-4) var(--sp-5); border: 1px solid var(--line); border-radius: var(--r-md); }
-.fac-howto__box b { font-size: 15px; font-weight: var(--fw-strong); white-space: nowrap; }
-.fac-howto__box span { color: var(--text-3); font-size: var(--fs-small); }
-.fac-howto__box--fact { border-color: var(--fact-line); background: var(--fact-bg); }
-.fac-howto__box--fact b { color: var(--fact-text); }
 
-/* ---------- 국면 결과 (순위는 이 화면에만) ---------- */
-.fac-phase { display: flex; flex-direction: column; min-height: calc(100vh - 270px); }
-.fac-phase__head { display: flex; align-items: center; gap: var(--sp-3); margin-bottom: var(--sp-4); }
-.fac-phase__years { font-size: 17px; font-weight: var(--fw-strong); letter-spacing: -0.02em; }
+/* ============================================================================
+   10. 국면 결과 — 순위는 이 화면에만 있습니다
+   ============================================================================ */
+.fac-phase { display: flex; flex-direction: column; height: 100%; min-height: 0; padding: 0; border: 0; background: none; box-shadow: none; }
+.fac-phase__head { display: flex; align-items: center; gap: var(--sp-3); flex: 0 0 auto; margin-bottom: var(--sp-3); }
+.fac-phase__years { font-size: var(--fs-body); font-weight: var(--fw-strong); letter-spacing: -0.02em; }
 .fac-phase__state { color: var(--text-3); font-size: var(--fs-small); }
-.fac-phase__title { font-size: clamp(30px, 3.2vw, 44px); font-weight: var(--fw-strong); letter-spacing: -0.045em; margin-bottom: var(--sp-5); }
-.fac-phase__cards { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: var(--sp-3); flex: 1 1 auto; min-height: 0; }
+/* 칸 수는 조 수에 맞춰 facilitator.js 가 인라인으로 정합니다 (cardColumns) */
+.fac-phase__cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: minmax(0, 1fr);
+  gap: var(--sp-3);
+  flex: 1 1 auto;
+  min-height: 0;
+}
 
 .phasecard {
   display: flex;
@@ -544,36 +625,202 @@ body.fac-body {
   font-weight: var(--fw-strong);
 }
 .phasecard--first .phasecard__no { background: var(--accent); color: var(--text-on-accent); }
-.phasecard__name { font-size: 17px; font-weight: var(--fw-strong); }
+.phasecard__name { font-size: var(--fs-body); font-weight: var(--fw-strong); }
 .phasecard__rank { margin-left: auto; color: var(--text-3); font-size: var(--fs-small); font-weight: var(--fw-strong); }
 .phasecard--first .phasecard__rank { color: var(--accent-deep); }
 .phasecard__value { margin-top: var(--sp-4); font-size: clamp(34px, 3.6vw, 52px); font-weight: var(--fw-strong); line-height: 1; letter-spacing: -0.05em; }
 .phasecard__unit { margin-top: 6px; color: var(--text-3); font-size: var(--fs-small); }
-.phasecard__tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; padding-top: var(--sp-4); }
-.phasetag { padding: 5px 10px; border: 1px solid var(--line); border-radius: var(--r-sm); font-size: var(--fs-tiny); color: var(--text-2); white-space: nowrap; }
+.phasecard__tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: var(--sp-4); }
+.phasetag { padding: 5px 11px; border: 1px solid var(--line); border-radius: var(--r-sm); color: var(--text-2); font-size: var(--fs-tiny); white-space: nowrap; }
 .phasecard--first .phasetag { border-color: var(--accent-line); color: var(--accent-deep); }
-.fac-phase__foot { display: flex; align-items: center; margin-top: var(--sp-4); }
-.fac-phase__note { color: var(--text-3); font-size: var(--fs-small); }
 
-/* ---------- 경쟁 현황 ---------- */
-.fac-standings { display: flex; flex-direction: column; min-height: calc(100vh - 270px); }
-.fac-standings__head { display: flex; align-items: baseline; gap: var(--sp-3); margin-bottom: var(--sp-5); }
+/* ★ 순위는 진행자 화면 전용입니다. 참가자에게는 절대 보내지 않습니다. */
+.fac-rank { flex: 0 0 auto; margin-top: var(--sp-4); padding-top: var(--sp-4); border-top: 1px solid var(--line); }
+.fac-rank:empty { display: none; }
+.fac-rank__head { display: flex; align-items: baseline; gap: var(--sp-3); margin-bottom: var(--sp-3); }
+.fac-rank__title { font-size: var(--fs-body); font-weight: var(--fw-strong); }
+.fac-rank__note { color: var(--coral); font-size: var(--fs-tiny); font-weight: var(--fw-strong); }
+.fac-rank__list { display: flex; flex-direction: column; gap: 5px; }
+.fac-rank__row {
+  display: grid;
+  grid-template-columns: 48px 110px minmax(0, 1fr) 66px 46px;
+  gap: var(--sp-3);
+  align-items: center;
+  padding: 6px var(--sp-3);
+  border-radius: var(--r-sm);
+  background: var(--bg-1);
+  font-size: var(--fs-small);
+}
+.fac-rank__row.is-first { background: var(--accent-tint); }
+.fac-rank__pos { color: var(--text-3); font-weight: var(--fw-strong); }
+.fac-rank__row.is-first .fac-rank__pos { color: var(--accent-deep); }
+.fac-rank__name { font-weight: var(--fw-strong); }
+.fac-rank__track { height: 8px; border-radius: var(--r-pill); background: var(--accent-track); overflow: hidden; }
+.fac-rank__fill { display: block; height: 100%; border-radius: var(--r-pill); background: var(--accent); }
+.fac-rank__value { text-align: right; font-weight: var(--fw-strong); }
+.fac-rank__move { text-align: right; font-size: var(--fs-tiny); font-weight: var(--fw-strong); }
+.fac-rank__move.is-up { color: var(--accent); }
+.fac-rank__move.is-down { color: var(--coral); }
+.fac-rank__move.is-flat { color: var(--text-3); }
+
+
+/* ============================================================================
+   11. 그때 DRB는 — 금색 전면 세 칸
+   ============================================================================ */
+.fac-drb {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: clamp(22px, 2.4vw, 40px);
+  border: 1px solid var(--fact-line);
+  border-radius: var(--r-lg);
+  background: var(--fact-bg);
+  box-shadow: none;
+}
+.fac-drb__head { display: flex; align-items: center; gap: var(--sp-3); flex: 0 0 auto; margin-bottom: var(--sp-4); }
+.fac-drb__stamp {
+  padding: 7px 16px;
+  border-radius: var(--r-sm);
+  background: var(--fact-line);
+  color: #4A3C10;
+  font-size: var(--fs-tiny);
+  font-weight: var(--fw-strong);
+  letter-spacing: 0.18em;
+}
+.fac-drb__when { color: var(--fact-text); font-size: var(--fs-small); font-weight: var(--fw-strong); }
+.fac-drb .fac-drb__eyebrow { color: var(--fact-text); opacity: 0.7; font-size: var(--fs-tiny); letter-spacing: 0; text-transform: none; }
+
+.fac-spoiler-lock { position: relative; display: flex; flex: 1 1 auto; min-height: 0; }
+.fac-spoiler-lock__content { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; min-height: 0; }
+
+.fac-drb__title {
+  margin-bottom: clamp(16px, 2vw, 30px);
+  color: #4A3C10;
+  font-size: clamp(30px, 3.2vw, 48px);
+  font-weight: var(--fw-strong);
+  line-height: 1.14;
+  letter-spacing: -0.05em;
+}
+.drbcards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-3); flex: 1 1 auto; min-height: 0; }
+.drbcard {
+  padding: var(--sp-5);
+  border: 1px solid var(--fact-line);
+  border-radius: var(--r-lg);
+  background: #FFFFFF;
+  overflow-y: auto;
+}
+.drbcard__label { margin-bottom: var(--sp-3); color: var(--fact-text); font-size: var(--fs-tiny); font-weight: var(--fw-strong); letter-spacing: 0.08em; }
+.drbcard__body { font-size: var(--fs-body); line-height: 1.6; white-space: pre-line; }
+
+.fac-drb__timeline { display: flex; flex-wrap: wrap; gap: var(--sp-2); flex: 0 0 auto; margin-top: var(--sp-3); }
+.fac-drb__milestone {
+  display: flex; align-items: baseline; gap: var(--sp-2);
+  padding: 7px 13px;
+  border: 1px solid var(--fact-line);
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.6);
+  font-size: var(--fs-small);
+}
+.fac-drb__year { color: var(--fact-text); font-weight: var(--fw-strong); white-space: nowrap; }
+
+.fac-drb__foot { display: flex; align-items: center; gap: var(--sp-4); flex: 0 0 auto; margin-top: var(--sp-3); }
+.fac-drb__chips { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
+.drbchip { padding: 8px 14px; border: 1px solid var(--fact-line); border-radius: var(--r-sm); background: #FFFFFF; font-size: var(--fs-small); font-weight: var(--fw-mid); }
+.drbchip--same { border-color: var(--accent-line); background: var(--accent-tint); color: var(--accent-deep); font-weight: var(--fw-strong); }
+
+.fac-spoiler-lock__cover {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--sp-3);
+  border-radius: var(--r-lg);
+  background: rgba(253, 250, 239, 0.94);
+  backdrop-filter: blur(8px);
+}
+.fac-spoiler-lock.is-unlocked .fac-spoiler-lock__cover { display: none; }
+.fac-spoiler-lock__icon { color: var(--fact-line); font-size: 44px; }
+.fac-spoiler-lock__title { color: #4A3C10; font-size: 24px; font-weight: var(--fw-strong); }
+.fac-spoiler-lock__text { max-width: 46ch; color: var(--fact-text); font-size: var(--fs-small); text-align: center; line-height: 1.6; }
+.fac-spoiler-lock__action {
+  min-height: 52px;
+  padding: 12px 26px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--accent);
+  color: var(--text-on-accent);
+  font-size: var(--fs-body);
+  font-weight: var(--fw-strong);
+}
+.fac-spoiler-lock__action:disabled { background: var(--accent-track); color: var(--text-3); }
+
+
+/* ============================================================================
+   12. 함께 이야기하기
+   ============================================================================ */
+.fac-prompts {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--sp-4);
+  height: 100%;
+  padding: clamp(24px, 2.6vw, 44px);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--bg-2);
+  box-shadow: none;
+}
+.fac-prompts__list { display: flex; flex-direction: column; gap: var(--sp-3); }
+.fac-prompts__item {
+  padding: var(--sp-4) var(--sp-5);
+  border-left: 4px solid var(--line-strong);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  background: var(--bg-1);
+  color: var(--text-2);
+  font-size: var(--fs-lead);
+  line-height: 1.55;
+}
+.fac-prompts__item--key { border-left-color: var(--accent); background: var(--accent-tint); color: var(--text-1); font-weight: var(--fw-strong); }
+.fac-prompts__note { color: var(--text-3); font-size: var(--fs-small); line-height: 1.6; }
+
+
+/* ============================================================================
+   13. 산업 지도
+   ============================================================================ */
+.fac-map-panel { display: flex; flex-direction: column; height: 100%; min-height: 0; padding: 0; border: 0; background: none; box-shadow: none; }
+.fac-map-panel__head { display: flex; align-items: center; gap: var(--sp-3); flex: 0 0 auto; margin-bottom: var(--sp-3); }
+.fac-map-panel__legend { color: var(--text-3); font-size: var(--fs-small); }
+.bigmap { flex: 1 1 auto; min-height: 0; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--bg-1); }
+.bigmap__land { fill: var(--accent-track); stroke: var(--line-strong); }
+.region__name { color: var(--text-2); }
+.pin__dot { border-color: var(--bg-0); }
+.boardbar { flex: 0 0 auto; color: var(--text-3); }
+.boardbar__v { color: var(--text-1); font-weight: var(--fw-strong); }
+
+
+/* ============================================================================
+   14. 순위 이동 (진행자 전용)
+   ============================================================================ */
+.fac-standings { display: flex; flex-direction: column; height: 100%; min-height: 0; padding: 0; border: 0; background: none; box-shadow: none; }
+.fac-standings__head { display: flex; align-items: baseline; gap: var(--sp-3); flex: 0 0 auto; margin-bottom: var(--sp-4); }
 .fac-standings__grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: var(--sp-5); flex: 1 1 auto; min-height: 0; }
-.fac-standings__left, .fac-standings__right { min-width: 0; }
+.fac-standings__left, .fac-standings__right { min-width: 0; overflow-y: auto; }
+.fac-howto__title { font-size: var(--fs-lead); font-weight: var(--fw-strong); letter-spacing: -0.03em; }
+.fac-howto__sub, .fac-howto__total { color: var(--text-3); font-size: var(--fs-small); }
+.fac-award__section-label { margin-bottom: var(--sp-3); color: var(--text-3); font-size: var(--fs-tiny); font-weight: var(--fw-strong); letter-spacing: 0.1em; }
 
 .rankgrid { padding: var(--sp-5); border: 1px solid var(--line); border-radius: var(--r-lg); }
 .rankgrid__row { display: grid; align-items: center; gap: var(--sp-3); margin-bottom: var(--sp-4); }
 .rankgrid__row:last-child { margin-bottom: 0; }
 .rankgrid__head { padding-bottom: var(--sp-3); border-bottom: 1px solid var(--line); }
 .rankgrid__head span { color: var(--text-3); font-size: var(--fs-small); }
-.rankgrid__pos { color: var(--text-3); font-size: 17px; font-weight: var(--fw-strong); }
+.rankgrid__pos { color: var(--text-3); font-size: var(--fs-body); font-weight: var(--fw-strong); }
 .rankgrid__cell {
   display: grid; place-items: center;
   width: 44px; height: 44px;
   border-radius: var(--r-md);
   background: var(--accent-track);
   color: var(--text-2);
-  font-size: 17px;
+  font-size: var(--fs-body);
   font-weight: var(--fw-strong);
 }
 .rankgrid__cell.is-lead { background: var(--accent); color: var(--text-on-accent); }
@@ -586,100 +833,47 @@ body.fac-body {
 
 .titlelist { display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-5); border: 1px solid var(--line); border-radius: var(--r-lg); }
 .titlerow { display: flex; align-items: center; gap: var(--sp-3); }
-.titlerow__name { font-size: 15px; font-weight: var(--fw-strong); }
+.titlerow__name { font-size: var(--fs-small); font-weight: var(--fw-strong); }
 .titlerow__team { margin-left: auto; padding: 6px 14px; border: 1px solid var(--accent-line); border-radius: var(--r-sm); background: var(--accent-tint); color: var(--accent-deep); font-size: var(--fs-small); font-weight: var(--fw-strong); white-space: nowrap; }
 .titlerow--fact .titlerow__team { border-color: var(--fact-line); background: var(--fact-bg); color: var(--fact-text); }
 
-/* ---------- DRB 기록은 금색 ---------- */
-.fac-drb { border-color: var(--fact-line); background: var(--fact-bg); }
-.fac-drb__title { color: var(--fact-text); }
-
-@media (max-width: 1400px) {
-  .fac-howto__cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .fac-standings__grid { grid-template-columns: 1fr; }
-  .fac-phase__cards { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
 
 /* ============================================================================
-   ACTUAL DRB — 금색 전면 세 칸
+   15. 표지 · 시상 — 딥퍼플 전면
    ============================================================================ */
-.fac-drb {
+.fac-cover, .fac-award {
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 270px);
-  border-color: var(--fact-line);
-  background: var(--fact-bg);
-}
-.fac-drb__head { display: flex; align-items: center; gap: var(--sp-3); margin-bottom: var(--sp-5); }
-.fac-drb__stamp {
-  padding: 7px 16px;
-  border-radius: var(--r-sm);
-  background: var(--fact-line);
-  color: #4A3C10;
-  font-size: var(--fs-tiny);
-  font-weight: var(--fw-strong);
-  letter-spacing: 0.18em;
-}
-.fac-drb__when { color: var(--fact-text); font-size: 15px; font-weight: var(--fw-strong); }
-.fac-drb .fac-drb__eyebrow { color: var(--fact-text); opacity: 0.7; font-size: var(--fs-small); letter-spacing: 0; }
-
-.fac-spoiler-lock { position: relative; flex: 1 1 auto; min-height: 0; display: flex; }
-.fac-spoiler-lock__content { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; }
-
-.fac-drb__title {
-  font-size: clamp(34px, 3.6vw, 56px);
-  font-weight: var(--fw-strong);
-  line-height: 1.14;
-  letter-spacing: -0.05em;
-  color: #4A3C10;
-  margin-bottom: clamp(20px, 2.4vw, 36px);
-}
-
-.drbcards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-3); flex: 1 1 auto; min-height: 0; }
-.drbcard {
-  padding: var(--sp-5);
-  border: 1px solid var(--fact-line);
+  justify-content: center;
+  height: 100%;
+  min-height: 0;
+  padding: clamp(30px, 3.6vw, 60px);
+  border: 0;
   border-radius: var(--r-lg);
-  background: #FFFFFF;
-  overflow-y: auto;
+  background: var(--accent-deep);
+  color: #FFFFFF;
+  box-shadow: none;
 }
-.drbcard__label { color: var(--fact-text); font-size: var(--fs-tiny); font-weight: var(--fw-strong); letter-spacing: 0.08em; margin-bottom: var(--sp-3); }
-.drbcard__body { font-size: var(--fs-lead); line-height: 1.6; white-space: pre-line; }
-
-.fac-drb__timeline { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: var(--sp-4); }
-.fac-drb__milestone {
-  display: flex; align-items: baseline; gap: var(--sp-2);
-  padding: 7px 13px;
-  border: 1px solid var(--fact-line);
-  border-radius: var(--r-sm);
-  background: rgba(255, 255, 255, 0.6);
+.fac-cover__brand { display: flex; align-items: center; gap: var(--sp-4); margin-bottom: var(--sp-5); }
+.fac-cover__mark {
+  padding: 6px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  border-radius: var(--r-pill);
   font-size: var(--fs-small);
+  font-weight: var(--fw-strong);
+  letter-spacing: 0.16em;
 }
-.fac-drb__year { color: var(--fact-text); font-weight: var(--fw-strong); white-space: nowrap; }
+.fac-cover__kicker { color: rgba(255, 255, 255, 0.6); font-size: var(--fs-body); font-weight: var(--fw-mid); }
+.fac-cover__title { font-size: clamp(48px, 5.6vw, 88px); font-weight: var(--fw-strong); line-height: 1; letter-spacing: -0.055em; }
+.fac-cover__lead { margin-top: clamp(22px, 2.8vw, 40px); font-size: clamp(19px, 1.9vw, 28px); font-weight: var(--fw-strong); line-height: 1.5; letter-spacing: -0.03em; }
+.fac-cover__stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-3); margin-top: clamp(24px, 3vw, 44px); }
+.fac-statbox { padding: var(--sp-4) var(--sp-5); border: 1px solid rgba(255, 255, 255, 0.18); border-radius: var(--r-md); }
+.fac-statbox b { display: block; color: var(--accent-line); font-size: 26px; font-weight: var(--fw-strong); letter-spacing: -0.03em; }
+.fac-statbox span { display: block; margin-top: 5px; color: rgba(255, 255, 255, 0.55); font-size: var(--fs-small); }
+.fac-cover__foot { display: flex; align-items: center; margin-top: auto; padding-top: clamp(24px, 3vw, 44px); }
+.fac-cover__hint { color: rgba(255, 255, 255, 0.42); font-size: var(--fs-small); }
 
-.fac-drb__foot { display: flex; align-items: center; gap: var(--sp-4); margin-top: var(--sp-4); }
-.fac-drb__chips { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
-.drbchip { padding: 8px 14px; border: 1px solid var(--fact-line); border-radius: var(--r-sm); background: #FFFFFF; font-size: var(--fs-small); font-weight: var(--fw-mid); }
-.drbchip--same { border-color: var(--accent-line); background: var(--accent-tint); color: var(--accent-deep); font-weight: var(--fw-strong); }
-.fac-drb__note { color: var(--fact-text); font-size: var(--fs-tiny); line-height: 1.5; text-align: right; }
-
-.fac-spoiler-lock__cover {
-  position: absolute; inset: 0;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: var(--sp-3);
-  border-radius: var(--r-lg);
-  background: rgba(253, 250, 239, 0.94);
-  backdrop-filter: blur(8px);
-}
-.fac-spoiler-lock.is-unlocked .fac-spoiler-lock__cover { display: none; }
-.fac-spoiler-lock__icon { color: var(--fact-line); font-size: 40px; }
-.fac-spoiler-lock__title { font-size: 22px; font-weight: var(--fw-strong); color: #4A3C10; }
-.fac-spoiler-lock__text { color: var(--fact-text); font-size: var(--fs-small); text-align: center; max-width: 44ch; }
-
-/* ============================================================================
-   FINAL 시상 — 딥퍼플 전면
-   ============================================================================ */
-.fac-award__head { display: flex; align-items: center; gap: var(--sp-3); margin-bottom: clamp(22px, 2.6vw, 40px); }
+.fac-award__head { display: flex; align-items: center; gap: var(--sp-3); margin-bottom: clamp(20px, 2.4vw, 36px); }
 .fac-award__stamp {
   padding: 7px 16px;
   border: 1px solid rgba(255, 255, 255, 0.32);
@@ -688,9 +882,10 @@ body.fac-body {
   font-weight: var(--fw-strong);
   letter-spacing: 0.18em;
 }
-.fac-award__when { color: rgba(255, 255, 255, 0.6); font-size: 15px; font-weight: var(--fw-mid); }
+.fac-award__when { color: rgba(255, 255, 255, 0.6); font-size: var(--fs-small); font-weight: var(--fw-mid); }
 .fac-award__state { color: rgba(255, 255, 255, 0.42); font-size: var(--fs-small); }
 .fac-award__body { display: flex; flex-direction: column; gap: var(--sp-4); }
+.fac-award__wait { color: rgba(255, 255, 255, 0.6); font-size: var(--fs-lead); line-height: 1.7; }
 
 .podium { display: grid; grid-template-columns: 1.25fr 1fr 1fr; gap: var(--sp-3); }
 .podium__row {
@@ -734,24 +929,77 @@ body.fac-body {
 .award--fact .award__team { color: var(--fact-line); }
 
 .fac-award__message {
-  margin-top: clamp(20px, 2.4vw, 36px);
+  margin-top: clamp(18px, 2.2vw, 32px);
   font-size: clamp(26px, 2.6vw, 40px);
   font-weight: var(--fw-strong);
   line-height: 1.38;
   letter-spacing: -0.04em;
 }
-.fac-award__foot { display: flex; align-items: center; margin-top: auto; padding-top: var(--sp-5); }
-.fac-award__note { color: rgba(255, 255, 255, 0.42); font-size: var(--fs-small); }
 
-@media (max-width: 1400px) {
-  .podium { grid-template-columns: 1fr; }
-  .awards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .drbcards { grid-template-columns: 1fr; }
-}
 
 /* ============================================================================
-   참가 주소와 조별 코드 (진행자 세션 모달)
+   16. 진행 방법
    ============================================================================ */
+.fac-howto { display: flex; flex-direction: column; height: 100%; min-height: 0; padding: 0; border: 0; background: none; box-shadow: none; }
+.fac-howto__head { display: flex; align-items: baseline; gap: var(--sp-3); flex: 0 0 auto; margin-bottom: var(--sp-4); }
+.fac-howto__cards { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--sp-3); flex: 1 1 auto; min-height: 0; }
+.howtocard {
+  display: flex;
+  flex-direction: column;
+  padding: var(--sp-5);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--bg-2);
+}
+.howtocard--now  { border-color: var(--accent); background: var(--accent-tint); }
+.howtocard--fact { border-color: var(--fact-line); background: var(--fact-bg); }
+.howtocard__no {
+  display: grid; place-items: center;
+  width: 34px; height: 34px;
+  border-radius: var(--r-sm);
+  background: var(--accent-track);
+  color: var(--text-2);
+  font-size: 15px;
+  font-weight: var(--fw-strong);
+}
+.howtocard--now  .howtocard__no { background: var(--accent); color: var(--text-on-accent); }
+.howtocard--fact .howtocard__no { background: var(--fact-line); color: #4A3C10; }
+.howtocard__name { margin-top: var(--sp-4); font-size: var(--fs-lead); font-weight: var(--fw-strong); line-height: 1.3; letter-spacing: -0.03em; }
+.howtocard__min { margin-top: auto; padding-top: var(--sp-4); color: var(--text-3); font-size: var(--fs-body); font-weight: var(--fw-strong); }
+.howtocard--now  .howtocard__min { color: var(--accent); }
+.howtocard--fact .howtocard__min { color: var(--fact-text); }
+
+.fac-howto__foot { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); flex: 0 0 auto; margin-top: var(--sp-3); }
+.fac-howto__box { display: flex; align-items: baseline; gap: var(--sp-3); padding: var(--sp-4) var(--sp-5); border: 1px solid var(--line); border-radius: var(--r-md); }
+.fac-howto__box b { font-size: var(--fs-small); font-weight: var(--fw-strong); white-space: nowrap; }
+.fac-howto__box span { color: var(--text-3); font-size: var(--fs-small); }
+.fac-howto__box--fact { border-color: var(--fact-line); background: var(--fact-bg); }
+.fac-howto__box--fact b { color: var(--fact-text); }
+
+
+/* ============================================================================
+   17. 세션 · 모달
+   ============================================================================ */
+.fac-session__status {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 3px 9px;
+  border-radius: var(--r-pill);
+  background: var(--accent-tint);
+  color: var(--accent-deep);
+  font-size: var(--fs-tiny);
+  font-weight: var(--fw-strong);
+}
+.fac-session__status--paused { background: var(--coral-tint); color: var(--coral); }
+.fac-session__meta { color: var(--text-3); font-size: var(--fs-small); }
+.fac-session__teams { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 7px; }
+.fac-session__team { display: block; padding: 9px 11px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--bg-1); }
+.fac-session__team-name { font-size: var(--fs-tiny); font-weight: var(--fw-strong); }
+.fac-session__team-state { margin-top: 3px; color: var(--text-3); font-size: var(--fs-tiny); }
+
+.modal { background: rgba(26, 19, 39, 0.42); }
+.modal__panel { border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--bg-2); }
+.toast { background: var(--text-1); border-color: var(--text-1); color: #FFFFFF; }
+
 .joinurl {
   display: flex; align-items: center; gap: var(--sp-3);
   margin-top: var(--sp-4); padding: var(--sp-4);
@@ -761,7 +1009,7 @@ body.fac-body {
 .joinurl__label { color: var(--accent-deep); font-size: var(--fs-tiny); font-weight: var(--fw-strong); letter-spacing: 0.08em; white-space: nowrap; }
 .joinurl__value { flex: 1 1 auto; min-width: 0; font-size: var(--fs-body); font-weight: var(--fw-mid); overflow-wrap: anywhere; }
 
-.joincodes { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: var(--sp-2); }
+.joincodes { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--sp-2); }
 .joincode {
   display: flex; align-items: center; gap: var(--sp-3);
   padding: var(--sp-3) var(--sp-4);
@@ -769,10 +1017,31 @@ body.fac-body {
   background: var(--bg-2);
 }
 .joincode__team { font-size: var(--fs-body); font-weight: var(--fw-strong); }
-.joincode__value {
-  margin-left: auto;
-  font-size: 26px; font-weight: var(--fw-strong);
-  letter-spacing: 0.16em; color: var(--accent);
-}
+.joincode__value { margin-left: auto; color: var(--accent); font-size: 28px; font-weight: var(--fw-strong); letter-spacing: 0.16em; }
 .joincode--missing { border-style: dashed; }
 .joincode--missing .hint { margin-left: auto; }
+
+
+/* ============================================================================
+   18. 좁은 화면 · 인쇄
+   ============================================================================ */
+@media (max-width: 1500px) {
+  .fac-brief__facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .fac-howto__cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .fac-standings__grid { grid-template-columns: 1fr; }
+  .fac-phase__cards { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .podium { grid-template-columns: 1fr; }
+  .awards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .drbcards { grid-template-columns: 1fr; }
+}
+@media (max-width: 1180px) {
+  body.fac-body { min-width: 0; }
+  .fac-drive__next { min-width: 180px; }
+  .fac-steps { display: none; }
+}
+
+@media print {
+  .fac-console { height: auto; overflow: visible; }
+  .fac-main, .fac-stage > article { overflow: visible; height: auto; }
+  .fac-top, .fac-strip, .fac-drive, .fac-tools, .no-print { display: none !important; }
+}

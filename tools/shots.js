@@ -151,22 +151,55 @@ const server = http.createServer((req, res) => {
     } else break;
     await page.waitForTimeout(450);
   }
+  /* 방금 끝낸 판을 진행자 화면으로 옮깁니다 — 빈 화면이 아니라 진짜 데이터로 봐야 합니다 */
+  const save = await page.evaluate(() => {
+    const out = {};
+    for (let i = 0; i < localStorage.length; i++) out[localStorage.key(i)] = localStorage.getItem(localStorage.key(i));
+    return out;
+  });
   await teamCtx.close();
 
   /* ---------- 진행자 화면 ---------- */
   console.log("\n진행자 화면 (1920×1080)");
   const beamCtx = await browser.newContext({ viewport: BEAM, deviceScaleFactor: 1 });
+  await beamCtx.addInitScript(entries => {
+    Object.keys(entries).forEach(k => localStorage.setItem(k, entries[k]));
+  }, save);
   const fac = await beamCtx.newPage();
   fac.on("pageerror", e => problems.push("진행자 오류: " + e.message));
   await fac.goto(`http://127.0.0.1:${PORT}/facilitator.html`);
   await fac.waitForTimeout(1200);
 
-  const stages = await fac.$$eval("[data-stage]", ns => ns.map(n => n.dataset.stage));
-  for (const stage of stages) {
-    await fac.click(`[data-stage="${stage}"]`);
-    await fac.waitForTimeout(300);
-    await capture(fac, "진행자-" + stage);
+  /* 진행자가 실제로 쓰는 방식 그대로 — [다음] 만 눌러 챕터를 끝까지 넘깁니다 */
+  const seenStage = new Set();
+  for (let i = 0; i < 60; i++) {
+    const stage = await fac.evaluate(() => {
+      const n = document.querySelector("[data-stage-panel]:not(.hidden)");
+      return n ? n.dataset.stagePanel : null;
+    });
+    if (stage && !seenStage.has(stage)) {
+      seenStage.add(stage);
+      await capture(fac, "진행자-" + stage);
+    }
+    const stuck = await fac.evaluate(() => document.getElementById("btnNextStep").disabled);
+    if (stuck) {
+      /* 아직 결정 중인 조가 있어 잠긴 상태 — 진행자가 쓰는 [그래도 넘기기] 로 통과합니다 */
+      const forced = await fac.evaluate(() => {
+        const lock = document.getElementById("bLock");
+        if (lock.classList.contains("hidden")) return false;
+        document.getElementById("btnForce").click();
+        return true;
+      });
+      if (!forced) break;
+      await fac.waitForTimeout(280);
+      continue;
+    }
+    await fac.click("#btnNextStep");
+    await fac.waitForTimeout(280);
   }
+  await fac.click("#btnTools");
+  await fac.waitForTimeout(250);
+  await capture(fac, "진행자-도구");
   await beamCtx.close();
 
   await browser.close();
