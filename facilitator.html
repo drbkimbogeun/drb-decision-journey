@@ -39,13 +39,17 @@
 
     <!-- 진행 단계 · 국면 이동 -->
     <nav class="fac-stage-tabs" aria-label="교육 진행 단계">
+      <button class="fac-stage-tabs__tab" data-stage="intro"><span class="fac-stage-tabs__num">0</span>표지</button>
+      <button class="fac-stage-tabs__tab" data-stage="howto"><span class="fac-stage-tabs__num">0</span>진행 방법</button>
       <button class="fac-stage-tabs__tab is-active" data-stage="briefing"><span class="fac-stage-tabs__num">1</span>공통 배경</button>
       <button class="fac-stage-tabs__tab" data-stage="decisions"><span class="fac-stage-tabs__num">2</span>조별 결정</button>
       <button class="fac-stage-tabs__tab" data-stage="event"><span class="fac-stage-tabs__num">3</span>돌발상황</button>
-      <button class="fac-stage-tabs__tab" data-stage="actual"><span class="fac-stage-tabs__num">4</span>DRB 실제 선택</button>
-      <button class="fac-stage-tabs__tab" data-stage="debrief"><span class="fac-stage-tabs__num">5</span>토론 질문</button>
-      <button class="fac-stage-tabs__tab" data-stage="map"><span class="fac-stage-tabs__num">6</span>산업 지도</button>
-      <button class="fac-stage-tabs__tab" data-stage="award"><span class="fac-stage-tabs__num">7</span>시상</button>
+      <button class="fac-stage-tabs__tab" data-stage="phase"><span class="fac-stage-tabs__num">4</span>국면 결과</button>
+      <button class="fac-stage-tabs__tab" data-stage="actual"><span class="fac-stage-tabs__num">5</span>DRB 실제 선택</button>
+      <button class="fac-stage-tabs__tab" data-stage="debrief"><span class="fac-stage-tabs__num">6</span>토론 질문</button>
+      <button class="fac-stage-tabs__tab" data-stage="map"><span class="fac-stage-tabs__num">7</span>산업 지도</button>
+      <button class="fac-stage-tabs__tab" data-stage="standings"><span class="fac-stage-tabs__num">＊</span>경쟁 현황</button>
+      <button class="fac-stage-tabs__tab" data-stage="award"><span class="fac-stage-tabs__num">＊</span>시상</button>
       <span class="spacer"></span>
       <span class="chip" id="bProgress">국면 1 / 6</span>
       <button class="btn btn--sm btn--ghost no-print" id="btnPrev">← 이전 국면</button>
@@ -79,7 +83,53 @@
            ============================================================ -->
       <main class="fac-main" id="facMain">
 
-        <section class="fac-stage" id="stageBriefing" data-stage-panel="briefing">
+        <!-- ---------- 표지 (교육 시작 전) ---------- -->
+        <section class="fac-stage hidden" id="stageIntro" data-stage-panel="intro">
+          <article class="fac-cover">
+            <div class="fac-cover__brand">
+              <span class="fac-cover__mark">DRB</span>
+              <span class="fac-cover__kicker">경영전략 시뮬레이션</span>
+            </div>
+            <h1 class="fac-cover__title">80년의 선택</h1>
+            <p class="fac-cover__lead">
+              좋은 경영은 미래를 맞히는 것이 아니라,<br>
+              바뀌었을 때 다시 선택할 수 있는 힘입니다.
+            </p>
+            <div class="fac-cover__stats">
+              <div class="fac-statbox"><b class="num">80년</b><span>1947 → 2026</span></div>
+              <div class="fac-statbox"><b class="num">6번</b><span>돌이킬 수 없는 결정</span></div>
+              <div class="fac-statbox"><b class="num" id="bCoverTeams">4조</b><span>같은 출발, 다른 회사</span></div>
+            </div>
+            <div class="fac-cover__foot">
+              <span class="fac-cover__hint">진행자만 보는 화면입니다</span>
+              <span class="spacer"></span>
+              <button class="btn btn--white btn--lg no-print" data-goto="howto">진행 방법 →</button>
+            </div>
+          </article>
+        </section>
+
+        <!-- ---------- 진행 방법 ---------- -->
+        <section class="fac-stage hidden" id="stageHowto" data-stage-panel="howto">
+          <article class="fac-howto">
+            <div class="fac-howto__head">
+              <span class="fac-howto__title">진행 방법</span>
+              <span class="fac-howto__sub" id="bHowtoPace">한 국면 10분 · 6번 반복</span>
+              <span class="spacer"></span>
+              <span class="fac-howto__total" id="bHowtoTotal">전체 60분</span>
+            </div>
+            <div class="fac-howto__cards" id="bHowtoCards"></div>
+            <div class="fac-howto__foot">
+              <div class="fac-howto__box">
+                <b>조 노트북</b><span>상황 · 배분 · 정책 · 결과만 봅니다</span>
+              </div>
+              <div class="fac-howto__box fac-howto__box--fact">
+                <b>진행자 화면</b><span>DRB의 실제 결정은 여기서만 공개</span>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <section class="fac-stage hidden" id="stageBriefing" data-stage-panel="briefing">
           <article class="fac-brief" id="bBrief" data-testid="fac-common-context" data-round-id="r1" data-subround-id="r1s1">
             <div class="fac-brief__head">
               <div>
@@ -149,6 +199,25 @@
           </article>
         </section>
 
+        <!-- ---------- 국면 결과 — 순위는 이 화면에만 있습니다 ---------- -->
+        <section class="fac-stage hidden" id="stagePhase" data-stage-panel="phase">
+          <article class="fac-phase">
+            <div class="fac-phase__head">
+              <span class="fac-top__era" id="bPhaseEra">ERA 1</span>
+              <span class="fac-phase__years num" id="bPhaseYears">1947 → 1965</span>
+              <span class="spacer"></span>
+              <span class="fac-phase__state" id="bPhaseState">1국면 종료</span>
+            </div>
+            <h2 class="fac-phase__title" id="bPhaseTitle">1국면 결과</h2>
+            <div class="fac-phase__cards" id="bPhaseCards"></div>
+            <div class="fac-phase__foot">
+              <span class="fac-phase__note">순위는 국면마다 바뀝니다. 끝까지 가봐야 압니다</span>
+              <span class="spacer"></span>
+              <button class="btn btn--fact btn--lg no-print" data-goto="actual">DRB는 어떻게 했나 →</button>
+            </div>
+          </article>
+        </section>
+
         <section class="fac-stage hidden" id="stageActual" data-stage-panel="actual">
           <article class="fac-drb" id="bActual" data-testid="fac-actual-compare" data-round-id="r1">
             <div class="fac-drb__head">
@@ -199,6 +268,30 @@
               <button class="btn btn--ghost btn--sm" id="btnAddTeam">다른 PC 조 추가</button>
               <span class="spacer"></span>
               <button class="btn btn--ghost btn--sm" id="btnEraCompare">시대 비교</button>
+            </div>
+          </article>
+        </section>
+
+        <!-- ---------- 경쟁 현황 — 국면별 순위 이동 ---------- -->
+        <section class="fac-stage hidden" id="stageStandings" data-stage-panel="standings">
+          <article class="fac-standings">
+            <div class="fac-standings__head">
+              <span class="fac-howto__title">경쟁 현황</span>
+              <span class="fac-howto__sub" id="bStandProgress">1국면까지 진행</span>
+              <span class="spacer"></span>
+              <span class="fac-howto__total">누적 매출 기준</span>
+            </div>
+            <div class="fac-standings__grid">
+              <div class="fac-standings__left">
+                <div class="fac-award__section-label">국면별 순위 이동</div>
+                <div class="rankgrid" id="bRankGrid"></div>
+              </div>
+              <div class="fac-standings__right">
+                <div class="fac-award__section-label">지금 앞선 조</div>
+                <div class="leadcard" id="bLeadCard"></div>
+                <div class="fac-award__section-label" style="margin-top:var(--sp-5)">국면 타이틀</div>
+                <div class="titlelist" id="bTitleList"></div>
+              </div>
             </div>
           </article>
         </section>

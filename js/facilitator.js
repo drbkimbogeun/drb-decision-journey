@@ -6,7 +6,12 @@
   var PASTED_KEY = CFG.storage.key + "_pasted";
   var FAC_KEY = CFG.storage.key + "_facilitator";
   var TEAM_COLORS = ["#e31d38", "#f2c14e", "#4dd4c0", "#7aa2f7", "#f78fb3", "#7fd18a"];
-  var STAGES = ["briefing", "decisions", "event", "actual", "debrief", "map", "award"];
+  /* 참가자에게 공개되는 6단계 — Worker 가 검증하는 목록과 같아야 합니다 */
+  var CONTROL_STAGES = ["briefing", "decisions", "event", "actual", "debrief", "map"];
+  /* 진행자 화면에만 있는 화면. 순위·시상이 들어 있어 절대 공개하지 않습니다. */
+  var LOCAL_STAGES = ["intro", "howto", "phase", "standings", "award"];
+  var STAGES = ["intro", "howto", "briefing", "decisions", "event", "phase",
+                "actual", "debrief", "map", "standings", "award"];
   var timeline = [];
   var selectedTurn = 0;
   var currentStage = "briefing";
@@ -581,6 +586,168 @@
     "</div>";
   }
 
+  /* ============================================================
+     진행자 전용 화면 — 표지 · 진행 방법 · 국면 결과 · 경쟁 현황
+
+     ★ 이 네 화면은 참가자에게 전송되지 않습니다.
+       순위와 시상이 들어 있습니다.
+     ============================================================ */
+
+  function renderCover(teams) {
+    el("bCoverTeams").textContent = (teams.length || CFG.teamCountDefault) + "조";
+  }
+
+  /* 한 국면을 어떻게 굴리는지. 시간은 config.js 의 phasePlan 을 씁니다. */
+  function renderHowto() {
+    var plan = CFG.phasePlan || [];
+    var per = plan.reduce(function (sum, x) { return sum + x.minutes; }, 0);
+
+    el("bHowtoPace").textContent = "한 국면 " + per + "분 · " + timeline.length + "번 반복";
+    el("bHowtoTotal").textContent = "전체 " + (CFG.totalMinutes || per * timeline.length) + "분";
+
+    /* 지금 어느 단계에 있는지 표시합니다 */
+    var nowIndex = { briefing: 0, decisions: 1, event: 2, phase: 3, actual: 4, debrief: 4, map: 3 }[currentStage];
+
+    el("bHowtoCards").innerHTML = plan.map(function (step, i) {
+      var cls = "howtocard" + (step.fact ? " howtocard--fact" : (i === nowIndex ? " howtocard--now" : ""));
+      return "<div class='" + cls + "'>" +
+        "<span class='howtocard__no num'>" + (i + 1) + "</span>" +
+        "<div class='howtocard__name'>" + esc(step.name).split("|").join("<br>") + "</div>" +
+        "<div class='howtocard__min num'>" + step.minutes + "분</div>" +
+      "</div>";
+    }).join("");
+  }
+
+  /* 국면 결과 — 이 국면의 매출로 줄을 세웁니다. */
+  function renderPhaseResult(teams) {
+    var item = timeline[selectedTurn];
+    var next = timeline[selectedTurn + 1];
+
+    el("bPhaseEra").textContent = "ERA " + item.round.no;
+    el("bPhaseYears").textContent = next ? item.sub.year + " → " + next.sub.year : String(item.sub.year);
+    el("bPhaseTitle").textContent = (selectedTurn + 1) + "국면 결과";
+
+    var played = teams.map(function (team) {
+      var h = historyAt(team, selectedTurn);
+      return h ? { name: team.name, revenue: (h.report.kpi.revenue || 0), h: h } : null;
+    }).filter(Boolean).sort(function (a, b) { return b.revenue - a.revenue; });
+
+    el("bPhaseState").textContent = played.length + " / " + teams.length + "조 완료";
+
+    if (!played.length) {
+      el("bPhaseCards").innerHTML = "<p class='hint'>이 국면을 마친 조가 아직 없습니다.</p>";
+      return;
+    }
+
+    el("bPhaseCards").innerHTML = played.map(function (r, i) {
+      var tags = topAlloc(r.h.allocation, 1).map(function (a) {
+        return "<span class='phasetag'>" + esc(investName(a.id)) + "</span>";
+      }).join("") +
+      "<span class='phasetag'>" + esc(policyName(r.h.policyId, r.h.policyName)) + "</span>";
+
+      return "<div class='phasecard" + (i === 0 ? " phasecard--first" : "") + "'>" +
+        "<div class='phasecard__head'>" +
+          "<span class='phasecard__no num'>" + (CFG.teamNames.indexOf(r.name) + 1) + "</span>" +
+          "<span class='phasecard__name'>" + esc(r.name) + "</span>" +
+          "<span class='phasecard__rank'>" + (i + 1) + "위</span>" +
+        "</div>" +
+        "<div class='phasecard__value num'>" + fmt(r.revenue) + "</div>" +
+        "<div class='phasecard__unit'>매출 · 억</div>" +
+        "<div class='phasecard__tags'>" + tags + "</div>" +
+      "</div>";
+    }).join("");
+  }
+
+  /* 경쟁 현황 — 국면마다 순위가 어떻게 바뀌었는가 */
+  function renderStandings(teams) {
+    var upto = Math.min(selectedTurn + 1, timeline.length);
+    el("bStandProgress").textContent = upto + "국면까지 진행";
+
+    var cols = [];
+    for (var t = 0; t < upto; t++) {
+      cols.push(teams.map(function (team) {
+        var h = historyAt(team, t);
+        return h ? { name: team.name, v: h.report.kpi.revenue || 0 } : null;
+      }).filter(Boolean).sort(function (a, b) { return b.v - a.v; }));
+    }
+
+    var grid = el("bRankGrid");
+    if (!cols.length || !cols[0].length) {
+      grid.innerHTML = "<p class='hint'>아직 완료된 국면이 없습니다.</p>";
+    } else {
+      var cssCols = "grid-template-columns:64px repeat(" + cols.length + ",minmax(0,1fr))";
+      var html = "<div class='rankgrid__row rankgrid__head' style='" + cssCols + "'><span>순위</span>" +
+        cols.map(function (_, i) { return "<span>" + (i + 1) + "국면</span>"; }).join("") + "</div>";
+
+      for (var pos = 0; pos < teams.length; pos++) {
+        html += "<div class='rankgrid__row' style='" + cssCols + "'>" +
+          "<span class='rankgrid__pos'>" + (pos + 1) + "위</span>" +
+          cols.map(function (col) {
+            var cell = col[pos];
+            if (!cell) return "<span class='rankgrid__cell is-empty'></span>";
+            return "<span class='rankgrid__cell num" + (pos === 0 ? " is-lead" : "") + "'>" +
+                   (CFG.teamNames.indexOf(cell.name) + 1) + "</span>";
+          }).join("") +
+        "</div>";
+      }
+      grid.innerHTML = html;
+    }
+
+    /* 지금 앞선 조 — 누적 매출 */
+    var cumulative = teams.map(function (team) {
+      var sum = (team.history || []).reduce(function (a, h) { return a + (h.report.kpi.revenue || 0); }, 0);
+      return { name: team.name, sum: sum };
+    }).sort(function (a, b) { return b.sum - a.sum; });
+
+    var lead = cumulative[0];
+    el("bLeadCard").innerHTML = (!lead || !lead.sum)
+      ? "<p class='hint'>아직 기록이 없습니다.</p>"
+      : "<span class='leadcard__no num'>" + (CFG.teamNames.indexOf(lead.name) + 1) + "</span>" +
+        "<div><div class='leadcard__name'>" + esc(lead.name) + "</div>" +
+        "<div class='leadcard__sub'>누적 매출 " + fmt(lead.sum) + "억</div></div>";
+
+    el("bTitleList").innerHTML = buildTitles(teams).map(function (row) {
+      return "<div class='titlerow" + (row.fact ? " titlerow--fact" : "") + "'>" +
+        "<span class='titlerow__name'>" + esc(row.name) + "</span>" +
+        "<span class='titlerow__team'>" + esc(row.team || "—") + "</span>" +
+      "</div>";
+    }).join("");
+  }
+
+  /* 국면 타이틀 — 순위와 다른 축입니다. 한 조가 다 가져가지 않습니다. */
+  function buildTitles(teams) {
+    function best(fn) {
+      var rows = teams.map(function (team) { return { name: team.name, v: fn(team) }; })
+                      .filter(function (r) { return r.v > 0; })
+                      .sort(function (a, b) { return b.v - a.v; });
+      return rows.length ? rows[0].name : "";
+    }
+    return [
+      { name: "가장 크게 성장", team: best(function (t) {
+          var h = t.history || [];
+          if (h.length < 2) return 0;
+          return (h[h.length - 1].report.kpi.revenue || 0) - (h[0].report.kpi.revenue || 0);
+        }) },
+      { name: "가장 단단한 재무", team: best(function (t) { return t.state.cash || 0; }) },
+      { name: "돌발에 가장 강했다", team: best(function (t) { return adaptiveOf(t); }) },
+      { name: "DRB와 같은 선택", team: sameAsDrb(teams), fact: true }
+    ];
+  }
+
+  /* DRB 기록이 실제로 고른 분야에 가장 크게 건 조 */
+  function sameAsDrb(teams) {
+    var item = timeline[selectedTurn];
+    var actual = window.DRB_ACTUAL[item.round.actualId];
+    if (!actual || !actual.filled || !actual.matchInvest) return "";
+    var hit = teams.map(function (team) {
+      var h = historyAt(team, selectedTurn);
+      if (!h) return null;
+      var top = topAlloc(h.allocation, 1)[0];
+      return top && top.id === actual.matchInvest ? team.name : null;
+    }).filter(Boolean);
+    return hit.length ? hit.join(" · ") : "";
+  }
+
   function renderBrief() {
     var item = timeline[selectedTurn];
     var era = window.DRB_ERAS[item.round.era];
@@ -853,6 +1020,10 @@
     renderPrompts();
     renderRail(teams);
     renderMap(teams);
+    renderCover(teams);
+    renderHowto();
+    renderPhaseResult(teams);
+    renderStandings(teams);
     renderTeamCards(teams);
     renderNews(teams);
     renderCrowd(teams);
@@ -868,7 +1039,7 @@
     document.querySelectorAll("[data-stage]").forEach(function (button) { button.classList.toggle("is-active", button.dataset.stage === stage); });
     /* ★ 시상 단계는 참가자에게 내보내지 않습니다. 순위가 들어 있습니다.
        참가자 화면은 마지막까지 "순위를 매기지 않습니다" 를 유지해야 합니다. */
-    if (publish && stage !== "award" &&
+    if (publish && LOCAL_STAGES.indexOf(stage) < 0 &&
         window.DRBLive && window.DRBLive.hasFacilitatorSession && window.DRBLive.hasFacilitatorSession()) {
       window.DRBLive.control({ currentTurn: selectedTurn, stage: stage }).catch(function () {});
     }
@@ -989,6 +1160,7 @@
 
   function bind() {
     document.querySelectorAll("[data-stage]").forEach(function (button) { button.onclick = function () { showStage(button.dataset.stage, true); }; });
+    document.querySelectorAll("[data-goto]").forEach(function (button) { button.onclick = function () { showStage(button.dataset.goto, true); }; });
     el("btnPrev").onclick = function () { selectedTurn = Math.max(0, selectedTurn - 1); manualTurn = true; render(); };
     el("btnNext").onclick = function () {
       selectedTurn = Math.min(Math.min(minTurns, timeline.length - 1), selectedTurn + 1);

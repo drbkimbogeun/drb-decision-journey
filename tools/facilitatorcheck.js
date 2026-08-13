@@ -463,8 +463,10 @@ function checkFacilitatorStages() {
   const expectedStages = ["briefing", "decisions", "event", "actual", "debrief", "map"];
   /* 시상은 진행자 화면에만 있는 7번째 탭입니다. 순위가 들어 있어
      참가자에게 절대 내보내지 않으므로 Worker 목록에는 없어야 합니다. */
-  const facilitatorOnlyStages = ["award"];
-  const allTabStages = expectedStages.concat(facilitatorOnlyStages);
+  const facilitatorOnlyStages = ["intro", "howto", "phase", "standings", "award"];
+  /* 탭 순서는 실제 진행 순서입니다 (진행자 전용 화면이 사이사이 끼어 있습니다) */
+  const allTabStages = ["intro", "howto", "briefing", "decisions", "event", "phase",
+                        "actual", "debrief", "map", "standings", "award"];
   const html = read("facilitator.html");
   const worker = read("worker.js");
   const tabStages = Array.from(html.matchAll(/\bdata-stage=[\"']([^\"']+)[\"']/g), function (match) {
@@ -486,8 +488,8 @@ function checkFacilitatorStages() {
   expect(!!controlBlock, "worker.js defines CONTROL_STAGES");
   expect(facilitatorOnlyStages.every(function (stage) { return workerStages.indexOf(stage) < 0; }),
     "facilitator-only stages are never accepted by the Worker (rankings must not reach participants)");
-  expect(/stage\s*!==\s*"award"/.test(read("js/facilitator.js")),
-    "facilitator never publishes the award stage to participants");
+  expect(/LOCAL_STAGES\.indexOf\(stage\)\s*<\s*0/.test(read("js/facilitator.js")),
+    "facilitator never publishes facilitator-only stages to participants");
   expect(sameList(workerFacilitatorStages, expectedStages),
     "Worker facilitator CONTROL_STAGES match the HTML stages");
   expect(workerStages[0] === "lobby" && workerStages[workerStages.length - 1] === "complete",

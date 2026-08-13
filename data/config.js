@@ -49,6 +49,19 @@ window.DRB_CONFIG = {
     { key: "reach",   name: "영업·거래처",  desc: "수요를 실제 주문으로 바꾸는 힘" }
   ],
 
+  /* ---------- 진행 시간 ----------
+     진행자 화면의 '진행 방법' 카드에 그대로 나옵니다.
+     시간을 바꾸려면 여기 숫자만 고치세요.
+     name 의 `|` 는 화면에서 줄바꿈입니다. */
+  totalMinutes: 60,
+  phasePlan: [
+    { name: "상황 보고|대화",      minutes: 5 },
+    { name: "토큰으로|자원 배분",   minutes: 2 },
+    { name: "경영정책|하나 선택",   minutes: 1 },
+    { name: "결과 공개|조별 비교",  minutes: 1 },
+    { name: "DRB는|이렇게 했다",    minutes: 1, fact: true }
+  ],
+
   /* ---------- 시간 관리 ---------- */
   timer: {
     enabled: true,
