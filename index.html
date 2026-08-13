@@ -49,8 +49,8 @@
       <form class="codebox" id="codeForm" autocomplete="off">
         <label class="codebox__label" for="joinCode">우리 조 참가 코드</label>
         <div class="codebox__row">
-          <input class="codebox__input num" id="joinCode" maxlength="6" inputmode="latin"
-                 autocapitalize="characters" spellcheck="false" placeholder="------" aria-describedby="joinMsg">
+          <input class="codebox__input num" id="joinCode" maxlength="4" inputmode="numeric"
+                 pattern="[0-9]*" spellcheck="false" placeholder="0000" aria-describedby="joinMsg">
           <button class="btn btn--white btn--lg" id="btnJoin" type="submit">들어가기 <span class="btn__arrow">→</span></button>
         </div>
         <p class="codebox__msg" id="joinMsg"></p>

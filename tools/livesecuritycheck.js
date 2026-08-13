@@ -69,7 +69,7 @@ async function checkClientJoinContract() {
   const requests = [];
   const localStorage = new MemoryStorage();
   const sessionStorage = new MemoryStorage();
-  const claim = "K7M2Q";       /* 조별 참가 코드 5자리 */
+  const claim = "4712";        /* 조별 참가 코드 — 숫자 4자리 */
   const firstToken = "T".repeat(42) + "1";
   const location = {
     search: "?session=ABCDEF&team=" + encodeURIComponent("1조"),
@@ -186,7 +186,7 @@ async function checkFacilitatorRecoveryContract() {
     sessionId: "ABCDEF",
     facilitatorSecret: "F".repeat(43),
     pin: "1234",
-    teamClaims: { "1조": "K7M2Q", "2조": "P4R9T" },
+    teamClaims: { "1조": "4712", "2조": "8305" },
     teamCount: 2,
   };
   sessionStorage.setItem("drb.live.facilitator.v1", JSON.stringify(credentials));

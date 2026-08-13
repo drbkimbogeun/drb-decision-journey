@@ -1,6 +1,8 @@
 import { DurableObject } from "cloudflare:workers";
 
-const JOIN_CODE = /^[A-HJ-NP-Z2-9]{5}$/;
+/* 조별 참가 코드 — 빔에서 읽고 바로 칠 수 있게 숫자 4자리입니다.
+   1만 가지뿐이지만 join-fail 제한(IP당 15분에 10회)이 무차별 대입을 막습니다. */
+const JOIN_CODE = /^\d{4}$/;
 const SESSION_CODE = /^[A-HJ-NP-Z2-9]{6}$/;
 const TEAM_NAME = /^([1-6])조$/u;
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -810,12 +812,16 @@ async function handleApi(request, env) {
       const sessionId = randomString(6);
       const pin = randomPin();
       const facilitatorSecret = randomSecret();
-      /* 조마다 다른 5자리 참가 코드. 진행자가 빔에 띄우고 각 조가 자기 것을 칩니다.
-         링크는 하나뿐이고, 이 코드가 "그 조가 맞다"는 증명입니다. */
-      const teamClaims = Array.from({ length: teamCount }, (_, index) => ({
-        teamName: `${index + 1}조`,
-        claimSecret: randomString(5),
-      }));
+      /* 조마다 다른 4자리 숫자 코드. 진행자가 빔에 띄우고 각 조가 자기 것을 칩니다.
+         링크는 하나뿐이고, 이 코드가 "그 조가 맞다"는 증명입니다.
+         한 세션 안에서는 절대 겹치지 않게 뽑습니다. */
+      const used = new Set();
+      const teamClaims = Array.from({ length: teamCount }, (_, index) => {
+        let code;
+        do { code = randomPin(); } while (used.has(code));
+        used.add(code);
+        return { teamName: `${index + 1}조`, claimSecret: code };
+      });
       const internal = await forwardToSession(env, sessionId, "create", request, {
         sessionId,
         pin,

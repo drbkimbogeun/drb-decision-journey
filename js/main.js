@@ -245,9 +245,9 @@
   /* 참가 코드를 넣고 들어갑니다 */
   function submitJoinCode(event) {
     if (event) event.preventDefault();
-    var code = String(el("joinCode").value || "").trim().toUpperCase();
-    if (code.length < 4) {
-      setJoinMessage("진행자가 알려준 코드를 넣어주세요.", "wrong");
+    var code = String(el("joinCode").value || "").replace(/\D/g, "");
+    if (code.length !== 4) {
+      setJoinMessage("진행자가 알려준 숫자 4자리를 넣어주세요.", "wrong");
       return;
     }
 
@@ -785,8 +785,10 @@
     el("codeForm").onsubmit   = submitJoinCode;
     el("btnPractice").onclick = startPractice;
     el("joinCode").oninput    = function () {
-      this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+      this.value = this.value.replace(/\D/g, "").slice(0, 4);
       setJoinMessage("", "");
+      /* 네 자리를 채우면 바로 들어갑니다 */
+      if (this.value.length === 4) submitJoinCode();
     };
     el("btnStart").onclick    = startNewGame;
     el("btnContinue").onclick = continueGame;

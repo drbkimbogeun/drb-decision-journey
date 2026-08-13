@@ -51,9 +51,9 @@
         !/^\d{4}$/.test(String(value.pin || "")) ||
         !Number.isInteger(value.teamCount) || value.teamCount < 1 || value.teamCount > 6 ||
         !value.teamClaims || typeof value.teamClaims !== "object" || Array.isArray(value.teamClaims)) return false;
-    /* 조별 참가 코드 5자리 */
+    /* 조별 참가 코드 — 숫자 4자리 */
     for (var index = 1; index <= value.teamCount; index += 1) {
-      if (!/^[A-HJ-NP-Z2-9]{5}$/.test(value.teamClaims[index + "조"] || "")) return false;
+      if (!/^\d{4}$/.test(value.teamClaims[index + "조"] || "")) return false;
     }
     return true;
   }
@@ -329,7 +329,7 @@
     var prior = teamCredentials();
     var reconnecting = prior && prior.sessionId === sessionId && prior.teamName === teamName && prior.teamToken;
     if (!reconnecting && !/^\d{4}$/.test(String(pin || ""))) throw new Error("PIN은 4자리 숫자입니다.");
-    if (!reconnecting && !/^[A-HJ-NP-Z2-9]{5}$/.test(String(claimSecret || "").toUpperCase())) throw new Error("이 조의 참가 코드가 필요합니다.");
+    if (!reconnecting && !/^\d{4}$/.test(String(claimSecret || ""))) throw new Error("이 조의 참가 코드가 필요합니다.");
     var joinHeaders = reconnecting
       ? authHeader(prior.teamToken)
       : {};
@@ -368,9 +368,9 @@
     if (!sessionId) throw new Error("진행자가 준 링크로 접속해주세요.");
 
     sessionId = normalizeSessionId(sessionId);
-    code = String(code || "").trim().toUpperCase();
-    if (!/^[A-HJ-NP-Z2-9]{5}$/.test(code)) {
-      throw new Error("코드는 5자리입니다. 진행자 화면의 우리 조 코드를 확인하세요.");
+    code = String(code || "").trim();
+    if (!/^\d{4}$/.test(code)) {
+      throw new Error("코드는 숫자 4자리입니다. 진행자 화면의 우리 조 코드를 확인하세요.");
     }
 
     /* 새로고침으로 돌아온 경우에는 갖고 있던 토큰으로 다시 붙습니다 */
