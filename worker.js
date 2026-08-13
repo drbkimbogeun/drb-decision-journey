@@ -1,5 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 
+const JOIN_CODE = /^[A-HJ-NP-Z2-9]{5}$/;
 const SESSION_CODE = /^[A-HJ-NP-Z2-9]{6}$/;
 const TEAM_NAME = /^([1-6])조$/u;
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -588,6 +589,38 @@ export class GameSession extends DurableObject {
       if (action === "join") {
         if (request.method !== "POST") methodNotAllowed(["POST"]);
         const body = await readJson(request, 16 * 1024);
+
+        /* 코드 참가 — 조 이름을 보내지 않습니다. 코드가 곧 조입니다.
+           맞는 조를 찾지 못하면 어느 조가 있는지도 알려주지 않습니다. */
+        if (Object.keys(body).length === 1 && typeof body.joinCode === "string") {
+          const given = await sha256(body.joinCode.trim().toUpperCase());
+          const rows = [...this.sql.exec("SELECT name, claim_hash FROM team_claims")];
+          const hit = rows.filter((row) => row.claim_hash === given)[0];
+          if (!hit) {
+            throw new ApiError(403, "Session credentials are invalid.", "INVALID_JOIN_CREDENTIALS");
+          }
+          const already = this.first("SELECT name FROM teams WHERE name = ?", hit.name);
+          if (already) {
+            throw new ApiError(409, "This team is already joined on another browser.", "TEAM_ALREADY_JOINED");
+          }
+          const issued = randomSecret();
+          const at = Date.now();
+          this.sql.exec(
+            "INSERT INTO teams (name, token_hash, snapshot_json, joined_at, last_seen) VALUES (?, ?, ?, ?, ?)",
+            hit.name,
+            await sha256(issued),
+            JSON.stringify(sanitizeSnapshot({}, hit.name)),
+            at,
+            at,
+          );
+          return json({
+            session: { id: session.code, teamCount: session.team_count },
+            teamName: hit.name,
+            teamToken: issued,
+            control: this.publicControl(session),
+          });
+        }
+
         const teamMatch = TEAM_NAME.exec(cleanText(body.teamName, 8));
         const allowedJoinKeys = new Set(["teamName", "pin", "claimSecret"]);
         if (!teamMatch || Number(teamMatch[1]) > session.team_count || Object.keys(body).some((key) => !allowedJoinKeys.has(key))) {
@@ -619,7 +652,7 @@ export class GameSession extends DurableObject {
           if (!/^\d{4}$/.test(String(body.pin || "")) || await sha256(String(body.pin)) !== session.pin_hash) {
             throw new ApiError(403, "Session credentials are invalid.", "INVALID_JOIN_CREDENTIALS");
           }
-          if (typeof body.claimSecret !== "string" || !/^[A-Za-z0-9_-]{43}$/.test(body.claimSecret)) {
+          if (typeof body.claimSecret !== "string" || !JOIN_CODE.test(body.claimSecret)) {
             throw new ApiError(403, "Session credentials are invalid.", "INVALID_JOIN_CREDENTIALS");
           }
           const claim = this.first("SELECT claim_hash FROM team_claims WHERE name = ?", teamName);
@@ -777,9 +810,11 @@ async function handleApi(request, env) {
       const sessionId = randomString(6);
       const pin = randomPin();
       const facilitatorSecret = randomSecret();
+      /* 조마다 다른 5자리 참가 코드. 진행자가 빔에 띄우고 각 조가 자기 것을 칩니다.
+         링크는 하나뿐이고, 이 코드가 "그 조가 맞다"는 증명입니다. */
       const teamClaims = Array.from({ length: teamCount }, (_, index) => ({
         teamName: `${index + 1}조`,
-        claimSecret: randomSecret(),
+        claimSecret: randomString(5),
       }));
       const internal = await forwardToSession(env, sessionId, "create", request, {
         sessionId,

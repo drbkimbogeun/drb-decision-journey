@@ -99,11 +99,15 @@ const server = http.createServer((req, res) => {
   if (!visible("intro")) bad("시작 화면이 보이지 않습니다");
   else ok("시작 화면 표시");
 
-  /* 표지 → 우리 조 고르기 */
+  /* 표지 — 참가 코드 창이 먼저 뜹니다 */
   if ($("intro").getAttribute("data-step") !== "0") bad("표지가 먼저 보이지 않습니다");
-  click("btnCoverGo");
-  if ($("intro").getAttribute("data-step") !== "1") bad("'우리 조 고르기' 로 넘어가지 않았습니다");
-  else ok("표지 → 우리 조 고르기");
+  if (!$("joinCode")) bad("참가 코드 입력창이 없습니다");
+  else ok("표지 · 참가 코드 입력창 표시");
+
+  /* 코드가 없으면 연습 모드로 갑니다 */
+  click("btnPractice");
+  if ($("intro").getAttribute("data-step") !== "1") bad("연습 모드로 넘어가지 않았습니다");
+  else ok("연습 모드 → 우리 조 고르기");
 
   if ($("roleChips").children.length !== win.DRB_CONFIG.roles.length) bad("역할 표시가 맞지 않습니다");
   else ok(`역할 ${$("roleChips").children.length}개 표시`);

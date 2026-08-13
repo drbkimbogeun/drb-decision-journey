@@ -163,6 +163,128 @@
     setLiveJoinUi();
   }
 
+
+  /* ============================================================
+     첫 화면 — 영상과 참가 코드
+
+     진행자는 링크 하나와 조별 코드표만 알려줍니다.
+     각 조가 자기 코드를 넣으면 그 조로 들어갑니다.
+     ============================================================ */
+
+  /* 영상은 있으면 깔고, 없으면 아무 일도 없습니다.
+     ⚠ 보안정책이 .mp4 쓰기를 막아서 파일이 .m4v 일 수 있습니다.
+       확장자를 믿지 않고 내용을 읽어 형식을 알려줍니다. */
+  function initCoverVideo() {
+    var src = (CFG.audio && CFG.audio.introVideo) || "";
+    var v = el("coverVideo");
+    if (!src || !v) return;
+
+    function ready() { v.classList.add("is-playing"); }
+    v.addEventListener("playing", ready);
+    v.addEventListener("error", function () {
+      if (v.dataset.retried || !window.fetch) return;
+      v.dataset.retried = "1";
+      fetch(src).then(function (r) {
+        if (!r.ok) throw new Error("no file");
+        return r.arrayBuffer();
+      }).then(function (buf) {
+        var b = new Uint8Array(buf.slice(0, 12));
+        var type = (b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70)
+          ? "video/mp4"
+          : (b[0] === 0x1A && b[1] === 0x45) ? "video/webm" : "video/mp4";
+        v.src = URL.createObjectURL(new Blob([buf], { type: type }));
+        var play = v.play(); if (play && play.catch) play.catch(function () {});
+      }).catch(function () { /* 영상이 없어도 화면은 그대로입니다 */ });
+    });
+
+    v.src = src;
+    var p2 = v.play();
+    if (p2 && p2.catch) p2.catch(function () { /* 자동재생이 막히면 조용히 넘어갑니다 */ });
+  }
+
+  function setJoinMessage(text, kind) {
+    var box = el("codeForm");
+    el("joinMsg").textContent = text || "";
+    box.classList.toggle("is-wrong", kind === "wrong");
+    box.classList.toggle("is-ok", kind === "ok");
+  }
+
+  /* 코드가 맞으면 과거로 돌아가는 연출이 한 번 지나갑니다 */
+  function warpToPast(done) {
+    var years = [];
+    (window.DRB_ROUNDS || []).forEach(function (r) {
+      r.subrounds.forEach(function (sr) { years.push(sr.year); });
+    });
+    years = years.slice().reverse();          // 2026 에서 1947 로 거슬러 갑니다
+    if (!years.length) { done(); return; }
+
+    var warp = el("warp");
+    el("warpYears").innerHTML = years.map(function (y) {
+      return "<span class='warp__year' data-year='" + y + "'>" + y + "</span>";
+    }).join("");
+    el("warpCaption").textContent = years[years.length - 1] + "년으로 돌아갑니다";
+    warp.classList.remove("hidden");
+
+    var nodes = el("warpYears").children;
+    var i = 0;
+    var timer = setInterval(function () {
+      if (i >= nodes.length) {
+        clearInterval(timer);
+        setTimeout(function () {
+          warp.classList.add("hidden");
+          done();
+        }, 700);
+        return;
+      }
+      if (i > 0) nodes[i - 1].classList.remove("is-now");
+      nodes[i].classList.add("is-now", "is-passed");
+      i++;
+    }, 380);
+  }
+
+  /* 참가 코드를 넣고 들어갑니다 */
+  function submitJoinCode(event) {
+    if (event) event.preventDefault();
+    var code = String(el("joinCode").value || "").trim().toUpperCase();
+    if (code.length < 4) {
+      setJoinMessage("진행자가 알려준 코드를 넣어주세요.", "wrong");
+      return;
+    }
+
+    if (!window.DRBLive || !window.DRBLive.joinWithCode) {
+      setJoinMessage("라이브 모듈을 불러오지 못했습니다. 연습 모드로 진행해주세요.", "wrong");
+      return;
+    }
+
+    el("btnJoin").disabled = true;
+    setJoinMessage("확인하는 중…", "");
+
+    window.DRBLive.joinWithCode(code).then(function (joined) {
+      assignedLiveTeam = joined.teamName;
+      assignedLiveTeamCount = Number(joined.teamCount || setupTeamCount);
+      setupTeamCount = assignedLiveTeamCount;
+      setupTeamName = assignedLiveTeam;
+      liveUrl = true;                       /* 지금부터 진행자 화면에 전송합니다 */
+      setJoinMessage(joined.teamName + " 로 들어갑니다", "ok");
+
+      warpToPast(function () {
+        S.clearAll();
+        S.newGame(assignedLiveTeamCount);
+        S.switchTeam(assignedLiveTeam);
+        enterGame();
+      });
+    }).catch(function (error) {
+      el("btnJoin").disabled = false;
+      setJoinMessage(error && error.message ? error.message : "코드를 확인하지 못했습니다.", "wrong");
+      el("joinCode").select();
+    });
+  }
+
+  /* 코드 없이 혼자 해보는 연습 모드 */
+  function startPractice() {
+    el("intro").setAttribute("data-step", "1");
+  }
+
   function forceAssignedTeam() {
     if (!liveUrl) return true;
     if (!assignedLiveTeam || !S.g() || !S.g().teams || !S.g().teams[assignedLiveTeam]) return false;
@@ -660,7 +782,12 @@
      연결
      ============================================================ */
   function bind() {
-    el("btnCoverGo").onclick  = function () { el("intro").setAttribute("data-step", "1"); };
+    el("codeForm").onsubmit   = submitJoinCode;
+    el("btnPractice").onclick = startPractice;
+    el("joinCode").oninput    = function () {
+      this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+      setJoinMessage("", "");
+    };
     el("btnStart").onclick    = startNewGame;
     el("btnContinue").onclick = continueGame;
 
@@ -786,6 +913,7 @@
 
     bind();
     initIntro();
+    initCoverVideo();
 
     if (liveUrl) connectLiveSession();
   }

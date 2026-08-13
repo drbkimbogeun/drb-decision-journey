@@ -68,6 +68,11 @@ window.DRB_CONFIG = {
     ],
     shock: "assets/audio/shock.m4a",   // 돌발상황이 뜨는 순간 한 번
 
+    /* 첫 화면에 깔리는 영상. 없으면 그냥 딥퍼플 배경입니다.
+       ⚠ 보안정책상 .mp4 는 이 폴더에 못 넣습니다. .m4v 또는 .webm 으로 넣으세요.
+         (내용은 mp4 그대로여도 됩니다 — 게임이 알아서 읽습니다) */
+    introVideo: "assets/video/intro.m4v",
+
     volume:      0.22,   // 평상시 배경음악 (토론을 방해하지 않을 만큼)
     duckVolume:  0.07,   // 돌발상황 동안 배경음악을 이만큼으로 낮춥니다
     shockVolume: 0.55    // 알람

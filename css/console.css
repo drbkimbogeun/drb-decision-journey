@@ -735,3 +735,31 @@ body.fac-body {
   .awards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .drbcards { grid-template-columns: 1fr; }
 }
+
+/* ============================================================================
+   참가 주소와 조별 코드 (진행자 세션 모달)
+   ============================================================================ */
+.joinurl {
+  display: flex; align-items: center; gap: var(--sp-3);
+  margin-top: var(--sp-4); padding: var(--sp-4);
+  border: 1px solid var(--accent); border-radius: var(--r-md);
+  background: var(--accent-tint);
+}
+.joinurl__label { color: var(--accent-deep); font-size: var(--fs-tiny); font-weight: var(--fw-strong); letter-spacing: 0.08em; white-space: nowrap; }
+.joinurl__value { flex: 1 1 auto; min-width: 0; font-size: var(--fs-body); font-weight: var(--fw-mid); overflow-wrap: anywhere; }
+
+.joincodes { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: var(--sp-2); }
+.joincode {
+  display: flex; align-items: center; gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--line); border-radius: var(--r-md);
+  background: var(--bg-2);
+}
+.joincode__team { font-size: var(--fs-body); font-weight: var(--fw-strong); }
+.joincode__value {
+  margin-left: auto;
+  font-size: 26px; font-weight: var(--fw-strong);
+  letter-spacing: 0.16em; color: var(--accent);
+}
+.joincode--missing { border-style: dashed; }
+.joincode--missing .hint { margin-left: auto; }

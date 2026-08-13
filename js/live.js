@@ -51,8 +51,9 @@
         !/^\d{4}$/.test(String(value.pin || "")) ||
         !Number.isInteger(value.teamCount) || value.teamCount < 1 || value.teamCount > 6 ||
         !value.teamClaims || typeof value.teamClaims !== "object" || Array.isArray(value.teamClaims)) return false;
+    /* 조별 참가 코드 5자리 */
     for (var index = 1; index <= value.teamCount; index += 1) {
-      if (!/^[A-Za-z0-9_-]{43}$/.test(value.teamClaims[index + "조"] || "")) return false;
+      if (!/^[A-HJ-NP-Z2-9]{5}$/.test(value.teamClaims[index + "조"] || "")) return false;
     }
     return true;
   }
@@ -328,7 +329,7 @@
     var prior = teamCredentials();
     var reconnecting = prior && prior.sessionId === sessionId && prior.teamName === teamName && prior.teamToken;
     if (!reconnecting && !/^\d{4}$/.test(String(pin || ""))) throw new Error("PIN은 4자리 숫자입니다.");
-    if (!reconnecting && !/^[A-Za-z0-9_-]{43}$/.test(String(claimSecret || ""))) throw new Error("이 조의 참가 링크가 필요합니다.");
+    if (!reconnecting && !/^[A-HJ-NP-Z2-9]{5}$/.test(String(claimSecret || "").toUpperCase())) throw new Error("이 조의 참가 코드가 필요합니다.");
     var joinHeaders = reconnecting
       ? authHeader(prior.teamToken)
       : {};
@@ -342,6 +343,57 @@
       headers: joinHeaders,
       body: joinBody,
     });
+    var credentials = { sessionId: sessionId, teamName: payload.teamName, teamToken: payload.teamToken };
+    setStore(window.localStorage, TEAM_KEY, credentials);
+    setStore(window.localStorage, META_KEY, { sessionId: sessionId, role: "team", teamName: payload.teamName });
+    latestSnapshot = snapshotFromState({}, payload.teamName);
+    startHeartbeat();
+    latestControl = payload.control || latestControl;
+    emit("drb-live-control", payload.control);
+    emit("drb-live-status", { connected: true, role: "team", sessionId: sessionId, teamName: payload.teamName });
+    payload.teamCount = payload.session && payload.session.teamCount;
+    return payload;
+  }
+
+
+  /* ============================================================
+     참가 코드로 들어가기
+
+     진행자는 링크 하나(?s=세션코드)와 조별 코드표만 알려줍니다.
+     각 조가 자기 코드를 넣으면 그 조로 들어갑니다.
+     ============================================================ */
+  async function joinWithCode(code) {
+    var params = new URLSearchParams(window.location.search);
+    var sessionId = params.get("s") || params.get("session");
+    if (!sessionId) throw new Error("진행자가 준 링크로 접속해주세요.");
+
+    sessionId = normalizeSessionId(sessionId);
+    code = String(code || "").trim().toUpperCase();
+    if (!/^[A-HJ-NP-Z2-9]{5}$/.test(code)) {
+      throw new Error("코드는 5자리입니다. 진행자 화면의 우리 조 코드를 확인하세요.");
+    }
+
+    /* 새로고침으로 돌아온 경우에는 갖고 있던 토큰으로 다시 붙습니다 */
+    var prior = teamCredentials();
+    if (prior && prior.sessionId === sessionId && prior.teamToken) {
+      try {
+        var back = await api("/api/session/" + sessionId + "/join", {
+          method: "POST",
+          headers: authHeader(prior.teamToken),
+          body: { teamName: prior.teamName },
+        });
+        return afterJoin(sessionId, back);
+      } catch (e) { /* 안 되면 아래에서 코드로 새로 들어갑니다 */ }
+    }
+
+    var payload = await api("/api/session/" + sessionId + "/join", {
+      method: "POST",
+      body: { joinCode: code },
+    });
+    return afterJoin(sessionId, payload);
+  }
+
+  function afterJoin(sessionId, payload) {
     var credentials = { sessionId: sessionId, teamName: payload.teamName, teamToken: payload.teamToken };
     setStore(window.localStorage, TEAM_KEY, credentials);
     setStore(window.localStorage, META_KEY, { sessionId: sessionId, role: "team", teamName: payload.teamName });
@@ -506,6 +558,7 @@
     create: create,
     join: join,
     joinFromUrl: joinFromUrl,
+    joinWithCode: joinWithCode,
     publish: publish,
     publishHook: publishHook,
     snapshot: snapshot,

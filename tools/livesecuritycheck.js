@@ -25,6 +25,11 @@ const reconnectBranch = worker.slice(worker.indexOf("if (existing)"), worker.ind
 assert(!/UPDATE teams SET token_hash/.test(reconnectBranch), "authenticated reconnect must not rotate the stored token hash");
 has(reconnectBranch, /UPDATE teams SET last_seen/, "authenticated reconnect may only refresh presence");
 has(worker, /claimSecret[\s\S]*SELECT claim_hash FROM team_claims[\s\S]*INVALID_JOIN_CREDENTIALS/, "empty team must require its per-team claim secret");
+/* 코드 참가도 같은 증명을 씁니다 — 코드가 그 조의 것이어야만 들어옵니다 */
+has(worker, /joinCode[\s\S]*SELECT name, claim_hash FROM team_claims[\s\S]*INVALID_JOIN_CREDENTIALS/,
+  "join by code must still prove the code belongs to that team");
+has(worker, /joinCode[\s\S]*TEAM_ALREADY_JOINED/,
+  "a team slot already taken must not be re-claimed by code");
 has(worker, /assertBrowserSameOrigin\(request\)[\s\S]*enforceRateLimits\(env, request/, "public mutations must require browser origin before rate-limited processing");
 has(worker, /action === "team-reset"[\s\S]*requireFacilitator\(request, session\)[\s\S]*DELETE FROM teams WHERE name = \?/, "team reset must require facilitator auth and delete only that team row");
 has(worker, /team-reset:ip:\{ip\}[\s\S]*team-reset:session:/, "team reset must be IP and session rate limited");
@@ -40,9 +45,14 @@ assert.deepStrictEqual(
 for (const className of ["GameSession", "RequestGate"]) {
   assert.deepStrictEqual(config.exports[className], { type: "durable-object", storage: "sqlite" });
 }
-has(facilitator, /#pin=[\s\S]*&claim=/, "participant secrets must be placed in the URL fragment");
-assert(!/target='_blank'[\s\S]*claim/.test(facilitator), "facilitator must not be able to open and accidentally claim a team link");
-has(facilitator, /fac-team-link-copy[\s\S]*clipboard\.writeText/, "team assignment URLs must be copy-only");
+/* 참가는 이제 주소 하나 + 조별 코드입니다. 주소에는 비밀값이 전혀 없습니다. */
+has(facilitator, /joinUrl = base \+ "\?s=" \+ encodeURIComponent\(creds\.sessionId\)/,
+  "join URL must carry only the session code");
+assert(!/#pin=|&claim=|claim=/.test(facilitator),
+  "no secret may ever be put into a participant URL");
+assert(!/target='_blank'[\s\S]*teamClaims/.test(facilitator),
+  "facilitator must not be able to open and accidentally claim a team");
+has(facilitator, /sessionCodesCopy[\s\S]*clipboard\.writeText/, "join codes must be copy-only");
 has(facilitator, /teamResetConfirm[\s\S]*DRBLive\.resetTeam\(teamName\)/, "team reset must use a branded second confirmation action");
 has(facilitator, /sessionRecovery[\s\S]*facilitatorRecoveryLink\(\)[\s\S]*clipboard\.writeText/, "facilitator recovery URL must be copy-only");
 has(facilitator, /function boot\(\)[\s\S]*restoreFacilitatorFromUrl\(\)/, "facilitator boot must restore fragment credentials before polling");
@@ -59,7 +69,7 @@ async function checkClientJoinContract() {
   const requests = [];
   const localStorage = new MemoryStorage();
   const sessionStorage = new MemoryStorage();
-  const claim = "A".repeat(43);
+  const claim = "K7M2Q";       /* 조별 참가 코드 5자리 */
   const firstToken = "T".repeat(42) + "1";
   const location = {
     search: "?session=ABCDEF&team=" + encodeURIComponent("1조"),
@@ -176,7 +186,7 @@ async function checkFacilitatorRecoveryContract() {
     sessionId: "ABCDEF",
     facilitatorSecret: "F".repeat(43),
     pin: "1234",
-    teamClaims: { "1조": "A".repeat(43), "2조": "B".repeat(43) },
+    teamClaims: { "1조": "K7M2Q", "2조": "P4R9T" },
     teamCount: 2,
   };
   sessionStorage.setItem("drb.live.facilitator.v1", JSON.stringify(credentials));

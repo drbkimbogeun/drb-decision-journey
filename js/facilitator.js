@@ -1137,30 +1137,60 @@
   }
 
   function showSessionDetails(creds) {
+    /* 링크는 하나입니다. 조는 각자 자기 코드를 칩니다. */
     var base = location.origin + location.pathname.replace(/facilitator(?:\.html)?$/, "");
-    var links = (CFG.teamNames || []).slice(0, creds.teamCount || 6).map(function (name) {
-      var claim = creds.teamClaims && creds.teamClaims[name];
-      if (!claim) return "<div class='card card--flat' style='margin-top:8px'><b>" + esc(name) + "</b><br><span class='hint'>보안 참가키 없음 · 새 세션을 만들어주세요.</span></div>";
-      var url = base + "?session=" + encodeURIComponent(creds.sessionId) + "&team=" + encodeURIComponent(name) +
-        "#pin=" + encodeURIComponent(creds.pin) + "&claim=" + encodeURIComponent(claim);
-      return "<div class='card card--flat' style='margin-top:8px'><b>" + esc(name) + "</b><br><button class='btn btn--ghost fac-team-link-copy' type='button' data-team='" + esc(name) + "' data-url='" + esc(url) + "'>" + esc(name) + " 전용 링크 복사</button><button class='btn btn--ghost fac-team-reset' type='button' data-team='" + esc(name) + "'>재연결 초기화</button></div>";
+    var joinUrl = base + "?s=" + encodeURIComponent(creds.sessionId);
+
+    var codes = (CFG.teamNames || []).slice(0, creds.teamCount || 6).map(function (name) {
+      var code = creds.teamClaims && creds.teamClaims[name];
+      if (!code) {
+        return "<div class='joincode joincode--missing'><b>" + esc(name) + "</b>" +
+               "<span class='hint'>참가 코드 없음 · 새 세션을 만들어주세요</span></div>";
+      }
+      return "<div class='joincode'>" +
+        "<span class='joincode__team'>" + esc(name) + "</span>" +
+        "<span class='joincode__value num'>" + esc(code) + "</span>" +
+        "<button class='btn btn--sm btn--ghost fac-team-reset' type='button' data-team='" + esc(name) + "'>자리 비우기</button>" +
+      "</div>";
     }).join("");
-    openModal("세션 " + creds.sessionId, "<div class='fac-brief__facts'><div class='fac-brief__fact'><div class='fac-brief__fact-label'>세션 코드</div><div class='fac-brief__fact-value num'>" + esc(creds.sessionId) + "</div></div><div class='fac-brief__fact'><div class='fac-brief__fact-label'>자동 종료</div><div class='fac-brief__fact-value'>생성 후 24시간</div></div></div><p class='hint'>각 조에는 자기 조 전용 링크만 전달하세요. 참가키와 PIN은 링크 안에 숨겨지고 첫 연결 뒤 주소창에서 제거됩니다. 진행자 비밀키는 이 탭에만 저장됩니다.</p>" + links + "<div class='row' style='margin-top:var(--sp-4)'><button class='btn btn--ghost' id='sessionCopy'>전체 링크 복사</button><button class='btn btn--ghost' id='sessionRecovery'>진행자 복구 링크 복사</button><button class='btn btn--ghost' id='sessionEnd'>세션 종료·데이터 삭제</button></div>");
-    el("modalBody").querySelectorAll(".fac-team-link-copy").forEach(function (button) {
-      button.onclick = function () {
-        if (navigator.clipboard) navigator.clipboard.writeText(button.dataset.url).then(function () { toast(button.dataset.team + " 링크를 복사했습니다."); });
-      };
-    });
+
+    openModal("교육 세션 " + creds.sessionId,
+      "<p class='hint'>아래 <b>주소 하나</b>를 모든 조에 알려주고, <b>조별 코드</b>는 빔 화면에 띄우세요.<br>" +
+      "각 조가 자기 코드를 넣으면 그 조로 들어갑니다. 다른 조 코드로는 들어갈 수 없습니다.</p>" +
+
+      "<div class='joinurl'><span class='joinurl__label'>참가 주소</span>" +
+      "<span class='joinurl__value'>" + esc(joinUrl) + "</span>" +
+      "<button class='btn btn--sm btn--primary' id='sessionCopy'>주소 복사</button></div>" +
+
+      "<div class='fac-award__section-label' style='margin-top:var(--sp-5)'>조별 참가 코드</div>" +
+      "<div class='joincodes'>" + codes + "</div>" +
+
+      "<p class='hint' style='margin-top:var(--sp-4)'>자동 종료 : 만든 뒤 24시간 · 진행자 비밀키는 이 탭에만 저장됩니다. " +
+      "탭을 닫으면 복구 링크가 필요합니다.</p>" +
+
+      "<div class='row' style='margin-top:var(--sp-4)'>" +
+      "<button class='btn btn--ghost' id='sessionCodesCopy'>코드표 복사</button>" +
+      "<button class='btn btn--ghost' id='sessionRecovery'>진행자 복구 링크 복사</button>" +
+      "<button class='btn btn--ghost' id='sessionEnd'>세션 종료·데이터 삭제</button></div>");
+
+    el("sessionCodesCopy").onclick = function () {
+      var text = "참가 주소  " + joinUrl + "\n\n" +
+        (CFG.teamNames || []).slice(0, creds.teamCount || 6).map(function (name) {
+          return name + "  " + ((creds.teamClaims && creds.teamClaims[name]) || "-");
+        }).join("\n");
+      if (navigator.clipboard) navigator.clipboard.writeText(text).then(function () { toast("주소와 코드표를 복사했습니다."); });
+    };
+
     el("modalBody").querySelectorAll(".fac-team-reset").forEach(function (button) {
       button.onclick = function () {
         var teamName = button.dataset.team;
-        openModal(teamName + " 재연결을 초기화할까요?", "<div class='card card--flat' style='border-color:var(--warn);box-shadow:inset 4px 0 var(--warn)'><b>" + esc(teamName) + "의 현재 연결과 실시간 진행 사본만 삭제됩니다.</b><br>기존 참가 화면은 더 이상 전송할 수 없고, 새 기기에서 같은 조 전용 링크로 다시 입장해야 합니다.</div><p class='hint'>참가 기기 고장·브라우저 저장소 삭제 때만 사용하세요. 다른 조와 전체 세션에는 영향이 없습니다.</p><div class='row' style='margin-top:var(--sp-4)'><button class='btn btn--ghost' id='teamResetCancel'>취소하고 돌아가기</button><button class='btn btn--primary' id='teamResetConfirm'>" + esc(teamName) + " 재연결 초기화</button></div>");
+        openModal(teamName + " 재연결을 초기화할까요?", "<div class='card card--flat' style='border-color:var(--warn);box-shadow:inset 4px 0 var(--warn)'><b>" + esc(teamName) + "의 현재 연결과 실시간 진행 사본만 삭제됩니다.</b><br>기존 참가 화면은 더 이상 전송할 수 없고, 새 기기에서 같은 조 코드로 다시 들어와야 합니다.</div><p class='hint'>참가 기기 고장·브라우저 저장소 삭제 때만 사용하세요. 다른 조와 전체 세션에는 영향이 없습니다.</p><div class='row' style='margin-top:var(--sp-4)'><button class='btn btn--ghost' id='teamResetCancel'>취소하고 돌아가기</button><button class='btn btn--primary' id='teamResetConfirm'>" + esc(teamName) + " 재연결 초기화</button></div>");
         el("teamResetCancel").onclick = function () { showSessionDetails(creds); };
         el("teamResetConfirm").onclick = function () {
           el("teamResetConfirm").disabled = true;
           el("teamResetConfirm").textContent = "초기화 중…";
           window.DRBLive.resetTeam(teamName).then(function () {
-            toast(teamName + " 연결을 초기화했습니다. 조 전용 링크를 다시 전달하세요.");
+            toast(teamName + " 자리를 비웠습니다. 그 조가 코드로 다시 들어올 수 있습니다.");
             showSessionDetails(creds);
           }).catch(function (error) {
             el("teamResetConfirm").disabled = false;
@@ -1171,8 +1201,7 @@
       };
     });
     el("sessionCopy").onclick = function () {
-      var text = Array.prototype.map.call(el("modalBody").querySelectorAll(".fac-team-link-copy"), function (button) { return button.dataset.team + ": " + button.dataset.url; }).join("\n");
-      if (navigator.clipboard) navigator.clipboard.writeText(text).then(function () { toast("조별 링크를 복사했습니다."); });
+      if (navigator.clipboard) navigator.clipboard.writeText(joinUrl).then(function () { toast("참가 주소를 복사했습니다."); });
     };
     el("sessionRecovery").onclick = function () {
       var recoveryUrl;

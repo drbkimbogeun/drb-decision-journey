@@ -22,27 +22,45 @@
      ============================================================ -->
 <div id="intro" class="intro" data-step="0">
 
-  <!-- ---------- 1) 표지 ---------- -->
+  <!-- ---------- 1) 표지 — 영상과 참가 코드 ---------- -->
   <section class="cover intro__step" data-intro-step="0">
-    <div class="cover__brand">
-      <span class="cover__mark">DRB</span>
-      <span class="cover__kicker">경영전략 시뮬레이션</span>
-    </div>
 
-    <h1 class="cover__title" id="introTitle">80년의 선택</h1>
+    <!-- 영상은 있으면 배경으로 깔립니다. 없으면 그냥 딥퍼플입니다. -->
+    <video class="cover__video" id="coverVideo" muted playsinline loop preload="auto" aria-hidden="true"></video>
+    <div class="cover__veil"></div>
 
-    <p class="cover__lead">1947년의 회사를 물려받아<br>2026년까지 경영합니다.</p>
+    <div class="cover__inner">
+      <div class="cover__brand">
+        <span class="cover__mark">DRB</span>
+        <span class="cover__kicker">경영전략 시뮬레이션</span>
+      </div>
 
-    <div class="cover__stats">
-      <div class="statbox"><span class="statbox__label">국면</span><span class="statbox__value num" id="coverTurns">6</span></div>
-      <div class="statbox"><span class="statbox__label">조</span><span class="statbox__value num" id="coverTeams">4</span></div>
-      <div class="statbox"><span class="statbox__label">시간</span><span class="statbox__value num" id="coverTime">60분</span></div>
-    </div>
+      <h1 class="cover__title" id="introTitle">80년의 선택</h1>
 
-    <div class="cover__foot">
-      <span class="cover__hint" id="introHint">진행자가 시작하면 넘어갑니다</span>
-      <span class="spacer"></span>
-      <button class="btn btn--white btn--lg" id="btnCoverGo">우리 조 고르기 <span class="btn__arrow">→</span></button>
+      <p class="cover__lead">1947년의 회사를 물려받아<br>2026년까지 경영합니다.</p>
+
+      <div class="cover__stats">
+        <div class="statbox"><span class="statbox__label">국면</span><span class="statbox__value num" id="coverTurns">6</span></div>
+        <div class="statbox"><span class="statbox__label">조</span><span class="statbox__value num" id="coverTeams">4</span></div>
+        <div class="statbox"><span class="statbox__label">시간</span><span class="statbox__value num" id="coverTime">60분</span></div>
+      </div>
+
+      <!-- 참가 코드 — 진행자가 빔에 띄운 우리 조 코드를 넣습니다 -->
+      <form class="codebox" id="codeForm" autocomplete="off">
+        <label class="codebox__label" for="joinCode">우리 조 참가 코드</label>
+        <div class="codebox__row">
+          <input class="codebox__input num" id="joinCode" maxlength="6" inputmode="latin"
+                 autocapitalize="characters" spellcheck="false" placeholder="------" aria-describedby="joinMsg">
+          <button class="btn btn--white btn--lg" id="btnJoin" type="submit">들어가기 <span class="btn__arrow">→</span></button>
+        </div>
+        <p class="codebox__msg" id="joinMsg"></p>
+      </form>
+
+      <div class="cover__foot">
+        <span class="cover__hint" id="introHint">진행자가 알려준 코드를 넣으세요</span>
+        <span class="spacer"></span>
+        <button class="linkbtn linkbtn--onDark" id="btnPractice">코드 없이 연습해보기</button>
+      </div>
     </div>
   </section>
 
@@ -82,6 +100,12 @@
   </section>
 </div>
 
+
+<!-- 코드가 맞으면 과거로 돌아가는 연출이 한 번 지나갑니다 -->
+<div class="warp hidden" id="warp" aria-hidden="true">
+  <div class="warp__years" id="warpYears"></div>
+  <div class="warp__caption" id="warpCaption">1947년으로 돌아갑니다</div>
+</div>
 
 <!-- ============================================================
      게임 화면
