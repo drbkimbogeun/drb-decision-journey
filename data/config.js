@@ -49,6 +49,25 @@ window.DRB_CONFIG = {
     { key: "reach",   name: "영업·거래처",  desc: "수요를 실제 주문으로 바꾸는 힘" }
   ],
 
+  /* ---------- 소리 ----------
+     ⚠ 회사 보안정책이 공유폴더에 .mp3 / .wav / .ogg 쓰기를 막습니다.
+       그래서 파일을 .m4a 로 넣어두고, 게임이 내용을 보고 알아서 재생합니다.
+       (확장자와 실제 형식이 달라도 됩니다)
+
+     곡을 바꾸려면 아래 파일명만 서로 바꾸세요. 파일을 옮길 필요가 없습니다.
+       track-a.m4a  Scale The Mountain · Density & Time
+       track-b.m4a  Wildfire · Jessie Villa
+       track-c.m4a  The Great Pig In The Sty · Ezra Lipp
+       shock.m4a    Alarm Clock  (돌발상황 효과음) */
+  audio: {
+    bgm:   "assets/audio/track-a.m4a",   // 평상시 배경음악
+    tense: "assets/audio/track-b.m4a",   // 돌발상황 배경음악
+    shock: "assets/audio/shock.m4a",     // 돌발상황이 뜨는 순간 한 번
+    bgmVolume:   0.22,
+    tenseVolume: 0.42,
+    shockVolume: 0.55
+  },
+
   /* ---------- 진행 시간 ----------
      진행자 화면의 '진행 방법' 카드에 그대로 나옵니다.
      시간을 바꾸려면 여기 숫자만 고치세요.

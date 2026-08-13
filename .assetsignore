@@ -35,3 +35,12 @@ worker.js
 .wrangler/
 _deploy/
 .agents/
+
+# 안 쓰는 폰트 굵기 (저장소에는 남기고 배포에서만 뺍니다)
+# 게임은 4Regular / 6SemiBold / 8ExtraBold 세 가지만 씁니다 — css/fonts.css
+assets/fonts/Paperlogy-1Thin.ttf
+assets/fonts/Paperlogy-2ExtraLight.ttf
+assets/fonts/Paperlogy-3Light.ttf
+assets/fonts/Paperlogy-5Medium.ttf
+assets/fonts/Paperlogy-7Bold.ttf
+assets/fonts/Paperlogy-9Black.ttf

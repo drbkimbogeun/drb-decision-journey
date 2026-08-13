@@ -4,9 +4,8 @@
    ◆ 효과음은 파일이 없습니다. 브라우저가 그 자리에서 소리를 만듭니다.
      저작권 문제가 없고, 인터넷이 없어도, 어느 PC에서나 똑같이 납니다.
 
-   ◆ 배경음악만 파일이 필요합니다. `assets/audio/` 에 넣으세요.
-       bgm.mp3    평상시
-       tense.mp3  돌발상황
+   ◆ 배경음악과 돌발 알람만 파일이 필요합니다.
+     어느 파일을 쓸지는 `data/config.js` 의 audio 에서 정합니다.
      파일이 없으면 조용히 넘어갑니다. 게임은 그대로 돌아갑니다.
 
    ◆ 브라우저 규칙상 사용자가 한 번 클릭하기 전에는 소리를 낼 수 없습니다.
@@ -101,15 +100,65 @@ window.DRBAudio = (function () {
   }
 
   /* ============================================================
-     배경음악 — 파일이 있을 때만
+     배경음악
+
+     ⚠ 회사 보안정책이 공유폴더에 .mp3 쓰기를 막아서, 음악 파일은
+       .m4a 라는 이름으로 들어 있습니다. 안의 내용은 mp3 일 수 있습니다.
+       그래서 확장자를 믿지 않고 앞부분 몇 바이트를 직접 읽어
+       무슨 형식인지 알아낸 뒤 브라우저에 알려줍니다.
+
+     파일이 없거나 읽지 못하면 조용히 넘어갑니다. 게임은 그대로 돌아갑니다.
      ============================================================ */
-  function makeTrack(src) {
-    var el = new Audio(src);
-    el.loop = true;
+  var cfg = (window.DRB_CONFIG && window.DRB_CONFIG.audio) || {};
+  var tracks = {};
+
+  /* 파일 앞머리를 보고 형식을 알아냅니다 */
+  function sniff(bytes) {
+    if (bytes.length > 3 && bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33) return "audio/mpeg";      // ID3
+    if (bytes.length > 1 && bytes[0] === 0xFF && (bytes[1] & 0xE0) === 0xE0) return "audio/mpeg";                   // MPEG frame
+    if (bytes.length > 11 && bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) {
+      return "audio/mp4";                                                                                          // ftyp
+    }
+    if (bytes.length > 3 && bytes[0] === 0x4F && bytes[1] === 0x67 && bytes[2] === 0x67) return "audio/ogg";        // OggS
+    if (bytes.length > 3 && bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46) return "audio/wav";        // RIFF
+    return "audio/mpeg";
+  }
+
+  function loadTrack(src, loop) {
+    var el = new Audio();
+    el.loop = !!loop;
     el.volume = 0;
     el.preload = "auto";
-    el.addEventListener("error", function () { el.dataset.missing = "1"; });
+
+    /* 먼저 그냥 틀어봅니다. 서버가 형식을 제대로 알려주면 이걸로 끝입니다. */
+    el.src = src;
+
+    /* 못 읽으면 파일을 직접 받아 형식을 붙여 다시 넘깁니다.
+       (file:// 로 열었을 때는 fetch 가 막히므로 여기서 조용히 포기합니다) */
+    el.addEventListener("error", function () {
+      if (el.dataset.retried) { el.dataset.missing = "1"; return; }
+      el.dataset.retried = "1";
+      if (!window.fetch) { el.dataset.missing = "1"; return; }
+      fetch(src).then(function (r) {
+        if (!r.ok) throw new Error("no file");
+        return r.arrayBuffer();
+      }).then(function (buf) {
+        var head = new Uint8Array(buf.slice(0, 16));
+        el.src = URL.createObjectURL(new Blob([buf], { type: sniff(head) }));
+      }).catch(function () { el.dataset.missing = "1"; });
+    });
+
     return el;
+  }
+
+  function ensureTracks() {
+    if (tracks.ready) return;
+    tracks.ready = true;
+    if (cfg.bgm)   tracks.bgm   = loadTrack(cfg.bgm, true);
+    if (cfg.tense) tracks.tense = loadTrack(cfg.tense, true);
+    if (cfg.shock) tracks.shock = loadTrack(cfg.shock, false);
+    bgm = tracks.bgm;
+    tense = tracks.tense;
   }
 
   /* 소리는 어떤 경우에도 게임을 막지 않습니다.
@@ -131,12 +180,22 @@ window.DRBAudio = (function () {
     requestAnimationFrame(step);
   }
 
+  /* 돌발상황이 뜨는 순간 한 번 — 배경음악과 겹쳐서 납니다 */
+  function alarm() {
+    ensureTracks();
+    var el = tracks.shock;
+    if (muted || !el || el.dataset.missing) return;
+    try {
+      el.currentTime = 0;
+      el.volume = cfg.shockVolume === undefined ? 0.55 : cfg.shockVolume;
+      var p = el.play();
+      if (p && p.catch) p.catch(function () {});
+    } catch (e) { /* 소리는 실패해도 게임을 막지 않습니다 */ }
+  }
+
   /* mood: "calm" 평상시 · "tense" 돌발상황 · "off" 끔 */
   function music(mood) {
-    if (!bgm) {
-      bgm = makeTrack("assets/audio/bgm.mp3");
-      tense = makeTrack("assets/audio/tense.mp3");
-    }
+    ensureTracks();
     if (muted || mood === "off") {
       fade(bgm, 0, 400);
       fade(tense, 0, 400);
@@ -147,10 +206,10 @@ window.DRBAudio = (function () {
     current = mood;
     if (mood === "tense") {
       fade(bgm, 0, 300);
-      fade(tense, 0.5, 300);
+      fade(tense, cfg.tenseVolume === undefined ? 0.42 : cfg.tenseVolume, 300);
     } else {
       fade(tense, 0, 500);
-      fade(bgm, 0.28, 900);
+      fade(bgm, cfg.bgmVolume === undefined ? 0.22 : cfg.bgmVolume, 900);
     }
   }
 
@@ -179,5 +238,5 @@ window.DRBAudio = (function () {
     document.removeEventListener("pointerdown", once);
   }, { once: true });
 
-  return { play: play, music: music, toggle: toggle, setMuted: setMuted, isMuted: isMuted };
+  return { play: play, music: music, alarm: alarm, toggle: toggle, setMuted: setMuted, isMuted: isMuted };
 })();

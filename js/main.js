@@ -276,6 +276,7 @@
         if (lastResult && UI.renderEvent(lastResult)) {
           showScreen("event");
           sfx("shock");
+          if (window.DRBAudio) window.DRBAudio.alarm();
         } else {
           S.setPhase("result");
           render();
