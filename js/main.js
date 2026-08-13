@@ -197,13 +197,18 @@
   function enterGame() {
     el("intro").classList.add("hidden");
     el("app").classList.remove("hidden");
-    music("calm");
     render();
   }
 
   /* 소리는 있으면 내고 없으면 조용히 넘어갑니다 */
   function sfx(name) { if (window.DRBAudio) window.DRBAudio.play(name); }
-  function music(mood) { if (window.DRBAudio) window.DRBAudio.music(mood); }
+
+  /* 배경음악은 시대를 따라갑니다. 돌발상황에서는 음악이 물러나고 알람이 옵니다. */
+  function musicForScreen(name) {
+    if (!window.DRBAudio) return;
+    window.DRBAudio.era(S.round().no - 1);
+    window.DRBAudio.duck(name === "event");
+  }
 
   /* ============================================================
      화면 전환
@@ -213,7 +218,7 @@
 
   function showScreen(name) {
     el("app").setAttribute("data-screen", name);
-    music(name === "event" ? "tense" : "calm");
+    musicForScreen(name);
     SCREENS.forEach(function (s) {
       var node = el("sc-" + s);
       if (node) node.classList.toggle("is-active", s === name);

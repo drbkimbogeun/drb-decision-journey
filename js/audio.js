@@ -4,7 +4,7 @@
    ◆ 효과음은 파일이 없습니다. 브라우저가 그 자리에서 소리를 만듭니다.
      저작권 문제가 없고, 인터넷이 없어도, 어느 PC에서나 똑같이 납니다.
 
-   ◆ 배경음악과 돌발 알람만 파일이 필요합니다.
+   ◆ 배경음악은 시대마다 다릅니다. ERA 1 · 2 · 3 에 한 곡씩.
      어느 파일을 쓸지는 `data/config.js` 의 audio 에서 정합니다.
      파일이 없으면 조용히 넘어갑니다. 게임은 그대로 돌아갑니다.
 
@@ -18,9 +18,6 @@ window.DRBAudio = (function () {
   var STORAGE_KEY = "drb_sound";
   var ctx = null;
   var muted = false;
-  var bgm = null;
-  var tense = null;
-  var current = null;
 
   try { muted = localStorage.getItem(STORAGE_KEY) === "off"; } catch (e) { muted = false; }
 
@@ -110,7 +107,11 @@ window.DRBAudio = (function () {
      파일이 없거나 읽지 못하면 조용히 넘어갑니다. 게임은 그대로 돌아갑니다.
      ============================================================ */
   var cfg = (window.DRB_CONFIG && window.DRB_CONFIG.audio) || {};
-  var tracks = {};
+  var eraTracks = [];
+  var shockTrack = null;
+  var playing = null;      // 지금 울리고 있는 시대 트랙
+  var eraIndex = -1;
+  var ducked = false;
 
   /* 파일 앞머리를 보고 형식을 알아냅니다 */
   function sniff(bytes) {
@@ -129,8 +130,6 @@ window.DRBAudio = (function () {
     el.loop = !!loop;
     el.volume = 0;
     el.preload = "auto";
-
-    /* 먼저 그냥 틀어봅니다. 서버가 형식을 제대로 알려주면 이걸로 끝입니다. */
     el.src = src;
 
     /* 못 읽으면 파일을 직접 받아 형식을 붙여 다시 넘깁니다.
@@ -143,8 +142,7 @@ window.DRBAudio = (function () {
         if (!r.ok) throw new Error("no file");
         return r.arrayBuffer();
       }).then(function (buf) {
-        var head = new Uint8Array(buf.slice(0, 16));
-        el.src = URL.createObjectURL(new Blob([buf], { type: sniff(head) }));
+        el.src = URL.createObjectURL(new Blob([buf], { type: sniff(new Uint8Array(buf.slice(0, 16))) }));
       }).catch(function () { el.dataset.missing = "1"; });
     });
 
@@ -152,13 +150,9 @@ window.DRBAudio = (function () {
   }
 
   function ensureTracks() {
-    if (tracks.ready) return;
-    tracks.ready = true;
-    if (cfg.bgm)   tracks.bgm   = loadTrack(cfg.bgm, true);
-    if (cfg.tense) tracks.tense = loadTrack(cfg.tense, true);
-    if (cfg.shock) tracks.shock = loadTrack(cfg.shock, false);
-    bgm = tracks.bgm;
-    tense = tracks.tense;
+    if (eraTracks.length || shockTrack) return;
+    (cfg.era || []).forEach(function (src) { eraTracks.push(loadTrack(src, true)); });
+    if (cfg.shock) shockTrack = loadTrack(cfg.shock, false);
   }
 
   /* 소리는 어떤 경우에도 게임을 막지 않습니다.
@@ -180,37 +174,50 @@ window.DRBAudio = (function () {
     requestAnimationFrame(step);
   }
 
-  /* 돌발상황이 뜨는 순간 한 번 — 배경음악과 겹쳐서 납니다 */
+  function baseVolume() {
+    var v = cfg.volume === undefined ? 0.22 : cfg.volume;
+    if (!ducked) return v;
+    return cfg.duckVolume === undefined ? 0.07 : cfg.duckVolume;
+  }
+
+  /* ============================================================
+     시대가 바뀌면 배경음악도 바뀝니다 (0 = ERA 1)
+     ============================================================ */
+  function era(n) {
+    ensureTracks();
+    if (muted) { stopAll(); return; }
+    if (!eraTracks.length) return;
+
+    var next = eraTracks[Math.max(0, Math.min(eraTracks.length - 1, n || 0))];
+    if (next === playing) { fade(playing, baseVolume(), 400); return; }
+
+    if (playing) fade(playing, 0, 900);      // 앞 시대는 천천히 사라지고
+    playing = next;
+    eraIndex = n;
+    fade(playing, baseVolume(), 1400);       // 새 시대는 천천히 올라옵니다
+  }
+
+  /* 돌발상황 동안 배경음악을 낮춥니다 */
+  function duck(on) {
+    ducked = !!on;
+    if (!muted && playing) fade(playing, baseVolume(), 350);
+  }
+
+  /* 돌발상황이 뜨는 순간 한 번 — 배경음악 위로 겹칩니다 */
   function alarm() {
     ensureTracks();
-    var el = tracks.shock;
-    if (muted || !el || el.dataset.missing) return;
+    if (muted || !shockTrack || shockTrack.dataset.missing) return;
     try {
-      el.currentTime = 0;
-      el.volume = cfg.shockVolume === undefined ? 0.55 : cfg.shockVolume;
-      var p = el.play();
+      shockTrack.currentTime = 0;
+      shockTrack.volume = cfg.shockVolume === undefined ? 0.55 : cfg.shockVolume;
+      var p = shockTrack.play();
       if (p && p.catch) p.catch(function () {});
     } catch (e) { /* 소리는 실패해도 게임을 막지 않습니다 */ }
   }
 
-  /* mood: "calm" 평상시 · "tense" 돌발상황 · "off" 끔 */
-  function music(mood) {
-    ensureTracks();
-    if (muted || mood === "off") {
-      fade(bgm, 0, 400);
-      fade(tense, 0, 400);
-      current = null;
-      return;
-    }
-    if (current === mood) return;
-    current = mood;
-    if (mood === "tense") {
-      fade(bgm, 0, 300);
-      fade(tense, cfg.tenseVolume === undefined ? 0.42 : cfg.tenseVolume, 300);
-    } else {
-      fade(tense, 0, 500);
-      fade(bgm, cfg.bgmVolume === undefined ? 0.22 : cfg.bgmVolume, 900);
-    }
+  function stopAll() {
+    eraTracks.forEach(function (el) { fade(el, 0, 300); });
+    playing = null;
   }
 
   /* ============================================================
@@ -220,11 +227,10 @@ window.DRBAudio = (function () {
     muted = !!next;
     try { localStorage.setItem(STORAGE_KEY, muted ? "off" : "on"); } catch (e) {}
     if (muted) {
-      fade(bgm, 0, 200);
-      fade(tense, 0, 200);
-      current = null;
-    } else if (current === null) {
-      music("calm");
+      stopAll();
+      try { if (shockTrack) shockTrack.pause(); } catch (e) {}
+    } else if (eraIndex >= 0) {
+      era(eraIndex);
     }
     return muted;
   }
@@ -238,5 +244,6 @@ window.DRBAudio = (function () {
     document.removeEventListener("pointerdown", once);
   }, { once: true });
 
-  return { play: play, music: music, alarm: alarm, toggle: toggle, setMuted: setMuted, isMuted: isMuted };
+  return { play: play, era: era, duck: duck, alarm: alarm, stopAll: stopAll,
+           toggle: toggle, setMuted: setMuted, isMuted: isMuted };
 })();

@@ -60,12 +60,17 @@ window.DRB_CONFIG = {
        track-c.m4a  The Great Pig In The Sty · Ezra Lipp
        shock.m4a    Alarm Clock  (돌발상황 효과음) */
   audio: {
-    bgm:   "assets/audio/track-a.m4a",   // 평상시 배경음악
-    tense: "assets/audio/track-b.m4a",   // 돌발상황 배경음악
-    shock: "assets/audio/shock.m4a",     // 돌발상황이 뜨는 순간 한 번
-    bgmVolume:   0.22,
-    tenseVolume: 0.42,
-    shockVolume: 0.55
+    /* 시대가 바뀌면 배경음악도 바뀝니다. ERA 1 · 2 · 3 순서입니다. */
+    era: [
+      "assets/audio/track-a.m4a",   // ERA 1  창업기      Scale The Mountain
+      "assets/audio/track-b.m4a",   // ERA 2  확장기      Wildfire
+      "assets/audio/track-c.m4a"    // ERA 3  전환기      The Great Pig In The Sty
+    ],
+    shock: "assets/audio/shock.m4a",   // 돌발상황이 뜨는 순간 한 번
+
+    volume:      0.22,   // 평상시 배경음악 (토론을 방해하지 않을 만큼)
+    duckVolume:  0.07,   // 돌발상황 동안 배경음악을 이만큼으로 낮춥니다
+    shockVolume: 0.55    // 알람
   },
 
   /* ---------- 진행 시간 ----------
