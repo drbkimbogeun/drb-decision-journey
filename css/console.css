@@ -586,3 +586,152 @@ body.fac-body {
   .fac-standings__grid { grid-template-columns: 1fr; }
   .fac-phase__cards { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* ============================================================================
+   ACTUAL DRB — 금색 전면 세 칸
+   ============================================================================ */
+.fac-drb {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 270px);
+  border-color: var(--fact-line);
+  background: var(--fact-bg);
+}
+.fac-drb__head { display: flex; align-items: center; gap: var(--sp-3); margin-bottom: var(--sp-5); }
+.fac-drb__stamp {
+  padding: 7px 16px;
+  border-radius: var(--r-sm);
+  background: var(--fact-line);
+  color: #4A3C10;
+  font-size: var(--fs-tiny);
+  font-weight: var(--fw-strong);
+  letter-spacing: 0.18em;
+}
+.fac-drb__when { color: var(--fact-text); font-size: 15px; font-weight: var(--fw-strong); }
+.fac-drb .fac-drb__eyebrow { color: var(--fact-text); opacity: 0.7; font-size: var(--fs-small); letter-spacing: 0; }
+
+.fac-spoiler-lock { position: relative; flex: 1 1 auto; min-height: 0; display: flex; }
+.fac-spoiler-lock__content { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; }
+
+.fac-drb__title {
+  font-size: clamp(34px, 3.6vw, 56px);
+  font-weight: var(--fw-strong);
+  line-height: 1.14;
+  letter-spacing: -0.05em;
+  color: #4A3C10;
+  margin-bottom: clamp(20px, 2.4vw, 36px);
+}
+
+.drbcards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-3); flex: 1 1 auto; min-height: 0; }
+.drbcard {
+  padding: var(--sp-5);
+  border: 1px solid var(--fact-line);
+  border-radius: var(--r-lg);
+  background: #FFFFFF;
+  overflow-y: auto;
+}
+.drbcard__label { color: var(--fact-text); font-size: var(--fs-tiny); font-weight: var(--fw-strong); letter-spacing: 0.08em; margin-bottom: var(--sp-3); }
+.drbcard__body { font-size: var(--fs-lead); line-height: 1.6; white-space: pre-line; }
+
+.fac-drb__timeline { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: var(--sp-4); }
+.fac-drb__milestone {
+  display: flex; align-items: baseline; gap: var(--sp-2);
+  padding: 7px 13px;
+  border: 1px solid var(--fact-line);
+  border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, 0.6);
+  font-size: var(--fs-small);
+}
+.fac-drb__year { color: var(--fact-text); font-weight: var(--fw-strong); white-space: nowrap; }
+
+.fac-drb__foot { display: flex; align-items: center; gap: var(--sp-4); margin-top: var(--sp-4); }
+.fac-drb__chips { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
+.drbchip { padding: 8px 14px; border: 1px solid var(--fact-line); border-radius: var(--r-sm); background: #FFFFFF; font-size: var(--fs-small); font-weight: var(--fw-mid); }
+.drbchip--same { border-color: var(--accent-line); background: var(--accent-tint); color: var(--accent-deep); font-weight: var(--fw-strong); }
+.fac-drb__note { color: var(--fact-text); font-size: var(--fs-tiny); line-height: 1.5; text-align: right; }
+
+.fac-spoiler-lock__cover {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--sp-3);
+  border-radius: var(--r-lg);
+  background: rgba(253, 250, 239, 0.94);
+  backdrop-filter: blur(8px);
+}
+.fac-spoiler-lock.is-unlocked .fac-spoiler-lock__cover { display: none; }
+.fac-spoiler-lock__icon { color: var(--fact-line); font-size: 40px; }
+.fac-spoiler-lock__title { font-size: 22px; font-weight: var(--fw-strong); color: #4A3C10; }
+.fac-spoiler-lock__text { color: var(--fact-text); font-size: var(--fs-small); text-align: center; max-width: 44ch; }
+
+/* ============================================================================
+   FINAL 시상 — 딥퍼플 전면
+   ============================================================================ */
+.fac-award__head { display: flex; align-items: center; gap: var(--sp-3); margin-bottom: clamp(22px, 2.6vw, 40px); }
+.fac-award__stamp {
+  padding: 7px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  border-radius: var(--r-sm);
+  font-size: var(--fs-tiny);
+  font-weight: var(--fw-strong);
+  letter-spacing: 0.18em;
+}
+.fac-award__when { color: rgba(255, 255, 255, 0.6); font-size: 15px; font-weight: var(--fw-mid); }
+.fac-award__state { color: rgba(255, 255, 255, 0.42); font-size: var(--fs-small); }
+.fac-award__body { display: flex; flex-direction: column; gap: var(--sp-4); }
+
+.podium { display: grid; grid-template-columns: 1.25fr 1fr 1fr; gap: var(--sp-3); }
+.podium__row {
+  display: flex; flex-direction: column; gap: var(--sp-2);
+  padding: var(--sp-5);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--r-lg);
+  background: rgba(255, 255, 255, 0.04);
+}
+.podium__row.is-winner { border-color: var(--accent-line); background: rgba(139, 92, 214, 0.28); }
+.podium__label { color: rgba(255, 255, 255, 0.5); font-size: var(--fs-small); font-weight: var(--fw-mid); }
+.podium__row.is-winner .podium__label { color: var(--accent-line); font-weight: var(--fw-strong); }
+.podium__team { display: flex; align-items: center; gap: var(--sp-3); }
+.podium__no {
+  display: grid; place-items: center;
+  width: 44px; height: 44px;
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 20px; font-weight: var(--fw-strong);
+}
+.podium__row.is-winner .podium__no { background: var(--accent-line); color: var(--accent-deep); }
+.podium__name { font-size: clamp(24px, 2.2vw, 34px); font-weight: var(--fw-strong); letter-spacing: -0.04em; }
+.podium__style { color: rgba(255, 255, 255, 0.55); font-size: var(--fs-small); }
+.podium__scores { display: flex; gap: var(--sp-5); margin-top: var(--sp-2); }
+.podium__scores span { display: flex; flex-direction: column; }
+.podium__scores i { color: rgba(255, 255, 255, 0.45); font-size: var(--fs-tiny); font-style: normal; }
+.podium__scores b { font-size: 26px; font-weight: var(--fw-strong); letter-spacing: -0.03em; }
+.podium__row:not(.is-winner) .podium__scores { display: none; }
+
+.awards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-3); }
+.award {
+  padding: var(--sp-4) var(--sp-5);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.04);
+}
+.award--fact { border-color: var(--fact-line); background: rgba(227, 213, 168, 0.14); }
+.award__label { color: rgba(255, 255, 255, 0.5); font-size: var(--fs-small); }
+.award--fact .award__label { color: var(--fact-line); }
+.award__team { margin-top: 6px; font-size: 21px; font-weight: var(--fw-strong); letter-spacing: -0.03em; }
+.award--fact .award__team { color: var(--fact-line); }
+
+.fac-award__message {
+  margin-top: clamp(20px, 2.4vw, 36px);
+  font-size: clamp(26px, 2.6vw, 40px);
+  font-weight: var(--fw-strong);
+  line-height: 1.38;
+  letter-spacing: -0.04em;
+}
+.fac-award__foot { display: flex; align-items: center; margin-top: auto; padding-top: var(--sp-5); }
+.fac-award__note { color: rgba(255, 255, 255, 0.42); font-size: var(--fs-small); }
+
+@media (max-width: 1400px) {
+  .podium { grid-template-columns: 1fr; }
+  .awards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .drbcards { grid-template-columns: 1fr; }
+}

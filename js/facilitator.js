@@ -493,6 +493,8 @@
   function renderAward(teams) {
     var body = el("bAwardBody");
     var state = el("bAwardState");
+    el("bAwardWhen").textContent = timeline[0].sub.year + " → " +
+      timeline[timeline.length - 1].sub.year + " · " + timeline.length + "번의 결정이 끝났습니다";
     var done = teams.filter(function (team) { return team.finished || team.turns >= timeline.length; });
 
     if (!teams.length || done.length < teams.length) {
@@ -514,24 +516,30 @@
       };
     }).sort(function (a, b) { return b.total - a.total; });
 
-    var podium = "<div class='podium'>" + rows.map(function (r, i) {
+    var podium = "<div class='podium'>" + rows.slice(0, 3).map(function (r, i) {
       return "<div class='podium__row" + (i === 0 ? " is-winner" : "") + "'>" +
-        "<span class='podium__pos num'>" + (i + 1) + "</span>" +
-        "<span><span class='podium__name'>" + esc(r.name) + "</span> " +
-          "<span class='podium__style'>" + esc(r.style) + "</span></span>" +
-        "<span class='podium__cell'>현재 경쟁력<b class='num'>" + r.power + "</b></span>" +
-        "<span class='podium__cell'>변화 대응력<b class='num'>" + r.adapt + "</b></span>" +
-        "<span class='podium__total num'>" + r.total + "</span>" +
+        "<div class='podium__label'>" + (i === 0 ? "최우수 경영" : (i + 1) + "위") + "</div>" +
+        "<div class='podium__team'>" +
+          "<span class='podium__no num'>" + (CFG.teamNames.indexOf(r.name) + 1) + "</span>" +
+          "<span class='podium__name'>" + esc(r.name) + "</span>" +
+        "</div>" +
+        "<div class='podium__style'>" + esc(r.style) + "</div>" +
+        "<div class='podium__scores'>" +
+          "<span><i>변화 대응력</i><b class='num'>" + r.adapt + "</b></span>" +
+          "<span><i>경쟁력</i><b class='num'>" + r.power + "</b></span>" +
+        "</div>" +
       "</div>";
     }).join("") + "</div>";
 
     body.innerHTML =
-      "<div><div class='fac-award__section-label'>종합 순위 · 현재 경쟁력 + 변화 대응력</div>" + podium + "</div>" +
-      "<div><div class='fac-award__section-label'>부문상 · 순위와 다른 축으로 봅니다</div>" +
-        "<div class='awards'>" + buildAwards(teams, rows) + "</div></div>" +
-      "<p class='fac-award__note'>종합 1위만 부르지 마시고 부문상을 함께 부르세요. " +
-      "이 게임은 한 줄로 줄 세우려고 만든 것이 아닙니다.<br>" +
-      "시상 뒤에는 각 조의 <b>결정 카드</b>를 대표이사 세션으로 넘깁니다.</p>";
+      podium +
+      "<div class='awards'>" + buildAwards(teams, rows) + "</div>" +
+      "<p class='fac-award__message'>1등이 정답은 아닙니다.<br>" +
+      timeline.length + "번의 선택이 회사의 성격을 만들었습니다.</p>" +
+      "<div class='fac-award__foot'>" +
+        "<span class='fac-award__note'>각 조 노트북에는 What If 화면이 열려 있습니다</span>" +
+        "<span class='spacer'></span>" +
+      "</div>";
   }
 
   function buildAwards(teams, rows) {
@@ -539,7 +547,7 @@
 
     /* 가장 멀리 볼 수 있는 회사 */
     var adaptBest = rows.slice().sort(function (a, b) { return b.adapt - a.adapt; })[0];
-    if (adaptBest) out.push(awardCard("변화 대응력상", adaptBest.name,
+    if (adaptBest) out.push(awardCard("가장 멀리 본 조", adaptBest.name,
       "무엇이 오든 다시 시작할 수 있는 여력을 가장 많이 남겼습니다 (" + adaptBest.adapt + "점)"));
 
     /* 가장 일관된 조 — 정책을 가장 적게 바꾼 조 */
@@ -551,7 +559,7 @@
       });
       return { name: team.name, changes: changes };
     }).sort(function (a, b) { return a.changes - b.changes; })[0];
-    if (steady) out.push(awardCard("일관성상", steady.name,
+    if (steady) out.push(awardCard("위기에 가장 강한 조", steady.name,
       "여섯 번의 결정 내내 방향을 " + steady.changes + "번만 바꿨습니다"));
 
     /* 가장 크게 방향을 바꾼 조 */
@@ -564,7 +572,7 @@
       return { name: team.name, changes: changes };
     }).sort(function (a, b) { return b.changes - a.changes; })[0];
     if (boldest && boldest.changes > 0 && boldest.name !== steady.name) {
-      out.push(awardCard("전환상", boldest.name,
+      out.push(awardCard("가장 과감한 조", boldest.name,
         "필요할 때 방향을 " + boldest.changes + "번 바꿨습니다. 바꾸는 데에도 대가를 치렀습니다"));
     }
 
@@ -572,17 +580,38 @@
     var widest = teams.map(function (team) {
       return { name: team.name, sites: (team.state.sites || []).length };
     }).sort(function (a, b) { return b.sites - a.sites; })[0];
-    if (widest && widest.sites > 0) out.push(awardCard("개척상", widest.name,
+    if (widest && widest.sites > 0) out.push(awardCard("가장 넓게 나간 조", widest.name,
       "해외 거점을 " + widest.sites + "곳 만들었습니다"));
 
-    return out.join("");
+    /* DRB와 가장 닮은 조 — 확인된 기록과 비교합니다 */
+    var drbLike = mostLikeDrb(teams);
+    if (drbLike) out.push(awardCard("DRB와 가장 닮은 조", drbLike,
+      "확인된 DRB 기록과 같은 분야를 가장 자주 골랐습니다", true));
+
+    return out.slice(0, 4).join("");
   }
 
-  function awardCard(label, name, why) {
-    return "<div class='award'>" +
+  /* 시대마다 DRB 기록이 고른 분야와 같은 선택을 몇 번 했는가 */
+  function mostLikeDrb(teams) {
+    var scored = teams.map(function (team) {
+      var hits = 0;
+      timeline.forEach(function (item, turn) {
+        var actual = window.DRB_ACTUAL[item.round.actualId];
+        if (!actual || !actual.matchInvest) return;
+        var h = historyAt(team, turn);
+        var top = h ? topAlloc(h.allocation, 1)[0] : null;
+        if (top && top.id === actual.matchInvest) hits++;
+      });
+      return { name: team.name, hits: hits };
+    }).filter(function (r) { return r.hits > 0; })
+      .sort(function (a, b) { return b.hits - a.hits; });
+    return scored.length ? scored[0].name : "";
+  }
+
+  function awardCard(label, name, why, fact) {
+    return "<div class='award" + (fact ? " award--fact" : "") + "' title='" + esc(why) + "'>" +
       "<div class='award__label'>" + esc(label) + "</div>" +
       "<div class='award__team'>" + esc(name) + "</div>" +
-      "<div class='award__why'>" + esc(why) + "</div>" +
     "</div>";
   }
 
@@ -885,35 +914,63 @@
     var actual = window.DRB_ACTUAL[item.round.actualId];
     var complete = allCompletedRound(teams, item.round);
     var revealed = isRevealed(item.round.id);
-    var lock = el("bActualLock");
-    lock.classList.toggle("is-unlocked", revealed);
+
+    el("bActualLock").classList.toggle("is-unlocked", revealed);
     el("btnRevealActual").disabled = !complete;
     el("bLockTitle").textContent = complete ? "모든 조가 이 시대를 마쳤습니다" : "아직 공개하지 마세요";
     el("bLockText").textContent = complete
       ? "조별 판단을 먼저 말하게 한 뒤 DRB의 기록을 공개하세요. 유사도나 정답으로 평가하지 않습니다."
       : "해당 시대의 두 국면을 모든 조가 마친 뒤 공개할 수 있습니다.";
     el("bActual").dataset.roundId = item.round.id;
-    el("bActualTitle").textContent = "ERA " + item.round.no + " · 참가자 판단과 DRB 기록 비교";
+    el("bActualWhen").textContent = item.sub.year + " · 검증된 기록";
 
     if (!revealed) {
-      /* 잠긴 실제 기록은 DOM에도 넣지 않아 개발자 도구·스크린리더 누출을 막습니다. */
-      el("bActualContent").innerHTML = "<p class='hint'>조별 판단을 먼저 정리한 뒤, 진행자가 공개하면 DRB 기록이 이 자리에 표시됩니다.</p>";
+      /* 잠긴 기록은 DOM 에도 넣지 않아 개발자도구·스크린리더 누출을 막습니다 */
+      el("bActualTitle").textContent = "참가자 판단과 DRB 기록 비교";
+      el("bDrbCards").innerHTML = "";
+      el("bDrbTimeline").innerHTML = "";
+      el("bDrbChips").innerHTML = "";
       return;
     }
 
-    var summaries = teams.filter(function (team) { return completedRound(team, item.round); }).map(function (team) {
-      return "<p style='margin:5px 0'><b style='color:" + teamColor(team.name) + "'>" + esc(team.name) + "</b> · " + esc(teamEraSummary(team, item.round) || "기록 없음") + "</p>";
-    }).join("") || "<p class='hint'>이 시대를 완료한 조가 아직 없습니다.</p>";
-    /* 연표는 분기점(key)만. 빔에 12줄을 띄우면 아무도 읽지 않습니다. */
-    var timelineHtml = (actual.timeline || []).filter(function (milestone) { return milestone.key; }).slice(0, 4).map(function (milestone) {
-      return "<div class='fac-drb__milestone'><div class='fac-drb__year'>" + esc(milestone.year) + "</div>" + esc(milestone.text) + "</div>";
+    /* 헤드라인 — 실제로 무엇을 골랐는가 */
+    el("bActualTitle").innerHTML = actual.headline
+      ? esc(actual.headline).split("|").join("<br>")
+      : "그때 DRB는<br>이렇게 했습니다";
+
+    /* 세 칸 — 당시 상황 / 실제 선택 / 그 결과 */
+    el("bDrbCards").innerHTML = [
+      ["당시 상황", actual.situation],
+      ["실제 선택", actual.choice],
+      ["그 결과", actual.result]
+    ].filter(function (pair) { return pair[1]; }).map(function (pair) {
+      return "<div class='drbcard'>" +
+        "<div class='drbcard__label'>" + esc(pair[0]) + "</div>" +
+        "<div class='drbcard__body'>" + esc(pair[1]) + "</div>" +
+      "</div>";
     }).join("");
-    el("bActualContent").innerHTML =
-      "<div class='fac-drb__compare'><div class='fac-drb__side'><div class='fac-drb__label'>우리 조들의 판단</div><div class='fac-drb__why'>" + summaries + "</div></div>" +
-      "<div class='fac-drb__vs'>VS</div><div class='fac-drb__side fac-drb__side--actual'><div class='fac-drb__label'>DRB 기록으로 본 실제 선택</div><div class='fac-drb__choice'>" + esc(actual.choice) + "</div></div></div>" +
-      "<div class='fac-drb__result'><b>기록된 결과</b><br>" + esc(actual.result) + "</div>" +
-      "<div class='fac-drb__timeline'>" + timelineHtml + "</div>" +
-      "<p class='hint'>금색 텍스트와 연표는 확인된 DRB 기록입니다. 이미지는 AI 시대 연출이며 실제 DRB 사진이 아닙니다.</p>";  }
+
+    /* 연표는 분기점(key)만. 빔에 12줄을 띄우면 아무도 읽지 않습니다. */
+    el("bDrbTimeline").innerHTML = (actual.timeline || [])
+      .filter(function (m) { return m.key; }).slice(0, 4).map(function (m) {
+        return "<div class='fac-drb__milestone'><div class='fac-drb__year num'>" +
+               esc(m.year) + "</div>" + esc(m.text) + "</div>";
+      }).join("");
+
+    /* 어느 조가 같은 선택을 했는가 */
+    var same = [], diff = [];
+    teams.forEach(function (team) {
+      if (!completedRound(team, item.round)) return;
+      var h = historyAt(team, selectedTurn);
+      var top = h ? topAlloc(h.allocation, 1)[0] : null;
+      if (actual.matchInvest && top && top.id === actual.matchInvest) same.push(team.name);
+      else diff.push(team.name);
+    });
+    var chips = "";
+    if (same.length) chips += "<span class='drbchip drbchip--same'>" + esc(same.join("·")) + "와 같은 선택</span>";
+    if (diff.length) chips += "<span class='drbchip'>" + esc(diff.join("·")) + "는 달랐다</span>";
+    el("bDrbChips").innerHTML = chips;
+  }
 
   function promptsFor(item) {
     var common = [

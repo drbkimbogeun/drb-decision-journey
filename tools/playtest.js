@@ -393,9 +393,13 @@ const server = http.createServer((req, res) => {
     errors.push("진행자화면 console.error: " + Array.from(arguments).join(" "));
     facErr.apply(facDom.window.console, arguments);
   };
-  /* 진행자 화면은 CSS 여러 장을 받은 뒤에야 첫 render 가 끝납니다 */
-  await new Promise(r => setTimeout(r, 1600));
+  /* 진행자 화면이 첫 render 를 끝낼 때까지 기다립니다 */
   const fdoc = facDom.window.document;
+  for (let i = 0; i < 60; i++) {
+    const map = fdoc.getElementById("bMap");
+    if (map && map.children.length) break;
+    await new Promise(r => setTimeout(r, 100));
+  }
   if (!fdoc.getElementById("bDecisionRows")) bad("진행자 화면이 그려지지 않았습니다");
   else if (!fdoc.getElementById("bMap").children.length) bad("진행자 지도가 비어 있습니다");
   else if (!fdoc.getElementById("bCue").children.length) bad("'지금 진행자가 할 일' 이 비어 있습니다");

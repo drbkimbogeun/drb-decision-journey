@@ -112,6 +112,8 @@ window.DRBAudio = (function () {
     return el;
   }
 
+  /* 소리는 어떤 경우에도 게임을 막지 않습니다.
+     오래된 브라우저·테스트 환경에서는 play/pause 가 없을 수도 있습니다. */
   function fade(el, to, ms) {
     if (!el || el.dataset.missing) return;
     var from = el.volume;
@@ -119,11 +121,13 @@ window.DRBAudio = (function () {
     function step(t) {
       if (start === null) start = t;
       var k = Math.min(1, (t - start) / ms);
-      el.volume = Math.max(0, Math.min(1, from + (to - from) * k));
+      try { el.volume = Math.max(0, Math.min(1, from + (to - from) * k)); } catch (e) { return; }
       if (k < 1) requestAnimationFrame(step);
-      else if (to === 0) el.pause();
+      else if (to === 0) { try { el.pause(); } catch (e) {} }
     }
-    if (to > 0 && el.paused) { var p = el.play(); if (p && p.catch) p.catch(function () {}); }
+    if (to > 0 && el.paused) {
+      try { var p = el.play(); if (p && p.catch) p.catch(function () {}); } catch (e) { return; }
+    }
     requestAnimationFrame(step);
   }
 

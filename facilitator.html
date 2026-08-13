@@ -221,15 +221,24 @@
         <section class="fac-stage hidden" id="stageActual" data-stage-panel="actual">
           <article class="fac-drb" id="bActual" data-testid="fac-actual-compare" data-round-id="r1">
             <div class="fac-drb__head">
-              <div>
-                <div class="fac-drb__eyebrow">HISTORY DEBRIEF · 정답 판정이 아닌 관점 비교</div>
-                <h2 class="fac-drb__title" id="bActualTitle">참가자 판단과 DRB 기록 비교</h2>
-              </div>
+              <span class="fac-drb__stamp">ACTUAL DRB</span>
+              <span class="fac-drb__when num" id="bActualWhen">1947 · 검증된 기록</span>
               <span class="spacer"></span>
-              <span class="chip chip--fact">텍스트·연표는 확인된 DRB 기록</span>
+              <span class="fac-drb__eyebrow">사실과 연출을 구분합니다</span>
             </div>
+
             <div class="fac-spoiler-lock" id="bActualLock" data-testid="fac-spoiler-lock">
-              <div class="fac-spoiler-lock__content" id="bActualContent"></div>
+              <div class="fac-spoiler-lock__content" id="bActualContent">
+                <h2 class="fac-drb__title" id="bActualTitle">참가자 판단과 DRB 기록 비교</h2>
+                <div class="drbcards" id="bDrbCards"></div>
+                <div class="fac-drb__timeline" id="bDrbTimeline"></div>
+                <div class="fac-drb__foot">
+                  <div class="fac-drb__chips" id="bDrbChips"></div>
+                  <span class="spacer"></span>
+                  <span class="fac-drb__note">텍스트·연표는 확인된 DRB 기록입니다<br>이미지는 AI로 제작한 시대 연출입니다</span>
+                  <button class="btn btn--dark btn--lg no-print" data-goto="debrief">다음 국면 →</button>
+                </div>
+              </div>
               <div class="fac-spoiler-lock__cover">
                 <div class="fac-spoiler-lock__icon" aria-hidden="true">⌁</div>
                 <div class="fac-spoiler-lock__title" id="bLockTitle">아직 공개하지 마세요</div>
@@ -302,12 +311,10 @@
         <section class="fac-stage hidden" id="stageAward" data-stage-panel="award">
           <article class="fac-award" id="bAward">
             <div class="fac-award__head">
-              <div>
-                <div class="fac-console__eyebrow">CLOSING · 진행자 화면에서만 공개</div>
-                <h2 class="fac-award__title">오늘의 결과</h2>
-              </div>
+              <span class="fac-award__stamp">FINAL</span>
+              <span class="fac-award__when" id="bAwardWhen">1947 → 2026 · 6번의 결정이 끝났습니다</span>
               <span class="spacer"></span>
-              <span class="chip" id="bAwardState">전 조 완주 후 열립니다</span>
+              <span class="fac-award__state" id="bAwardState">전 조 완주 후 열립니다</span>
             </div>
             <div class="fac-award__body" id="bAwardBody"></div>
           </article>
