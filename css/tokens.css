@@ -1,119 +1,143 @@
 /* ============================================================
    tokens.css — 디자인 토큰 (색 / 간격 / 글꼴 / 모양)
 
+   ◆ CORAL PURPLE — 2026 온보딩 시뮬레이션 디자인 시스템
+
    ★ 디자인을 바꾸고 싶으면 이 파일의 값만 바꾸세요.
      다른 CSS 파일은 여기 정의된 변수만 사용합니다.
      (색상 코드를 다른 파일에 직접 쓰지 않는 것이 규칙입니다)
    ============================================================ */
 
 :root {
-  /* ---------- 브랜드 ---------- */
-  --drb-red:            rgb(227, 29, 56);   /* DRB 메인컬러 */
-  --drb-red-soft:       rgba(227, 29, 56, 0.16);
-  --drb-red-line:       rgba(227, 29, 56, 0.42);
-  --drb-red-hover:      rgb(243, 58, 83);
 
-  /* ---------- 배경 (어두운 경영 상황실 톤) ---------- */
-  --bg-0:               #0d1117;   /* 가장 바깥 */
-  --bg-1:               #141a22;   /* 패널 */
-  --bg-2:               #1b232d;   /* 카드 */
-  --bg-3:               #232d39;   /* 카드 위 요소 */
-  --bg-inset:           #0a0e13;   /* 눌린 영역 (입력창 등) */
+  /* ============================================================
+     1. 색 — CORAL PURPLE
+     ============================================================ */
+
+  /* ---------- 주 컬러 ---------- */
+  --accent:            #8B5CD6;   /* 주 컬러 · 선택 / 강조 / 주요 버튼 */
+  --accent-deep:       #43277F;   /* 딥 · 엔딩 배경 / 진한 강조 */
+  --accent-tint:       #F1EBFC;   /* 틴트 · 선택된 카드 배경 */
+
+  --accent-hover:      #7B4BCB;
+  --accent-line:       #C6A9EE;                    /* 선택된 카드 테두리 */
+  --accent-soft:       rgba(139, 92, 214, 0.10);   /* 아주 옅은 바탕 */
+  --accent-track:      #EDE6F8;                    /* 게이지 빈 칸 */
+
+  /* ---------- 보조 : 코랄 (시간 · 돌발) ----------
+     타이머, 남은 시간, 돌발상황, 리스크, 하락 표시에만 씁니다.
+     여기저기 쓰면 '지금 급하다'는 신호가 죽습니다. */
+  --coral:             #FF7A5C;
+  --coral-tint:        #FFF1ED;
+  --coral-line:        #FFC6B6;
 
   /* ---------- 선 ---------- */
-  --line:               #2a3542;
-  --line-strong:        #3a4757;
+  --line:              #E7E2F0;
+  --line-strong:       #D6CEE7;
 
   /* ---------- 글자 ---------- */
-  --text-1:             #e8edf3;   /* 본문 */
-  --text-2:             #a7b4c4;   /* 보조 */
-  --text-3:             #6f7f92;   /* 약한 설명 */
-  --text-on-accent:     #ffffff;
+  --text-1:            #1A1327;   /* 본문 */
+  --text-2:            #6C6280;   /* 보조 */
+  --text-3:            #9C93AE;   /* 약한 설명 */
+  --text-on-accent:    #FFFFFF;
 
-  /* ---------- 의미 색 ---------- */
-  --good:               #3fb950;   /* 증가 / 좋음 */
-  --good-soft:          rgba(63, 185, 80, 0.14);
-  --bad:                #f0603a;   /* 감소 / 나쁨 */
-  --bad-soft:           rgba(240, 96, 58, 0.14);
-  --warn:               #e3a008;   /* 주의 / 돌발상황 */
-  --warn-soft:          rgba(227, 160, 8, 0.14);
-  --info:               #58a6ff;   /* 정보 / 시대환경 */
-  --info-soft:          rgba(88, 166, 255, 0.12);
+  /* ---------- 배경 ---------- */
+  --bg-0:              #FFFFFF;   /* 가장 바깥 */
+  --bg-1:              #FBFAFE;   /* 사이드 레일 / 패널 */
+  --bg-2:              #FFFFFF;   /* 카드 */
+  --bg-3:              #F6F3FB;   /* 카드 위 요소 */
+  --bg-inset:          #FAF9FD;   /* 눌린 영역 (입력창 등) */
 
-  /* ---------- 지표별 색 (회사 상태 게이지) ---------- */
-  --m-cash:             #f2c14e;
-  --m-capacity:         #7aa2f7;
-  --m-tech:             #a78bfa;
-  --m-quality:          #4dd4c0;
-  --m-trust:            #f78fb3;
-  --m-people:           #7fd18a;
+  /* ---------- 의미 색 ----------
+     이 디자인은 빨강·초록을 쓰지 않습니다.
+     "좋아짐 = 주 컬러 / 나빠짐 = 코랄" 두 가지로만 말합니다. */
+  --good:              var(--accent);
+  --good-soft:         var(--accent-soft);
+  --bad:               var(--coral);
+  --bad-soft:          var(--coral-tint);
+  --warn:              var(--coral);
+  --warn-soft:         var(--coral-tint);
+  --info:              var(--accent);
+  --info-soft:         var(--accent-soft);
 
-  /* ---------- 구분: 실제 역사 vs 가상 시뮬레이션 ---------- */
-  /* 실제 DRB 기록 = 금색 계열 / 시뮬레이션 = 청색 계열 */
-  --fact-bg:            #1e1a12;
-  --fact-line:          #7a6224;
-  --fact-text:          #f3d68a;
-  --sim-line:           var(--info);
+  /* ---------- 지표별 색 (회사 상태 게이지) ----------
+     게이지는 전부 주 컬러 한 가지입니다. 색으로 순위를 만들지 않습니다. */
+  --m-cash:            var(--accent);
+  --m-capacity:        var(--accent);
+  --m-tech:            var(--accent);
+  --m-quality:         var(--accent);
+  --m-trust:           var(--accent);
+  --m-people:          var(--accent);
 
-  /* ---------- 간격 ---------- */
-  --sp-1:               4px;
-  --sp-2:               8px;
-  --sp-3:               12px;
-  --sp-4:               16px;
-  --sp-5:               24px;
-  --sp-6:               32px;
-  --sp-7:               48px;
+  /* ---------- 구분: 실제 역사 vs 가상 시뮬레이션 ----------
+     실제 DRB 기록 = 금색 / 시뮬레이션 = 주 컬러 */
+  --fact-bg:           #FDFAEF;
+  --fact-line:         #E3D5A8;
+  --fact-text:         #8A7233;
+  --sim-line:          var(--accent);
 
-  /* ---------- 글꼴 ---------- */
-  --font-ui: "Pretendard", "Malgun Gothic", "맑은 고딕", -apple-system,
-             "Segoe UI", Roboto, sans-serif;
-  --font-num: "Consolas", "D2Coding", "Menlo", monospace;  /* 숫자 전용 */
+  /* ---------- 옛 이름 (다른 파일이 아직 쓰고 있는 변수) ----------
+     새 색을 그대로 넘겨줍니다. 값을 여기서 따로 정하지 마세요. */
+  --drb-red:           var(--accent);
+  --drb-red-soft:      var(--accent-soft);
+  --drb-red-line:      var(--accent-line);
+  --drb-red-hover:     var(--accent-hover);
 
-  --fs-display:         38px;   /* 화면 대제목 */
-  --fs-title:           26px;   /* 상황 제목 */
-  --fs-lead:            18px;   /* 상황 본문 */
-  --fs-body:            15px;
-  --fs-small:           13px;
-  --fs-tiny:            11px;
 
-  --lh-tight:           1.25;
-  --lh-body:            1.7;
+  /* ============================================================
+     2. 글꼴 · 크기
+        국면 질문 800 / 화면 제목 800 / 본문 400
+        숫자는 고정폭(tabular) — 값이 바뀌어도 자리가 흔들리지 않습니다.
+     ============================================================ */
 
-  /* ---------- 모양 ---------- */
-  --r-sm:               6px;
-  --r-md:               10px;
-  --r-lg:               16px;
-  --r-pill:             999px;
+  /* Paperlogy 가 설치된 PC에서는 Paperlogy 로, 없으면 Pretendard →
+     맑은 고딕 순서로 떨어집니다. 외부 폰트 CDN은 부르지 않습니다. */
+  --font-ui:  "Paperlogy", "Pretendard", "Malgun Gothic", "맑은 고딕",
+              -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-num: var(--font-ui);   /* 숫자도 같은 글꼴 · 고정폭만 켭니다 */
 
-  --shadow-card:        0 2px 10px rgba(0, 0, 0, 0.35);
-  --shadow-pop:         0 16px 48px rgba(0, 0, 0, 0.55);
+  --fs-display:        clamp(30px, 3.1vw, 42px);   /* 국면 질문 */
+  --fs-title:          clamp(22px, 2.0vw, 28px);   /* 화면 제목 */
+  --fs-lead:           16px;                       /* 제목 아래 한 줄 */
+  --fs-body:           14px;
+  --fs-small:          12.5px;
+  --fs-tiny:           11px;
+
+  --fw-strong:         800;
+  --fw-mid:            600;
+
+  --lh-tight:          1.18;
+  --lh-body:           1.65;
+
+
+  /* ============================================================
+     3. 간격 · 모양 · 움직임
+     ============================================================ */
+  --sp-1:              4px;
+  --sp-2:              8px;
+  --sp-3:              12px;
+  --sp-4:              16px;
+  --sp-5:              24px;
+  --sp-6:              32px;
+  --sp-7:              48px;
+
+  --r-sm:              8px;
+  --r-md:              12px;
+  --r-lg:              16px;
+  --r-xl:              20px;
+  --r-pill:            999px;
+
+  --shadow-card:       0 1px 2px rgba(26, 19, 39, 0.04);
+  --shadow-raise:      0 6px 18px rgba(26, 19, 39, 0.06);
+  --shadow-pop:        0 24px 60px rgba(26, 19, 39, 0.16);
 
   /* ---------- 레이아웃 ---------- */
-  --topbar-h:           64px;
-  --side-w:             320px;
-  --content-max:        1080px;
+  --topbar-h:          64px;
+  --side-w:            300px;    /* 브리핑 오른쪽 레일 */
+  --rail-w:            250px;    /* 자원 배분 왼쪽 레일 */
+  --content-max:       1240px;
 
   /* ---------- 움직임 (교육용이라 절제) ---------- */
-  --t-fast:             120ms ease;
-  --t-base:             220ms ease;
-}
-
-/* 밝은 화면을 선호하는 교육장(빔프로젝터 등)을 위한 대체 테마.
-   <html data-theme="light"> 를 주면 적용됩니다. */
-:root[data-theme="light"] {
-  --bg-0:               #f4f6f9;
-  --bg-1:               #ffffff;
-  --bg-2:               #ffffff;
-  --bg-3:               #eef1f5;
-  --bg-inset:           #e9edf2;
-  --line:               #d8dee6;
-  --line-strong:        #b9c3cf;
-  --text-1:             #16202b;
-  --text-2:             #4c5b6b;
-  --text-3:             #78889a;
-  --fact-bg:            #fdf7e6;
-  --fact-line:          #d8b65a;
-  --fact-text:          #6b5410;
-  --shadow-card:        0 1px 4px rgba(16, 32, 48, 0.10);
-  --shadow-pop:         0 16px 48px rgba(16, 32, 48, 0.18);
+  --t-fast:            120ms ease;
+  --t-base:            220ms ease;
 }

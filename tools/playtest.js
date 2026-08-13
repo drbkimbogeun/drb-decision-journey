@@ -194,23 +194,28 @@ const server = http.createServer((req, res) => {
       log.push("  시간 진행 (건너뛰기)");
 
     } else if (screen === "ending") {
-      /* 2026 엔딩 — 4단계를 눌러 넘긴다 */
+      /* 2026 엔딩 — 한 화면이 3단계로 열린다 */
+      if (!$("endYears").children.length) bad("엔딩의 연도 칩이 비어 있습니다");
       let step = 0;
-      while (step < 4) {
-        const active = doc.querySelector(".ending__step.is-active");
-        if (!active) { bad("엔딩 단계가 활성화되지 않았습니다"); break; }
+      while (step < 3) {
+        if ($("ending").getAttribute("data-step") !== String(step)) {
+          bad(`엔딩 단계가 ${step} 이 아닙니다`); break;
+        }
         if (step === 2 && !$("endMarket").children.length) {
           bad("엔딩의 '시장은 멈추지 않습니다' 목록이 비어 있습니다");
         }
-        active.querySelector("button").click();
+        click("btnEndNext");
         step++;
       }
       if ($("sc-ending").classList.contains("is-active")) bad("엔딩이 끝나지 않았습니다");
-      log.push("  2026 UNKNOWN 엔딩 4단계 통과");
+      log.push("  2026 UNKNOWN 엔딩 3단계 통과");
 
     } else if (screen === "result") {
       if (!$("reHeadline").textContent.trim()) bad("결과 요약 문장이 비어 있습니다");
-      if ($("reKpi").children.length !== 4) bad("KPI 4개가 나오지 않았습니다");
+      if ($("reKpi").children.length !== 3) bad("KPI 3개(매출·손익·현금)가 나오지 않았습니다");
+      if (!$("rePnlBar").children.length) bad("손익 구성 막대가 비어 있습니다");
+      if (!$("reWhy").children.length) bad("'이렇게 나온 이유' 가 비어 있습니다");
+      if ($("reTeamBars").children.length !== S.teamNames().length) bad("조별 비교 막대 수가 맞지 않습니다");
       if ($("reRevWhy").children.length === 0) bad("매출 원인 설명이 비어 있습니다");
       if ($("reTokens").children.length === 0) bad("자원 변화 표시가 비어 있습니다");
       if (!$("reStanding").children.length) bad("경쟁사 대비 위치가 비어 있습니다");
@@ -230,6 +235,15 @@ const server = http.createServer((req, res) => {
       }
       if (!$("acRivals").children.length) bad("경쟁사 비교 칸이 비어 있습니다");
       log.push(`  ACTUAL DRB + 경쟁사 비교 (${$("acRivals").children.length}칸)`);
+
+      /* ERA 클리어 체크포인트 — 세 문장을 채워야 다음 시대가 열린다 */
+      if (!$("btnActualGo").disabled) bad("체크포인트가 비었는데 다음 시대가 열려 있습니다");
+      ["acKept", "acTradeoff", "acLesson"].forEach((id, i) => {
+        $(id).value = "테스트 문장 " + (i + 1);
+        $(id).dispatchEvent(new win.Event("input", { bubbles: true }));
+      });
+      if ($("btnActualGo").disabled) bad("세 문장을 채웠는데도 다음 시대가 열리지 않습니다");
+      else ok("ERA 클리어 체크포인트 통과");
       click("btnActualGo");
 
     } else if (screen === "whatif") {
@@ -310,10 +324,12 @@ const server = http.createServer((req, res) => {
   }
 
   /* 변화 대응력이 최종 화면에서 처음 공개되는가 */
-  if (!$("fiAdaptStars").textContent.trim()) bad("변화 대응력 별점이 표시되지 않았습니다");
-  else ok("변화 대응력 공개 — " + $("fiAdaptStars").textContent + " (" + $("fiAdaptScore").textContent + ")");
-  if (!$("fiPowerStars").textContent.trim()) bad("현재 경쟁력 별점이 표시되지 않았습니다");
-  else ok("현재 경쟁력 — " + $("fiPowerStars").textContent);
+  if (!$("fiAdaptScore").textContent.trim()) bad("변화 대응력 점수가 표시되지 않았습니다");
+  else ok("변화 대응력 공개 — " + $("fiAdaptScore").textContent);
+  if (!$("fiPowerScore").textContent.trim()) bad("현재 경쟁력 점수가 표시되지 않았습니다");
+  else ok("현재 경쟁력 — " + $("fiPowerScore").textContent);
+  if (!$("fiAdaptFill").style.width || !$("fiPowerFill").style.width) bad("점수 막대가 그려지지 않았습니다");
+  else ok("점수 막대 표시");
   if ($("fiAdaptParts").children.length < 5) bad("변화 대응력 구성 항목이 부족합니다");
   else ok("변화 대응력 구성 " + $("fiAdaptParts").children.length + "항목");
   if (!$("fiVerdict").textContent.trim()) bad("최종 총평이 비어 있습니다");
@@ -324,9 +340,9 @@ const server = http.createServer((req, res) => {
   if (!$("fiStanding").children.length) bad("최종 경쟁사 비교가 비어 있습니다");
   else ok("경쟁사 대비 위치 표시");
 
-  /* ---------- 사이드 패널 ---------- */
-  if ($("sideMetrics").children.length !== CFG.metrics.length) bad("사이드 지표가 다 그려지지 않았습니다");
-  else ok("사이드 회사상태 " + CFG.metrics.length + "개 표시");
+  /* ---------- 회사 상태 (자원 배분 화면 왼쪽 레일) ---------- */
+  if ($("inState").children.length < CFG.metrics.length) bad("레일의 회사 상태가 다 그려지지 않았습니다");
+  else ok("회사 상태 " + CFG.metrics.length + "개 표시");
 
   /* ---------- 조 전환 ---------- */
   const other = S.g().teamNames.find(n => n !== S.g().activeTeam);
@@ -363,11 +379,11 @@ const server = http.createServer((req, res) => {
   };
   await new Promise(r => setTimeout(r, 900));
   const fdoc = facDom.window.document;
-  if (!fdoc.getElementById("bTeams")) bad("진행자 화면이 그려지지 않았습니다");
+  if (!fdoc.getElementById("bDecisionRows")) bad("진행자 화면이 그려지지 않았습니다");
   else if (!fdoc.getElementById("bMap").children.length) bad("진행자 지도가 비어 있습니다");
-  else if (!fdoc.getElementById("bNews").children.length) bad("진행자 뉴스 피드가 비어 있습니다");
+  else if (!fdoc.getElementById("bCue").children.length) bad("'지금 진행자가 할 일' 이 비어 있습니다");
   else ok("진행자 화면(지도 " + fdoc.querySelectorAll("#bMap .region").length +
-          "지역 · 뉴스 " + fdoc.getElementById("bNewsCount").textContent + "건) 정상");
+          "지역 · " + fdoc.getElementById("bNewsCount").textContent + ") 정상");
   facDom.window.close();
 
   /* ---------- 오류 종합 ---------- */

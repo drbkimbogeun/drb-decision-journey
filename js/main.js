@@ -217,6 +217,7 @@
       case "situation":
         UI.renderSituation();
         showScreen("situation");
+        startTimer();
         break;
 
       case "invest":
@@ -229,6 +230,7 @@
         UI.renderPolicy(pickedPolicy, pickPolicy);
         el("btnPolicyGo").disabled = !pickedPolicy;
         showScreen("policy");
+        startTimer();
         break;
 
       case "result":
@@ -302,20 +304,31 @@
   /* ============================================================
      타이머 — 토론 시간 관리 (진행자가 원하면 끌 수 있음)
      ============================================================ */
+  /* 토론 시간은 브리핑 → 자원 배분 → 정책을 하나로 이어서 셉니다.
+     화면을 넘긴다고 시간이 되돌아가면 안 됩니다. */
+  var timerRemain = null;
+  var timerTurn = -1;
+
   function startTimer() {
     if (!CFG.timer.enabled) return;
-    /* 시대가 뒤로 갈수록 토론 시간이 짧아집니다 (5분 → 2분 30초) */
+    /* 시대가 뒤로 갈수록 토론 시간이 짧아집니다 (5분 → 3분) */
     var era = S.era();
-    var remain = (era.pace && era.pace.discussSeconds) || CFG.timer.discussSeconds;
+    var turn = S.turnIndex();
+    if (timerTurn !== turn || timerRemain === null) {
+      timerTurn = turn;
+      timerRemain = (era.pace && era.pace.discussSeconds) || CFG.timer.discussSeconds;
+    }
+
     var box = el("tbTimer");
     box.classList.remove("hidden");
 
     function tick() {
-      var m = Math.floor(Math.abs(remain) / 60);
-      var s = Math.abs(remain) % 60;
-      el("tbTimerText").textContent = (remain < 0 ? "-" : "") + m + ":" + (s < 10 ? "0" : "") + s;
-      box.classList.toggle("is-urgent", remain <= CFG.timer.warnSeconds);
-      remain--;
+      var m = Math.floor(Math.abs(timerRemain) / 60);
+      var s = Math.abs(timerRemain) % 60;
+      el("tbTimerText").textContent = (timerRemain < 0 ? "-" : "") +
+        (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
+      box.classList.toggle("is-urgent", timerRemain <= CFG.timer.warnSeconds);
+      timerRemain--;
     }
     tick();
     timerId = setInterval(tick, 1000);
@@ -501,7 +514,7 @@
 
   function nextEnding() {
     endingStep++;
-    if (endingStep > 3) {
+    if (endingStep > 2) {
       S.setPhase("whatif");
       render();
       return;
@@ -592,6 +605,7 @@
 
     el("btnRoundGo").onclick  = function () { S.setPhase("situation"); render(); };
     el("btnSitGo").onclick    = function () { S.setPhase("invest"); render(); };
+    el("btnSitBrief").onclick = function () { S.setPhase("roundOpen"); render(); };
     el("btnInvestBack").onclick = function () { S.setPhase("situation"); render(); };
     el("btnInvestGo").onclick = function () {
       if (UI.allocSum(alloc) === 0 &&
@@ -608,9 +622,7 @@
     });
     el("btnWhatifGo").onclick = afterWhatIf;
     el("btnSkipLapse").onclick = skipLapse;
-    ["btnEnd1", "btnEnd2", "btnEnd3", "btnEnd4"].forEach(function (id) {
-      el(id).onclick = nextEnding;
-    });
+    el("btnEndNext").onclick = nextEnding;
 
     el("btnSaveReason").onclick = saveReason;
     el("btnCopyCode").onclick = copyCode;

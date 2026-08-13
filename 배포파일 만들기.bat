@@ -25,6 +25,13 @@ if exist "assets\img" (
   xcopy /e /i /y /q "assets\img" "_deploy\assets\img" >nul
 )
 
+rem Paperlogy font files must ship with the game so every PC looks the same
+if exist "assets\fonts" (
+  mkdir "_deploy\assets" 2>nul
+  xcopy /e /i /y /q "assets\fonts" "_deploy\assets\fonts" >nul
+  del /q "_deploy\assets\fonts\*.md" 2>nul
+)
+
 echo. > "_deploy\.nojekyll"
 
 echo ============================================================
