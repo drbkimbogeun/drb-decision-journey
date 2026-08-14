@@ -91,7 +91,7 @@
 
   function initIntro() {
     document.title = CFG.gameTitle;
-    el("introTitle").textContent = "80년의 선택";
+    el("introTitle").textContent = "80년의 여정";
 
     var lockedCount = liveUrl && assignedLiveTeamCount ? assignedLiveTeamCount : setupTeamCount;
     var lockedTeam = liveUrl && assignedLiveTeam ? assignedLiveTeam : setupTeamName;
