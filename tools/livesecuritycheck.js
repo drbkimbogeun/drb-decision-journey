@@ -7,7 +7,13 @@ const vm = require("vm");
 const worker = fs.readFileSync("worker.js", "utf8");
 const live = fs.readFileSync("js/live.js", "utf8");
 const facilitator = fs.readFileSync("js/facilitator.js", "utf8");
-const config = JSON.parse(fs.readFileSync("wrangler.jsonc", "utf8"));
+/* .jsonc 는 주석을 허용합니다. JSON.parse 는 허용하지 않으므로 먼저 걷어냅니다.
+   (설정에 왜 그렇게 했는지 적어두는 주석이 검사기를 깨뜨리면 안 됩니다) */
+const config = JSON.parse(
+  fs.readFileSync("wrangler.jsonc", "utf8")
+    .replace(/^\s*\/\/.*$/gm, "")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+);
 
 function has(source, pattern, message) {
   assert(pattern.test(source), message);
