@@ -835,13 +835,17 @@
     el("bHowtoTotal").textContent = "전체 " + (CFG.totalMinutes || per * timeline.length) + "분";
 
     var nowIndex = { briefing: 0, decisions: 1, event: 2, phase: 3, actual: 4, debrief: 4, map: 3 }[currentStage];
+
+    /* 카드 다섯 장이 아니라 화살표로 이어진 순서도입니다.
+       빔에서는 "다섯 개가 있다" 보다 "이 순서로 흐른다" 가 먼저 읽혀야 합니다.
+       분 표시는 뺐습니다 — 진행자가 시계를 보지, 참가자가 볼 것이 아닙니다. */
     el("bHowtoCards").innerHTML = plan.map(function (step, i) {
-      var cls = "howtocard" + (step.fact ? " howtocard--fact" : (i === nowIndex ? " howtocard--now" : ""));
-      return "<div class='" + cls + "'>" +
-        "<span class='howtocard__no num'>" + (i + 1) + "</span>" +
-        "<div class='howtocard__name'>" + esc(step.name).split("|").join("<br>") + "</div>" +
-        "<div class='howtocard__min num'>" + step.minutes + "분</div>" +
-      "</div>";
+      var cls = "flowstep" + (step.fact ? " flowstep--fact" : (i === nowIndex ? " flowstep--now" : ""));
+      return (i > 0 ? "<span class='flowarrow' aria-hidden='true'>→</span>" : "") +
+        "<div class='" + cls + "'>" +
+          "<span class='flowstep__no num'>" + (i + 1) + "</span>" +
+          "<div class='flowstep__name'>" + esc(step.name).split("|").join("<br>") + "</div>" +
+        "</div>";
     }).join("");
   }
 
@@ -863,6 +867,12 @@
     el("bBriefBody").textContent = item.sub.situation.body;
     el("bComplexity").textContent = "복잡도 " + (selectedTurn + 1) + " / " + timeline.length;
 
+    /* 그 시점에 알 수 있었던 신호. 참가자 노트북에서 이 화면을 뺐으므로
+       국내·세계·리스크는 이제 여기서만 나옵니다 — 진행자가 읽어줘야 합니다. */
+    signalList(el("bBriefDomestic"), era.briefing.domestic, false);
+    signalList(el("bBriefGlobal"), era.briefing.global, false);
+    signalList(el("bBriefRisk"), era.briefing.risk, true);
+
     el("bBriefFacts").innerHTML = [
       ["이번에 새로 어려워진 점", complexityCue(item)],
       ["쓸 수 있는 예산", item.sub.budget + " · 실물 토큰 " + (item.sub.budget / CFG.tokenUnit) + "개"],
@@ -875,6 +885,20 @@
       "</div>";
     }).join("");
     el("bBriefSource").textContent = "이 배경은 당시 산업환경을 재구성한 교육용 시뮬레이션입니다. DRB의 실제 기록은 시대가 끝난 뒤 따로 공개합니다.";
+  }
+
+  /* 신호 한 줄씩. 리스크는 tone 없이 문자열 배열이라 따로 받습니다. */
+  var TONE_MARK = { up: "▲", down: "▼", q: "?", flat: "·" };
+
+  function signalList(node, rows, plain) {
+    node.innerHTML = (rows || []).map(function (row) {
+      var tone = plain ? "risk" : (row.tone || "flat");
+      var text = plain ? row : row.text;
+      return "<span class='fac-signal__item fac-signal__item--" + esc(tone) + "'>" +
+        "<i class='fac-signal__mark'>" + (plain ? "!" : (TONE_MARK[tone] || "·")) + "</i>" +
+        "<b>" + esc(text) + "</b>" +
+      "</span>";
+    }).join("");
   }
 
   function complexityCue(item) {
@@ -1248,11 +1272,12 @@
   }
 
   function renderMap(teams) {
+    /* 지도는 이미지 한 장입니다 (assets/img/worldmap.webp).
+       핀 위치는 data/global.js 의 map.x / map.y 백분율이고, 그 값은 이 이미지
+       기준으로 맞춰져 있습니다. 지도를 바꾸면 좌표도 같이 맞춰야 합니다. */
     var box = el("bMap");
-    box.innerHTML = "<svg class='bigmap__svg' viewBox='0 0 100 50' preserveAspectRatio='none' aria-hidden='true'>" +
-      "<path class='bigmap__land' d='M8,14 L26,10 L32,20 L26,34 L16,40 L10,30 Z'/><path class='bigmap__land' d='M22,38 L30,36 L32,46 L26,49 L21,44 Z'/>" +
-      "<path class='bigmap__land' d='M42,10 L56,8 L58,18 L50,22 L43,18 Z'/><path class='bigmap__land' d='M44,24 L58,22 L60,38 L50,44 L44,34 Z'/>" +
-      "<path class='bigmap__land' d='M60,12 L86,10 L92,22 L84,32 L70,34 L62,24 Z'/><path class='bigmap__land' d='M72,44 L88,42 L90,48 L74,49 Z'/></svg>";
+    box.innerHTML = "<div class='bigmap__frame'></div>";
+    var frame = box.firstChild;
     var regions = {};
     function add(region, team, stage) { if (!regions[region]) regions[region] = []; regions[region].push({ name: team.name, color: teamColor(team.name), stage: stage }); }
     teams.forEach(function (team) {
@@ -1264,10 +1289,14 @@
       node.className = "region" + (place.id === G.home.id ? " region--home" : "");
       node.style.left = place.map.x + "%";
       node.style.top = place.map.y + "%";
-      node.innerHTML = "<div class='region__name'>" + esc(place.name) + "</div><div class='region__pins'>" + (regions[place.id] || []).map(function (pin) {
+      /* 지도 그림에 이미 대륙 이름이 박혀 있습니다. 아무도 없는 지역까지
+         이름을 얹으면 "유럽" 이 두 번 나옵니다 — 조가 있는 곳만 이름을 답니다. */
+      var pins = regions[place.id] || [];
+      node.innerHTML = (pins.length ? "<div class='region__name'>" + esc(place.name) + "</div>" : "") +
+        "<div class='region__pins'>" + pins.map(function (pin) {
         return "<span class='pin" + (pin.stage === "build" ? " pin--build" : "") + "'><span class='pin__dot' style='background:" + pin.color + "'></span>" + esc(pin.name) + "</span>";
       }).join("") + "</div>";
-      box.appendChild(node);
+      frame.appendChild(node);
     });
     var sites = teams.reduce(function (sum, team) { return sum + (team.state.sites || []).length; }, 0);
     el("bBar").innerHTML = "<span class='boardbar__item'><span class='boardbar__k'>참가 조</span><span class='boardbar__v'>" + teams.length + "</span></span>" +
@@ -1483,6 +1512,13 @@
       "<label class='field-label' for='sessionTeamCount'>참가 조 수</label>" +
       "<select class='select' id='sessionTeamCount'>" +
       "<option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option></select>" +
+      "<label class='field-label' for='sessionRivalCount' style='margin-top:var(--sp-4)'>AI 경쟁사 수</label>" +
+      "<select class='select' id='sessionRivalCount'>" +
+      "<option value='1'>1개 — Gates</option>" +
+      "<option value='2'>2개 — Gates · Mitsuboshi</option>" +
+      "<option value='3' selected>3개 — Gates · Mitsuboshi · ContiTech</option></select>" +
+      "<p class='hint' style='margin-top:var(--sp-2)'>실제 산업용 벨트 회사 이름을 씁니다. " +
+      "화면에 나오는 숫자는 그 회사의 실적이 아니라 같은 엔진으로 돌린 교육용 시뮬레이션입니다.</p>" +
       "<div class='sessionfail hidden' id='sessionFail'></div>" +
       "<div class='row' style='margin-top:var(--sp-4)'>" +
       "<button class='btn btn--primary btn--lg' id='sessionCreate'>세션 코드 만들기</button></div>");
@@ -1493,7 +1529,10 @@
       if (!window.DRBLive) { fail.classList.remove("hidden"); fail.textContent = "라이브 모듈을 불러오지 못했습니다."; return; }
       el("sessionCreate").disabled = true;
       el("sessionCreate").textContent = "만드는 중…";
-      window.DRBLive.create({ teamCount: Number(el("sessionTeamCount").value) }).then(function (created) {
+      window.DRBLive.create({
+        teamCount: Number(el("sessionTeamCount").value),
+        rivalCount: Number(el("sessionRivalCount").value),
+      }).then(function (created) {
         showSessionDetails(created);
         startLivePolling();
       }).catch(function (err) {

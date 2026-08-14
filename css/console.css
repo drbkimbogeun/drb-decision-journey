@@ -398,6 +398,47 @@ body.fac-body {
   font-weight: 400;
   line-height: 1.7;
 }
+/* 그 시점에 알 수 있었던 것 — 국내 · 세계 · 리스크.
+   참가자 노트북에서 이 화면을 뺐으므로 여기가 유일한 자리입니다. */
+.fac-brief__signals {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--sp-4);
+  margin-top: clamp(20px, 2.2vw, 34px);
+}
+.fac-signal { display: flex; flex-direction: column; gap: var(--sp-2); min-width: 0; }
+.fac-signal__label {
+  color: var(--text-3);
+  font-size: var(--fs-tiny);
+  font-weight: var(--fw-strong);
+  letter-spacing: 0.12em;
+}
+.fac-signal__list { display: flex; flex-direction: column; gap: 7px; }
+.fac-signal__item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  padding: 7px 12px;
+  border-radius: var(--r-sm);
+  background: var(--bg-1);
+  font-size: clamp(15px, 1.15vw, 20px);
+  line-height: 1.4;
+}
+.fac-signal__item b { font-weight: var(--fw-mid); }
+.fac-signal__mark {
+  flex: 0 0 auto;
+  width: 1.1em;
+  font-style: normal;
+  font-weight: var(--fw-strong);
+  text-align: center;
+}
+.fac-signal__item--up   .fac-signal__mark { color: var(--accent); }
+.fac-signal__item--down .fac-signal__mark { color: var(--coral); }
+.fac-signal__item--q    .fac-signal__mark { color: var(--accent-line); }
+.fac-signal__item--flat .fac-signal__mark { color: var(--text-3); }
+.fac-signal--risk .fac-signal__item { background: var(--coral-tint); }
+.fac-signal--risk .fac-signal__mark { color: var(--coral); }
+
 .fac-brief__facts {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -970,17 +1011,27 @@ body.fac-body {
   color: #FFFFFF;
   cursor: pointer;
 }
-/* 글이 늘어나도 늘 화면 한가운데 있게 */
-.fac-closing__lines { display: flex; flex-direction: column; justify-content: center; flex: 1 1 auto; min-height: 0; }
+/* 글이 늘어나도 늘 화면 한가운데 있게 — 가로도 세로도 */
+.fac-closing__lines {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
+  min-height: 0;
+  text-align: center;
+}
+/* ★ 스무 줄이 한 화면에 다 들어와야 합니다. 가로 폭만 보고 크기를 정하면
+     빔 높이에서 마지막 줄이 잘립니다 — 높이(vh)도 같이 봅니다. */
 .closing__line {
-  min-height: 1.45em;
-  font-size: clamp(24px, 2.5vw, 40px);
+  min-height: 1.4em;
+  font-size: clamp(18px, min(2.2vw, 2.3vh), 34px);
   font-weight: var(--fw-strong);
-  line-height: 1.45;
+  line-height: 1.4;
   letter-spacing: -0.04em;
 }
 /* 빈 줄은 한 박자 쉬는 자리입니다 — 높이만 차지합니다 */
-.closing__line.is-gap { min-height: 0.7em; }
+.closing__line.is-gap { min-height: 0.55em; }
 /* 지금 찍히는 줄 끝의 커서 */
 .fac-closing__lines .closing__line:last-child::after {
   content: "";
@@ -994,7 +1045,7 @@ body.fac-body {
 }
 @keyframes closing-caret { 50% { opacity: 0; } }
 
-.fac-closing__foot { display: flex; align-items: center; gap: var(--sp-4); margin-top: auto; padding-top: clamp(24px, 3vw, 44px); }
+.fac-closing__foot { display: flex; align-items: center; gap: var(--sp-4); flex: 0 0 auto; padding-top: clamp(16px, 2vw, 28px); }
 .fac-closing__hint { color: rgba(255, 255, 255, 0.42); font-size: var(--fs-small); }
 
 
@@ -1062,32 +1113,59 @@ body.fac-body {
    ============================================================================ */
 .fac-howto { display: flex; flex-direction: column; height: 100%; min-height: 0; padding: 0; border: 0; background: none; box-shadow: none; }
 .fac-howto__head { display: flex; align-items: baseline; gap: var(--sp-3); flex: 0 0 auto; margin-bottom: var(--sp-4); }
-.fac-howto__cards { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--sp-3); flex: 1 1 auto; min-height: 0; }
-.howtocard {
+/* 순서도 — 화면 한가운데에서 왼쪽에서 오른쪽으로 흐릅니다 */
+.fac-flow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(6px, 0.9vw, 16px);
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.flowstep {
+  flex: 1 1 0;
   display: flex;
   flex-direction: column;
-  padding: var(--sp-5);
+  align-items: center;
+  justify-content: center;
+  gap: clamp(12px, 1.4vw, 22px);
+  min-width: 0;
+  padding: clamp(24px, 3vw, 52px) var(--sp-3);
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
   background: var(--bg-2);
+  text-align: center;
 }
-.howtocard--now  { border-color: var(--accent); background: var(--accent-tint); }
-.howtocard--fact { border-color: var(--fact-line); background: var(--fact-bg); }
-.howtocard__no {
-  display: grid; place-items: center;
-  width: 34px; height: 34px;
-  border-radius: var(--r-sm);
-  background: var(--accent-track);
-  color: var(--text-2);
-  font-size: 15px;
+.flowstep--now  { border-color: var(--accent); background: var(--accent-tint); }
+.flowstep--fact { border-color: var(--fact-line); background: var(--fact-bg); }
+.flowstep__no {
+  display: grid;
+  place-items: center;
+  width: clamp(30px, 2.4vw, 40px);
+  height: clamp(30px, 2.4vw, 40px);
+  border-radius: 50%;
+  background: var(--bg-1);
+  color: var(--text-3);
+  font-size: var(--fs-small);
   font-weight: var(--fw-strong);
 }
-.howtocard--now  .howtocard__no { background: var(--accent); color: var(--text-on-accent); }
-.howtocard--fact .howtocard__no { background: var(--fact-line); color: #4A3C10; }
-.howtocard__name { margin-top: var(--sp-4); font-size: var(--fs-lead); font-weight: var(--fw-strong); line-height: 1.3; letter-spacing: -0.03em; }
-.howtocard__min { margin-top: auto; padding-top: var(--sp-4); color: var(--text-3); font-size: var(--fs-body); font-weight: var(--fw-strong); }
-.howtocard--now  .howtocard__min { color: var(--accent); }
-.howtocard--fact .howtocard__min { color: var(--fact-text); }
+.flowstep--now  .flowstep__no { background: var(--accent); color: var(--text-on-accent); }
+.flowstep--fact .flowstep__no { background: var(--fact-line); color: #4A3C10; }
+.flowstep__name {
+  font-size: clamp(23px, 2.1vw, 36px);
+  font-weight: var(--fw-strong);
+  line-height: 1.28;
+  letter-spacing: -0.035em;
+}
+.flowstep--fact .flowstep__name { color: var(--fact-text); }
+.flowarrow {
+  flex: 0 0 auto;
+  color: var(--text-3);
+  font-size: clamp(24px, 2.3vw, 40px);
+  font-weight: var(--fw-strong);
+  line-height: 1;
+}
+
 
 .fac-howto__foot { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); flex: 0 0 auto; margin-top: var(--sp-3); }
 .fac-howto__box { display: flex; align-items: baseline; gap: var(--sp-3); padding: var(--sp-4) var(--sp-5); border: 1px solid var(--line); border-radius: var(--r-md); }
@@ -1164,7 +1242,9 @@ body.fac-body {
    ============================================================================ */
 @media (max-width: 1500px) {
   .fac-brief__facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .fac-howto__cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  /* 순서도는 줄바꿈하면 흐름이 끊깁니다 — 한 줄을 유지하고 글자만 줄입니다 */
+  .flowstep { padding: clamp(18px, 2.4vw, 34px) var(--sp-2); }
+  .flowstep__name { font-size: clamp(19px, 1.8vw, 26px); }
   .fac-standings__grid { grid-template-columns: 1fr; }
   .fac-phase__cards { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .podium { grid-template-columns: 1fr; }
@@ -1181,4 +1261,33 @@ body.fac-body {
   .fac-console { height: auto; overflow: visible; }
   .fac-main, .fac-stage > article { overflow: visible; height: auto; }
   .fac-top, .fac-strip, .fac-drive, .fac-tools, .no-print { display: none !important; }
+}
+
+
+/* ============================================================================
+   19. 세계지도 — 이미지 한 장
+
+   대륙 실루엣을 CSS 로 그리던 것을 실제 지도 이미지로 바꿨습니다.
+   핀 좌표는 data/global.js 의 map.x / map.y 백분율이고 이 이미지에 맞춰
+   잡혀 있습니다. 지도를 갈면 좌표도 같이 맞춰야 합니다.
+   ⚠ 회사 보안정책이 공유폴더에 .png 쓰기를 막아 .webp 로 넣었습니다.
+   ============================================================================ */
+.bigmap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-1);
+}
+/* ★ 지도 그림과 핀은 이 틀 안에 같이 있어야 합니다.
+     틀이 이미지와 같은 비율이어야 핀의 백분율이 실제 위치와 맞습니다.
+     (틀 없이 .bigmap 에 배경을 깔면 남는 여백만큼 핀이 밀립니다) */
+.bigmap__frame {
+  position: relative;
+  width: 100%;
+  max-height: 100%;
+  aspect-ratio: 1672 / 941;
+  background-image: url("../assets/img/worldmap.webp");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% 100%;
 }

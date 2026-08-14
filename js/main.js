@@ -30,6 +30,7 @@
   var liveJoinError = "";
   var assignedLiveTeam = null;
   var assignedLiveTeamCount = null;
+  var assignedRivalCount = null;   // 경쟁사 수는 세션이 정합니다 (조마다 같아야 함)
 
   /* ============================================================
      시작 화면
@@ -245,6 +246,7 @@
     window.DRBLive.joinWithCode(code).then(function (joined) {
       assignedLiveTeam = joined.teamName;
       assignedLiveTeamCount = Number(joined.teamCount || setupTeamCount);
+      assignedRivalCount = Number(joined.rivalCount) || null;
       setupTeamCount = assignedLiveTeamCount;
       setupTeamName = assignedLiveTeam;
       liveUrl = true;                       /* 지금부터 진행자 화면에 전송합니다 */
@@ -252,7 +254,7 @@
 
       warpToPast(function () {
         S.clearAll();
-        S.newGame(assignedLiveTeamCount);
+        S.newGame(assignedLiveTeamCount, assignedRivalCount);
         S.switchTeam(assignedLiveTeam);
         enterGame();
       });
@@ -282,7 +284,7 @@
     }
     if (!liveUrl && S.hasSave() && !confirm("저장된 게임이 초기화됩니다. 새로 시작할까요?")) return;
     S.clearAll();
-    S.newGame(liveUrl ? assignedLiveTeamCount : setupTeamCount);
+    S.newGame(liveUrl ? assignedLiveTeamCount : setupTeamCount, assignedRivalCount);
     S.switchTeam(liveUrl ? assignedLiveTeam : setupTeamName);
     enterGame();
   }
@@ -808,6 +810,7 @@
       if (!joined || !joined.teamName) throw new Error("배정 조 정보를 확인하지 못했습니다.");
       assignedLiveTeam = joined.teamName;
       assignedLiveTeamCount = Number(joined.teamCount || setupTeamCount);
+      assignedRivalCount = Number(joined.rivalCount) || null;
       setupTeamCount = assignedLiveTeamCount;
       setupTeamName = assignedLiveTeam;
       liveJoinPending = false;
@@ -828,7 +831,7 @@
     [["DRB_CONFIG", "data/config.js"], ["DRB_ERAS", "data/eras.js"],
      ["DRB_INVESTMENTS", "data/investments.js"], ["DRB_POLICIES", "data/policies.js"],
      ["DRB_EVENTS", "data/events.js"], ["DRB_ROUNDS", "data/rounds.js"],
-     ["DRB_ACTUAL", "data/actual_drb.js"], ["DRB_COMPETITORS", "data/competitors.js"],
+     ["DRB_ACTUAL", "data/actual_drb.js"],
      ["DRB_WHATIF", "data/whatif.js"], ["DRB_GLOBAL", "data/global.js"],
      ["DRB_RIVALS", "data/rivals.js"]].forEach(function (p) {
       if (!window[p[0]]) missing.push(p[1]);

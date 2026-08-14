@@ -1332,3 +1332,17 @@ button, .btn, .policy, .alloc, .teampick__btn { touch-action: manipulation; }
   .policy-list--strip .policy { padding: 8px 10px; }
   .policy-list--strip .policy__name { font-size: 13px; }
 }
+
+
+/* ============================================================
+   세계지도 — 이미지 한 장 (핀 좌표는 data/global.js)
+   ⚠ 보안정책상 .png 를 못 넣어 .webp 입니다.
+   ============================================================ */
+/* 상자를 이미지 비율(1672:941)로 맞춰야 핀이 제자리에 찍힙니다 */
+.worldmap { padding-top: 56.28%; }
+.worldmap__inner {
+  background-image: url("../assets/img/worldmap.webp");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% 100%;
+}

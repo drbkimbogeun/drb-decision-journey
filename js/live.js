@@ -312,13 +312,20 @@
   async function create(options) {
     var teamCount = typeof options === "number" ? options : options && options.teamCount;
     if (teamCount == null) teamCount = 6;
-    var payload = await api("/api/session", { method: "POST", body: { teamCount: teamCount } });
+    /* 경쟁사 수는 조마다 같아야 합니다 — 다르면 같은 결정에도 매출이 갈립니다.
+       그래서 세션에 실어 보내고, 각 조는 참가할 때 그 값을 받아 씁니다. */
+    var rivalCount = options && options.rivalCount != null ? options.rivalCount : 3;
+    var payload = await api("/api/session", {
+      method: "POST",
+      body: { teamCount: teamCount, rivalCount: rivalCount },
+    });
     var credentials = {
       sessionId: payload.session.id,
       facilitatorSecret: payload.facilitatorSecret,
       pin: payload.pin,
       teamClaims: payload.teamClaims || {},
       teamCount: payload.session.teamCount,
+      rivalCount: payload.session.rivalCount,
     };
     setStore(window.sessionStorage, FACILITATOR_KEY, credentials);
     setStore(window.localStorage, META_KEY, { sessionId: credentials.sessionId, role: "facilitator" });
@@ -329,6 +336,7 @@
       facilitatorSecret: credentials.facilitatorSecret,
       teamClaims: credentials.teamClaims,
       teamCount: credentials.teamCount,
+      rivalCount: credentials.rivalCount,
       raw: payload,
     };
   }
@@ -369,6 +377,7 @@
     emit("drb-live-control", payload.control);
     emit("drb-live-status", { connected: true, role: "team", sessionId: sessionId, teamName: payload.teamName });
     payload.teamCount = payload.session && payload.session.teamCount;
+    payload.rivalCount = payload.session && payload.session.rivalCount;
     return payload;
   }
 
@@ -429,6 +438,7 @@
     emit("drb-live-control", payload.control);
     emit("drb-live-status", { connected: true, role: "team", sessionId: sessionId, teamName: payload.teamName });
     payload.teamCount = payload.session && payload.session.teamCount;
+    payload.rivalCount = payload.session && payload.session.rivalCount;
     return payload;
   }
 

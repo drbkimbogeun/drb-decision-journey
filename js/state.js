@@ -71,14 +71,19 @@ window.DRBState = (function () {
     };
   }
 
-  function newGame(teamCount) {
+  /* 경쟁사 수는 진행자가 세션을 만들 때 1~3 중에서 고릅니다.
+     ★ 모든 조가 같은 수를 써야 합니다 — 경쟁사는 수요를 나눠 갖기 때문에
+       조마다 수가 다르면 같은 결정에도 매출이 갈립니다. */
+  function newGame(teamCount, rivalCount) {
     var names = CFG.teamNames.slice(0, teamCount);
     var teams = {};
     names.forEach(function (n) { teams[n] = createTeam(n); });
 
+    var howManyRivals = Math.max(1, Math.min(3, Number(rivalCount) || 3));
+
     /* AI 경쟁사도 같은 조건에서 출발합니다 */
     var rivals = {};
-    (window.DRB_RIVALS || []).forEach(function (r) {
+    activeRivalDefs(howManyRivals).forEach(function (r) {
       var st = window.DRBEngine.createState();
       Object.keys(r.start || {}).forEach(function (k) { st[k] = r.start[k]; });
       rivals[r.id] = {
@@ -91,6 +96,7 @@ window.DRBState = (function () {
       version: 2,
       startedAt: new Date().toISOString(),
       teamCount: teamCount,
+      rivalCount: howManyRivals,
       teamNames: names,
       activeTeam: names[0],
       adminMode: false,
@@ -123,6 +129,12 @@ window.DRBState = (function () {
      ★ 경쟁사는 미래를 모릅니다. 그 턴 시점의 시대 정보와
        그때까지 공개된 참여 조들의 움직임만 보고 판단합니다.
      ============================================================ */
+  /* 지금 판에 들어와 있는 경쟁사만. 목록 앞에서부터 잘라 씁니다. */
+  function activeRivalDefs(count) {
+    var many = Math.max(1, Math.min(3, Number(count != null ? count : (data && data.rivalCount)) || 3));
+    return (window.DRB_RIVALS || []).slice(0, many);
+  }
+
   function advanceRivals(uptoTurn) {
     if (!data.rivals) return;
     var Engine = window.DRBEngine;
@@ -139,7 +151,7 @@ window.DRBState = (function () {
       var known = (data.turnRoles[turn] || []).slice();
 
       var picked = [];
-      (window.DRB_RIVALS || []).forEach(function (r) {
+      activeRivalDefs().forEach(function (r) {
         var rv = data.rivals[r.id];
         if (!rv) return;
 
@@ -491,6 +503,7 @@ window.DRBState = (function () {
     investmentDecisionContext: investmentDecisionContext,
     policies: policies, actual: actual,
     turnIndex: turnIndex, totalTurns: totalTurns,
+    activeRivalDefs: activeRivalDefs,
     isLastSubround: isLastSubround, isLastRound: isLastRound,
     budget: budget, budgetIsTight: budgetIsTight,
     setPhase: setPhase, switchTeam: switchTeam,

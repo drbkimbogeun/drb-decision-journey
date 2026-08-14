@@ -168,7 +168,7 @@ window.DRBUI = (function () {
     opts = opts || {};
     clearNode(node);
 
-    var defs = window.DRB_RIVALS || [];
+    var defs = S.activeRivalDefs ? S.activeRivalDefs() : (window.DRB_RIVALS || []);
     var live = S.rivals();
 
     defs.forEach(function (def) {
@@ -219,16 +219,8 @@ window.DRBUI = (function () {
     clearNode(node);
     var G = window.DRB_GLOBAL;
 
-    /* 아주 단순화한 대륙 실루엣 (정확한 지도가 아니라 위치 감각용) */
-    node.innerHTML =
-      "<svg viewBox='0 0 100 50' preserveAspectRatio='none' aria-hidden='true'>" +
-      "<path class='worldmap__land' d='M8,14 L26,10 L32,20 L26,34 L16,40 L10,30 Z'/>" +
-      "<path class='worldmap__land' d='M22,38 L30,36 L32,46 L26,49 L21,44 Z'/>" +
-      "<path class='worldmap__land' d='M42,10 L56,8 L58,18 L50,22 L43,18 Z'/>" +
-      "<path class='worldmap__land' d='M44,24 L58,22 L60,38 L50,44 L44,34 Z'/>" +
-      "<path class='worldmap__land' d='M60,12 L86,10 L92,22 L84,32 L70,34 L62,24 Z'/>" +
-      "<path class='worldmap__land' d='M72,44 L88,42 L90,48 L74,49 Z'/>" +
-      "</svg>";
+    /* 지도는 이미지 한 장입니다 (CSS 배경, assets/img/worldmap.webp).
+       핀은 data/global.js 의 map.x / map.y 백분율로 얹습니다. */
 
     function addNode(x, y, cls, color, label) {
       var n = document.createElement("div");
@@ -280,7 +272,7 @@ window.DRBUI = (function () {
         "<span class='map-legend__item'><span class='map-legend__dot' style='background:var(--drb-red)'></span>본사</span>" +
         "<span class='map-legend__item'><span class='map-legend__dot' style='background:var(--info)'></span>우리 거점(가동)</span>" +
         "<span class='map-legend__item'><span class='map-legend__dot' style='background:var(--warn)'></span>건설 중</span>" +
-        (window.DRB_RIVALS || []).map(function (d) {
+        (S.activeRivalDefs ? S.activeRivalDefs() : (window.DRB_RIVALS || [])).map(function (d) {
           return "<span class='map-legend__item'><span class='map-legend__dot' style='background:" +
                  d.color + "'></span>" + escapeHtml(d.name) + "</span>";
         }).join("");

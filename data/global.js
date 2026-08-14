@@ -22,7 +22,7 @@ window.DRB_GLOBAL = {
       name: "중국",
       short: "CN",
       desc: "거대한 시장이자 거대한 경쟁자입니다. 물량은 크지만 단가 싸움이 심합니다.",
-      map: { x: 74, y: 40 },
+      map: { x: 74, y: 39 },
       demandMult:     1.25,   // 수요 기반 확대 배수
       costMult:       0.80,   // 생산 원가 배수 (낮을수록 유리)
       competitionAdd: 0.12,   // 이 나라에 몰릴수록 경쟁강도 상승
@@ -34,7 +34,7 @@ window.DRB_GLOBAL = {
       name: "동남아",
       short: "SEA",
       desc: "원가는 가장 낮습니다. 다만 인프라와 숙련도가 아직 부족합니다.",
-      map: { x: 76, y: 55 },
+      map: { x: 78, y: 57 },
       demandMult:     0.95,
       costMult:       0.72,
       competitionAdd: 0.06,
@@ -46,7 +46,7 @@ window.DRB_GLOBAL = {
       name: "북미",
       short: "NA",
       desc: "단가를 제일 잘 쳐줍니다. 대신 요구 수준과 비용이 높습니다.",
-      map: { x: 20, y: 36 },
+      map: { x: 19, y: 33 },
       demandMult:     1.10,
       costMult:       1.20,
       competitionAdd: 0.08,
@@ -59,7 +59,7 @@ window.DRB_GLOBAL = {
       name: "유럽",
       short: "EU",
       desc: "기술 인증 장벽이 높습니다. 넘으면 오래가는 거래가 됩니다.",
-      map: { x: 47, y: 30 },
+      map: { x: 50, y: 28 },
       demandMult:     1.05,
       costMult:       1.15,
       competitionAdd: 0.07,
@@ -131,5 +131,5 @@ window.DRB_GLOBAL = {
   ],
 
   /* 본국은 항상 있습니다 */
-  home: { id: "kr", name: "한국", short: "KR", map: { x: 79, y: 37 } }
+  home: { id: "kr", name: "한국", short: "KR", map: { x: 78, y: 38 } }
 };

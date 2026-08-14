@@ -484,6 +484,7 @@ export class GameSession extends DurableObject {
         pin_hash TEXT NOT NULL,
         facilitator_hash TEXT NOT NULL,
         team_count INTEGER NOT NULL CHECK (team_count BETWEEN 1 AND 6),
+        rival_count INTEGER NOT NULL DEFAULT 3 CHECK (rival_count BETWEEN 1 AND 3),
         control_json TEXT NOT NULL,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
@@ -562,6 +563,7 @@ export class GameSession extends DurableObject {
       session: {
         id: session.code,
         teamCount: session.team_count,
+        rivalCount: session.rival_count,
         createdAt: session.created_at,
         expiresAt: session.created_at + SESSION_TTL_MS,
         updatedAt: session.updated_at,
@@ -594,17 +596,19 @@ export class GameSession extends DurableObject {
           );
         if (!SESSION_CODE.test(body.sessionId) || !/^\d{4}$/.test(body.pin) ||
             typeof body.facilitatorSecret !== "string" || body.facilitatorSecret.length < 24 ||
-            !Number.isInteger(body.teamCount) || body.teamCount < 1 || body.teamCount > 6 || !validClaims) {
+            !Number.isInteger(body.teamCount) || body.teamCount < 1 || body.teamCount > 6 ||
+            !Number.isInteger(body.rivalCount) || body.rivalCount < 1 || body.rivalCount > 3 || !validClaims) {
           throw new ApiError(400, "세션 생성 정보가 올바르지 않습니다.", "INVALID_SESSION");
         }
         const now = Date.now();
         const control = defaultControl();
         this.sql.exec(
-          "INSERT INTO session (singleton, code, pin_hash, facilitator_hash, team_count, control_json, created_at, updated_at) VALUES (1, ?, ?, ?, ?, ?, ?, ?)",
+          "INSERT INTO session (singleton, code, pin_hash, facilitator_hash, team_count, rival_count, control_json, created_at, updated_at) VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?)",
           body.sessionId,
           await sha256(body.pin),
           await sha256(body.facilitatorSecret),
           body.teamCount,
+          body.rivalCount,
           JSON.stringify(control),
           now,
           now,
@@ -617,7 +621,7 @@ export class GameSession extends DurableObject {
           );
         }
         await this.ctx.storage.setAlarm(now + SESSION_TTL_MS);
-        return json({ session: { id: body.sessionId, teamCount: body.teamCount, createdAt: now, expiresAt: now + SESSION_TTL_MS }, control }, 201);
+        return json({ session: { id: body.sessionId, teamCount: body.teamCount, rivalCount: body.rivalCount, createdAt: now, expiresAt: now + SESSION_TTL_MS }, control }, 201);
       }
 
       if (!session) throw new ApiError(404, "세션을 찾을 수 없습니다.", "SESSION_NOT_FOUND");
@@ -650,7 +654,7 @@ export class GameSession extends DurableObject {
             at,
           );
           return json({
-            session: { id: session.code, teamCount: session.team_count },
+            session: { id: session.code, teamCount: session.team_count, rivalCount: session.rival_count },
             teamName: hit.name,
             teamToken: issued,
             control: this.publicControl(session),
@@ -705,7 +709,7 @@ export class GameSession extends DurableObject {
             now,
           );
         }
-        return json({ session: { id: session.code, teamCount: session.team_count }, teamName, teamToken: token, control: this.publicControl(session) });
+        return json({ session: { id: session.code, teamCount: session.team_count, rivalCount: session.rival_count }, teamName, teamToken: token, control: this.publicControl(session) });
       }
 
       if (action === "team") {
@@ -857,8 +861,14 @@ async function handleApi(request, env) {
     ]);
     const body = await readJson(request, 16 * 1024);
     const teamCount = body.teamCount ?? 6;
-    if (!Number.isInteger(teamCount) || teamCount < 1 || teamCount > 6 || Object.keys(body).some((key) => key !== "teamCount")) {
+    /* 경쟁사 수는 조마다 같아야 합니다 — 다르면 같은 결정에도 매출이 달라집니다 */
+    const rivalCount = body.rivalCount ?? 3;
+    if (!Number.isInteger(teamCount) || teamCount < 1 || teamCount > 6 ||
+        Object.keys(body).some((key) => key !== "teamCount" && key !== "rivalCount")) {
       throw new ApiError(400, "teamCount는 1~6 정수여야 합니다.", "INVALID_TEAM_COUNT");
+    }
+    if (!Number.isInteger(rivalCount) || rivalCount < 1 || rivalCount > 3) {
+      throw new ApiError(400, "rivalCount는 1~3 정수여야 합니다.", "INVALID_RIVAL_COUNT");
     }
     for (let attempt = 0; attempt < 8; attempt += 1) {
       const sessionId = randomString(6);
@@ -879,6 +889,7 @@ async function handleApi(request, env) {
         pin,
         facilitatorSecret,
         teamCount,
+        rivalCount,
         teamClaims,
       });
       if (internal.status === 409) continue;

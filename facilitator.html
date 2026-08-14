@@ -72,8 +72,9 @@
           </div>
           <h1 class="fac-cover__title">80년의 여정</h1>
           <p class="fac-cover__lead">
-            좋은 경영은 미래를 맞히는 것이 아니라,<br>
-            바뀌었을 때 다시 선택할 수 있는 힘입니다.
+            DRB의 역사를 이해하고<br>
+            미래를 향한 불확실성 이해와<br>
+            변화대응력을 느낄 수 있게 하는 것입니다.
           </p>
           <div class="fac-cover__stats">
             <div class="fac-statbox"><b class="num">80년</b><span>1947 → 2026</span></div>
@@ -95,10 +96,11 @@
             <span class="spacer"></span>
             <span class="fac-howto__total" id="bHowtoTotal">전체 60분</span>
           </div>
-          <div class="fac-howto__cards" id="bHowtoCards"></div>
+          <!-- 카드 다섯 장이 아니라 화살표로 이어진 순서도입니다 -->
+          <div class="fac-flow" id="bHowtoCards"></div>
           <div class="fac-howto__foot">
             <div class="fac-howto__box">
-              <b>조 노트북</b><span>상황 · 배분 · 정책 · 결과만 봅니다</span>
+              <b>조 노트북</b><span>토큰 배분과 정책만 봅니다</span>
             </div>
             <div class="fac-howto__box fac-howto__box--fact">
               <b>진행자 화면</b><span>순위와 DRB의 실제 결정은 여기서만 공개</span>
@@ -118,6 +120,24 @@
           </div>
           <p class="fac-brief__q" id="bBriefQ"></p>
           <p class="fac-brief__context" id="bBriefBody"></p>
+
+          <!-- 그 시점의 경영진이 알 수 있었던 것. 참가자 노트북에는 없으므로
+               이 시대의 국내·세계 신호와 리스크는 여기서만 볼 수 있습니다. -->
+          <div class="fac-brief__signals">
+            <div class="fac-signal">
+              <span class="fac-signal__label">국내</span>
+              <div class="fac-signal__list" id="bBriefDomestic"></div>
+            </div>
+            <div class="fac-signal">
+              <span class="fac-signal__label">세계</span>
+              <div class="fac-signal__list" id="bBriefGlobal"></div>
+            </div>
+            <div class="fac-signal fac-signal--risk">
+              <span class="fac-signal__label">리스크</span>
+              <div class="fac-signal__list" id="bBriefRisk"></div>
+            </div>
+          </div>
+
           <div class="fac-brief__facts" id="bBriefFacts"></div>
           <p class="fac-brief__source" id="bBriefSource"></p>
         </article>
@@ -381,7 +401,6 @@
   <script src="data/events.js"></script>
   <script src="data/rounds.js"></script>
   <script src="data/actual_drb.js"></script>
-  <script src="data/competitors.js"></script>
   <script src="data/whatif.js"></script>
   <script src="data/global.js"></script>
   <script src="data/rivals.js"></script>

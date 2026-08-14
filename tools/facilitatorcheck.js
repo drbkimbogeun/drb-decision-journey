@@ -92,8 +92,7 @@ function loadData() {
     "data/events.js",
     "data/rounds.js",
     "data/actual_drb.js",
-    "data/competitors.js",
-    "data/whatif.js",
+        "data/whatif.js",
     "data/global.js",
     "data/rivals.js",
     "js/engine.js"
@@ -803,7 +802,8 @@ function checkJoinCodeShape() {
       let code; do { code = randomPin(); } while (used.has(code)); used.add(code);
       return { teamName: (index + 1) + "조", claimSecret: code };
     });
-    return { sessionId: randomString(6), pin: randomPin(), facilitatorSecret: randomSecret(), teamCount, teamClaims };
+    return { sessionId: randomString(6), pin: randomPin(), facilitatorSecret: randomSecret(),
+             teamCount, rivalCount: 3, teamClaims };
   })()`, sandbox);
 
   /* ★ 검사식을 여기 베껴 쓰면 의미가 없습니다 (베낀 쪽만 맞고 worker 는 틀릴 수 있음).

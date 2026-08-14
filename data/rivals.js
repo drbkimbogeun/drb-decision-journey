@@ -12,8 +12,14 @@
    ★ 다만 경쟁사는 참여 조의 '공개된 움직임'은 봅니다.
      조들이 한 시장에 몰리면 경쟁사는 다른 길을 찾거나 정면으로 붙습니다.
 
-   경쟁사 이름은 가상입니다. 실제 기업의 역사를 흉내내지 않습니다.
-   (실제 기업의 검증된 선택은 competitors.js 에 따로 들어갑니다)
+   ⚠ 이름은 실제 산업용 벨트·고무 기업입니다. 조들이 "누구와 겨루는지"를
+     바로 알아보게 하려고 실명을 씁니다. 다만 **여기 나오는 숫자와 움직임은
+     그 회사의 실제 실적이 아닙니다.** 같은 엔진으로 돌린 교육용 시뮬레이션이고,
+     성향(bias)만 그 회사가 알려진 강점에 맞춰 잡았습니다.
+     화면에도 그렇게 밝혀 두었습니다 — 이 문구를 지우지 마세요.
+
+   ★ 진행자가 1~3개 중에서 몇 개를 넣을지 고릅니다 (교육 세션 만들기).
+     앞에서부터 잘라 씁니다. 그러니 가장 대표적인 회사를 위에 둡니다.
 
    bias 값 = 그 성향이 각 역할(role)을 얼마나 선호하는가 (1.0 = 보통)
      role : capacity 생산 / quality 품질 / tech 기술 / demand 판로
@@ -22,11 +28,11 @@
 
 window.DRB_RIVALS = [
   {
-    id: "alpha",
-    name: "Alpha",
-    fullName: "Competitor Alpha",
+    id: "gates",
+    name: "Gates",
+    fullName: "Gates (미국)",
     type: "기술 선도형",
-    desc: "남보다 먼저 새로운 것을 만듭니다. 자주 실패하지만, 한 번 맞으면 크게 앞서갑니다.",
+    desc: "산업용 벨트의 기준을 만들어 온 회사입니다. 남보다 먼저 규격을 내놓고, 그것이 표준이 되면 크게 앞서갑니다.",
     color: "#a78bfa",
 
     bias: { tech: 1.75, future: 1.55, quality: 1.05, capacity: 0.70, demand: 0.85, people: 1.10, flex: 1.05, cash: 0.55 },
@@ -43,32 +49,14 @@ window.DRB_RIVALS = [
     start: { cash: 100, capacity: 36, tech: 36, quality: 40, trust: 38, people: 52 }
   },
 
+  /* 경쟁사를 둘만 넣으면 여기까지입니다 — 앞서가는 쪽과 지키는 쪽,
+     이 게임이 내내 묻는 두 방향이 마주 서게 됩니다. */
   {
-    id: "beta",
-    name: "Beta",
-    fullName: "Competitor Beta",
-    type: "규모 성장형",
-    desc: "크게 짓고 싸게 만듭니다. 물량으로 밀어붙이지만, 시장이 꺾이면 그 무게가 짐이 됩니다.",
-    color: "#7aa2f7",
-
-    bias: { capacity: 1.80, demand: 1.30, tech: 0.65, quality: 0.75, future: 0.85, people: 0.90, flex: 0.60, cash: 0.60 },
-
-    traits: {
-      aggression: 0.95,
-      riskTolerance: 0.60,
-      followMarket: 0.75,    // 큰 시장이 보이면 바로 따라 들어감
-      globalAppetite: 0.90
-    },
-
-    start: { cash: 100, capacity: 46, tech: 26, quality: 36, trust: 40, people: 48 }
-  },
-
-  {
-    id: "gamma",
-    name: "Gamma",
-    fullName: "Competitor Gamma",
+    id: "mitsuboshi",
+    name: "Mitsuboshi",
+    fullName: "Mitsuboshi Belting · 三ツ星ベルト (일본)",
     type: "안정 경영형",
-    desc: "무리하지 않습니다. 성장은 느리지만 위기에서 살아남고, 고객이 오래 남습니다.",
+    desc: "무리하지 않고 품질로 버팁니다. 성장은 느리지만 위기에서 살아남고, 고객이 오래 남습니다.",
     color: "#4dd4c0",
 
     bias: { quality: 1.60, cash: 1.70, people: 1.25, demand: 1.00, capacity: 0.85, tech: 0.90, future: 0.45, flex: 1.30 },
@@ -81,6 +69,26 @@ window.DRB_RIVALS = [
     },
 
     start: { cash: 110, capacity: 38, tech: 28, quality: 46, trust: 46, people: 50 }
+  },
+
+  {
+    id: "contitech",
+    name: "ContiTech",
+    fullName: "ContiTech · Continental (독일)",
+    type: "규모 성장형",
+    desc: "자동차 부품과 함께 크게 움직입니다. 물량과 글로벌 거점으로 밀어붙이지만, 시장이 꺾이면 그 무게가 짐이 됩니다.",
+    color: "#7aa2f7",
+
+    bias: { capacity: 1.80, demand: 1.30, tech: 0.65, quality: 0.75, future: 0.85, people: 0.90, flex: 0.60, cash: 0.60 },
+
+    traits: {
+      aggression: 0.95,
+      riskTolerance: 0.60,
+      followMarket: 0.75,    // 큰 시장이 보이면 바로 따라 들어감
+      globalAppetite: 0.90
+    },
+
+    start: { cash: 100, capacity: 46, tech: 26, quality: 36, trust: 40, people: 48 }
   }
 ];
 
@@ -89,9 +97,9 @@ window.DRB_RIVALS = [
    해당 시대에 그 정책이 없으면 첫 번째 정책을 씁니다.
    ------------------------------------------------------------ */
 window.DRB_RIVAL_POLICIES = {
-  alpha: { era1: "techfirst", era2: "techfirst", era3: "techLead" },
-  beta:  { era1: "growth",    era2: "globalFirst", era3: "transform" },
-  gamma: { era1: "stable",    era2: "focus",     era3: "optionality" }
+  gates:      { era1: "techfirst", era2: "techfirst",   era3: "techLead" },
+  mitsuboshi: { era1: "stable",    era2: "focus",       era3: "optionality" },
+  contitech:  { era1: "growth",    era2: "globalFirst", era3: "transform" }
 };
 
 /* ------------------------------------------------------------
