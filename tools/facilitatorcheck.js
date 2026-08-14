@@ -463,10 +463,10 @@ function checkFacilitatorStages() {
   const expectedStages = ["briefing", "decisions", "event", "actual", "debrief", "map"];
   /* 시상은 진행자 화면에만 있는 7번째 탭입니다. 순위가 들어 있어
      참가자에게 절대 내보내지 않으므로 Worker 목록에는 없어야 합니다. */
-  const facilitatorOnlyStages = ["intro", "howto", "phase", "standings", "award"];
+  const facilitatorOnlyStages = ["intro", "howto", "phase", "standings", "award", "closing"];
   /* 탭 순서는 실제 진행 순서입니다 (진행자 전용 화면이 사이사이 끼어 있습니다) */
   const allTabStages = ["intro", "howto", "briefing", "decisions", "event", "phase",
-                        "actual", "debrief", "map", "standings", "award"];
+                        "actual", "debrief", "map", "standings", "award", "closing"];
   const html = read("facilitator.html");
   const worker = read("worker.js");
   const tabStages = Array.from(html.matchAll(/\bdata-stage=[\"']([^\"']+)[\"']/g), function (match) {
@@ -664,6 +664,35 @@ function checkEraLearningCheckpoint() {
     "actual renderer reapplies the three-input next-ERA lock");
 }
 
+/* 조별 참가 코드는 "만드는 쪽"과 "받는 쪽"이 같은 모양을 써야 합니다.
+   한쪽만 4자리 숫자로 바꿨더니 세션 생성이 전부 400 으로 떨어졌습니다.
+   같은 일이 다시 생기지 않게 여기서 붙잡습니다. */
+function checkJoinCodeShape() {
+  section("12. 조별 참가 코드 — 만드는 쪽과 받는 쪽이 같은가");
+
+  const worker = read("worker.js");
+  const createSource = functionSource(worker, "handleApi") || worker;
+
+  expect(/const\s+JOIN_CODE\s*=\s*\/\^\\d\{4\}\$\//.test(worker),
+    "worker가 참가 코드를 4자리 숫자로 정의함 (JOIN_CODE)");
+  expect(/claimSecret:\s*code/.test(worker) && /code\s*=\s*randomPin\(\)/.test(worker),
+    "코드를 만들 때 randomPin() 4자리를 씁니다");
+  expect(!/\[A-Za-z0-9_-\]\{43\}/.test(worker),
+    "43자 옛 비밀키 검사가 남아 있지 않음 (남으면 세션 생성이 전부 400)");
+
+  const doCreate = /if \(action === "create"\)([\s\S]*?)const now = Date\.now\(\);/.exec(worker);
+  expect(!!doCreate && /JOIN_CODE\.test\(claim\.claimSecret\)/.test(doCreate[1]),
+    "세션을 만들 때도 JOIN_CODE 로 검사함");
+  expect(!!doCreate && /codes\.size === claims\.length/.test(doCreate[1]),
+    "한 세션 안에서 조별 코드가 겹치지 않는지 검사함");
+  expect(/JOIN_CODE\.test\(body\.claimSecret\)/.test(worker),
+    "조가 들어올 때도 같은 JOIN_CODE 로 검사함");
+
+  const live = read("js/live.js");
+  expect(/\/\^\\d\{4\}\$\/\.test\(String\(claimSecret/.test(live),
+    "참가자 화면도 4자리 숫자로 검사함");
+}
+
 function main() {
   const W = loadData();
   const timeline = checkStructure(W);
@@ -676,6 +705,7 @@ function main() {
   checkLiveApi();
   checkLiveIntegration();
   checkEraLearningCheckpoint();
+  checkJoinCodeShape();
 
   console.log("\n" + "=".repeat(78));
   console.log("facilitatorcheck: " + passCount + "건 통과 / " + failCount + "건 실패");

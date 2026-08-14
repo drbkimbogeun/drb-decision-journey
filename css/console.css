@@ -1,31 +1,30 @@
 /* ============================================================================
    console.css — 진행자 화면 (가장 마지막에 읽힙니다)
 
-   ◆ 이 화면은 빔프로젝터로 쏩니다. 웹사이트가 아니라 대본입니다.
+   ◆ 이 화면은 대형 빔프로젝터에 올라갑니다. 모든 조가 함께 봅니다.
+     웹사이트가 아니라 발표 슬라이드입니다.
 
-   구조는 위에서 아래로 다섯 줄뿐입니다.
+   구조는 위에서 아래로 세 줄뿐입니다.
 
-     머리띠     지금 어느 시대인가
-     조 한 줄   누가 들어왔고 누가 확정했나
-     챕터 띠    지금 할 말 (가장 큰 글씨)
-     본문       그 말을 뒷받침하는 것 하나
-     조작 띠    ← 뒤로 · 지금 할 일 · [ 다음 ▶ ]
+     머리띠   지금 어느 시대인가          + 오른쪽 끝에 [ 다음 ▶ ]
+     챕터 띠  지금 무슨 이야기인가 (제목)
+     본문     다 같이 볼 것 하나 — 남는 높이를 전부 씁니다
 
-   손은 [다음] 하나에만 둡니다. 나머지 조작은 [도구] 안에 있습니다.
-
+   ★ 진행자만 볼 것은 화면에 두지 않습니다. 전부 [도구] 안입니다.
+     지금 할 일 · 조 접속 현황 · 세션 안내 · 국면 이동 · 인쇄.
    ★ 순위 · 몰림 경고 · 시상은 이 화면에만 있습니다.
-     참가자 화면으로는 절대 내보내지 않습니다.
+     참가자 노트북으로는 절대 내보내지 않습니다.
    ★ 색·간격 값은 여기서 정하지 않습니다. tokens.css 의 변수만 씁니다.
    ============================================================================ */
 
 /* ---------- 0. 바탕 ---------- */
 body.fac-body {
-  /* ★ 뒷자리에서 읽혀야 합니다. 참가자 노트북보다 또 한 단계 큽니다.
+  /* ★ 강의장 뒷자리에서 빔으로 읽습니다. 참가자 노트북보다 두 단계 큽니다.
        작게 줄이지 마세요. */
-  --fs-lead:  24px;
-  --fs-body:  20px;
-  --fs-small: 17px;
-  --fs-tiny:  14px;
+  --fs-lead:  27px;
+  --fs-body:  22px;
+  --fs-small: 18px;
+  --fs-tiny:  15px;
 
   --fac-panel:  var(--bg-2);
   --fac-raised: var(--bg-2);
@@ -88,7 +87,7 @@ body.fac-body {
   align-items: center;
   gap: var(--sp-4);
   flex: 0 0 auto;
-  min-height: 58px;
+  min-height: 74px;
   padding: 0 clamp(20px, 2.2vw, 44px);
   border-bottom: 1px solid var(--line);
   background: var(--bg-0);
@@ -122,18 +121,14 @@ body.fac-body {
 .dots__link { width: 26px; height: 2px; background: var(--accent-track); }
 
 
-/* ---------- 3. 조 현황 한 줄 ----------
-   왼쪽 300px 레일을 이 한 줄로 줄였습니다.
-   진행자가 알고 싶은 것은 "다 했나" 하나뿐입니다. */
+/* ---------- 3. 조 접속 현황 ----------
+   ★ 빔에서 내렸습니다. [도구] 안에만 있습니다.
+     화면에서 조가 뭘 골랐는지는 [각 조가 결정합니다] 에서 봅니다. */
 .fac-strip {
   display: flex;
   align-items: center;
   gap: var(--sp-2);
-  flex: 0 0 auto;
-  padding: 9px clamp(20px, 2.2vw, 44px);
-  border-bottom: 1px solid var(--line);
-  background: var(--bg-1);
-  overflow-x: auto;
+  flex-wrap: wrap;
 }
 .fac-strip.hidden { display: none; }
 .fac-strip__empty { color: var(--text-3); font-size: var(--fs-small); }
@@ -165,18 +160,29 @@ body.fac-body {
 .tchip.is-busy .tchip__state { color: var(--coral); }
 .tchip.is-off { opacity: 0.45; }
 
-/* 교육 세션이 없을 때 — 조용히 비어 있으면 고장으로 보입니다 */
-.fac-nosession {
-  flex: 0 0 auto;
-  padding: var(--sp-2) clamp(20px, 2.2vw, 44px);
-  border-bottom: 1px solid var(--coral-line);
+/* 교육 세션이 없을 때 — 빔에 긴 경고문을 띄우지 않습니다.
+   작은 칩 하나만 두고, 자세한 내용은 [도구] 안에 있습니다. */
+.fac-top__warn {
+  padding: 5px 12px;
+  border: 1px solid var(--coral-line);
+  border-radius: var(--r-pill);
   background: var(--coral-tint);
-  color: var(--text-1);
-  font-size: var(--fs-small);
-  line-height: 1.5;
+  color: var(--coral);
+  font-size: var(--fs-tiny);
+  font-weight: var(--fw-strong);
+  white-space: nowrap;
+  cursor: pointer;
 }
-.fac-nosession b { color: var(--coral); }
-.fac-nosession.hidden { display: none; }
+.fac-top__warn.hidden { display: none; }
+.fac-nosession-detail {
+  padding: var(--sp-4);
+  border: 1px solid var(--coral-line);
+  border-radius: var(--r-md);
+  background: var(--coral-tint);
+  font-size: var(--fs-small);
+  line-height: 1.55;
+}
+.fac-nosession-detail b { color: var(--coral); }
 
 
 /* ---------- 4. 챕터 띠 — 지금 할 말 ---------- */
@@ -252,52 +258,27 @@ body.fac-body {
 @keyframes fac-timer-pulse { 50% { opacity: 0.4; } }
 
 
-/* ---------- 5. 조작 띠 — 손은 여기에만 ---------- */
-.fac-drive {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-4);
-  flex: 0 0 auto;
-  padding: var(--sp-3) clamp(20px, 2.2vw, 44px);
-  border-top: 1px solid var(--line);
-  background: var(--bg-1);
-}
+/* ---------- 5. 넘기기 — 맨 위 오른쪽에 고정 ----------
+   ★ 아래 조작 띠를 없앴습니다. 거기 있던 "지금 할 일"은 진행자만 볼 것이라
+     [도구] 안으로 들어갔습니다. 빔에는 다 같이 볼 것만 남깁니다. */
 .fac-drive__back {
-  display: flex; align-items: center; gap: 7px;
+  display: grid; place-items: center;
   flex: 0 0 auto;
-  min-height: 58px;
-  padding: 0 20px;
+  width: 52px; height: 52px;
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   background: var(--bg-2);
   color: var(--text-2);
-  font-size: var(--fs-small);
-  font-weight: var(--fw-mid);
+  font-size: 20px;
 }
 .fac-drive__back:hover:not(:disabled) { border-color: var(--line-strong); color: var(--text-1); }
-.fac-drive__back:disabled { opacity: 0.32; }
-
-.fac-drive__cue { flex: 1 1 auto; min-width: 0; }
-.fac-drive__cuelist { display: flex; gap: var(--sp-5); flex-wrap: wrap; margin-top: 2px; }
-.fac-drive__cueitem { color: var(--text-3); font-size: var(--fs-small); }
-.fac-drive__cueitem.is-key { color: var(--text-1); font-size: var(--fs-body); font-weight: var(--fw-strong); }
-
-.fac-drive__lock {
-  display: flex; align-items: center; gap: var(--sp-3);
-  flex: 0 0 auto;
-  padding: var(--sp-2) var(--sp-4);
-  border: 1px solid var(--coral-line);
-  border-radius: var(--r-md);
-  background: var(--coral-tint);
-}
-.fac-drive__lock.hidden { display: none; }
-.fac-drive__locktext { color: var(--coral); font-size: var(--fs-small); font-weight: var(--fw-strong); }
+.fac-drive__back:disabled { opacity: 0.28; }
 
 .fac-drive__next {
-  display: flex; flex-direction: column; align-items: flex-end; gap: 1px;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 0;
   flex: 0 0 auto;
-  min-width: 268px; min-height: 66px;
-  padding: 8px 26px;
+  min-width: 224px; min-height: 60px;
+  padding: 8px 20px;
   border: 0;
   border-radius: var(--r-md);
   background: var(--accent);
@@ -306,8 +287,22 @@ body.fac-body {
 }
 .fac-drive__next:hover:not(:disabled) { background: var(--accent-hover); }
 .fac-drive__next:disabled { background: var(--accent-track); color: var(--text-3); }
-.fac-drive__nexthint { font-size: var(--fs-tiny); opacity: 0.75; }
-.fac-drive__nextlabel { font-size: 26px; font-weight: var(--fw-strong); letter-spacing: -0.03em; line-height: 1.05; }
+.fac-drive__nextlabel { font-size: 21px; font-weight: var(--fw-strong); letter-spacing: -0.03em; line-height: 1.15; }
+.fac-drive__nexthint { font-size: var(--fs-tiny); opacity: 0.72; line-height: 1.2; }
+
+/* 진행자만 보는 안내 — [도구] 안에 있습니다 */
+.fac-drive__cuelist { display: flex; flex-direction: column; gap: 6px; }
+.fac-drive__cueitem { color: var(--text-2); font-size: var(--fs-small); line-height: 1.5; }
+.fac-drive__cueitem.is-key { color: var(--text-1); font-size: var(--fs-body); font-weight: var(--fw-strong); }
+.fac-drive__lock {
+  display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap;
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--coral-line);
+  border-radius: var(--r-md);
+  background: var(--coral-tint);
+}
+.fac-drive__lock.hidden { display: none; }
+.fac-drive__locktext { color: var(--coral); font-size: var(--fs-small); font-weight: var(--fw-strong); }
 
 
 /* ---------- 6. 도구 — 평소에는 닫혀 있습니다 ---------- */
@@ -387,7 +382,7 @@ body.fac-body {
 /* ★ 진행자가 소리 내어 읽는 문장입니다. 한 줄이 1700px 이면 읽다가 줄을 놓칩니다.
      글자를 키우고 단 폭을 좁혀 눈이 줄을 따라가게 합니다. */
 .fac-brief__q {
-  max-width: 30em;
+  max-width: 34em;
   margin-top: clamp(18px, 2vw, 30px);
   color: var(--accent);
   font-size: clamp(26px, 2.5vw, 40px);
@@ -396,10 +391,10 @@ body.fac-body {
   line-height: 1.25;
 }
 .fac-brief__context {
-  max-width: 42em;
+  max-width: 50em;
   margin: var(--sp-4) 0 0;
   color: var(--text-1);
-  font-size: clamp(20px, 1.6vw, 28px);
+  font-size: clamp(22px, 1.9vw, 34px);
   font-weight: 400;
   line-height: 1.7;
 }
@@ -506,6 +501,19 @@ body.fac-body {
   min-height: 120px;
   color: var(--text-3);
   font-size: var(--fs-small);
+  text-align: center;
+}
+/* 냈지만 아직 안 열린 카드 — 따라 하기를 막습니다 */
+.dcard.is-sealed { border-color: var(--accent-line); background: var(--accent-tint); }
+.dcard.is-sealed .dcard__wait { color: var(--accent-deep); }
+.dcard__seal {
+  display: grid; place-items: center;
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--text-on-accent);
+  font-size: 28px;
+  font-weight: var(--fw-strong);
 }
 .dcard__dots { display: flex; gap: 6px; }
 .dcard__dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--accent-line); animation: dcard-blink 1.2s infinite; }
@@ -560,11 +568,11 @@ body.fac-body {
   letter-spacing: -0.045em;
 }
 .fac-event__description {
-  max-width: 40em;
+  max-width: 48em;
   margin: var(--sp-4) 0 0;
   color: var(--text-1);
-  font-size: clamp(20px, 1.6vw, 28px);
-  line-height: 1.65;
+  font-size: clamp(22px, 1.9vw, 34px);
+  line-height: 1.6;
 }
 .fac-event__delivery { display: block; margin-top: auto; padding-top: clamp(18px, 2vw, 30px); }
 .fac-event__impact {
@@ -628,10 +636,17 @@ body.fac-body {
 .phasecard__name { font-size: var(--fs-body); font-weight: var(--fw-strong); }
 .phasecard__rank { margin-left: auto; color: var(--text-3); font-size: var(--fs-small); font-weight: var(--fw-strong); }
 .phasecard--first .phasecard__rank { color: var(--accent-deep); }
-.phasecard__value { margin-top: var(--sp-4); font-size: clamp(34px, 3.6vw, 52px); font-weight: var(--fw-strong); line-height: 1; letter-spacing: -0.05em; }
+/* 어디에 얼마를 걸었나 — 매출보다 먼저 나옵니다 */
+.phasecard__alloc { display: flex; flex-direction: column; gap: 4px; margin-top: var(--sp-4); }
+.phasecard__row { display: flex; align-items: baseline; gap: var(--sp-3); font-size: var(--fs-small); }
+.phasecard__row b { margin-left: auto; font-size: var(--fs-body); font-weight: var(--fw-strong); }
+.phasecard__row.is-none { color: var(--text-3); }
+
+.phasecard__value { margin-top: auto; padding-top: var(--sp-4); font-size: clamp(34px, 3.6vw, 52px); font-weight: var(--fw-strong); line-height: 1; letter-spacing: -0.05em; }
 .phasecard__unit { margin-top: 6px; color: var(--text-3); font-size: var(--fs-small); }
-.phasecard__tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: var(--sp-4); }
+.phasecard__tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: var(--sp-3); }
 .phasetag { padding: 5px 11px; border: 1px solid var(--line); border-radius: var(--r-sm); color: var(--text-2); font-size: var(--fs-tiny); white-space: nowrap; }
+.phasetag--style { border-style: dashed; color: var(--text-3); }
 .phasecard--first .phasetag { border-color: var(--accent-line); color: var(--accent-deep); }
 
 /* ★ 순위는 진행자 화면 전용입니다. 참가자에게는 절대 보내지 않습니다. */
@@ -938,6 +953,52 @@ body.fac-body {
 
 
 /* ============================================================================
+   15-2. 맺음말 — 한 글자씩 찍힙니다
+
+   빔 앞에서 다 같이 보는 마지막 화면입니다. 글자만 남깁니다.
+   ============================================================================ */
+.fac-closing {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+  min-height: 0;
+  padding: clamp(30px, 3.6vw, 64px);
+  border: 0;
+  border-radius: var(--r-lg);
+  background: var(--accent-deep);
+  color: #FFFFFF;
+  cursor: pointer;
+}
+/* 글이 늘어나도 늘 화면 한가운데 있게 */
+.fac-closing__lines { display: flex; flex-direction: column; justify-content: center; flex: 1 1 auto; min-height: 0; }
+.closing__line {
+  min-height: 1.45em;
+  font-size: clamp(24px, 2.5vw, 40px);
+  font-weight: var(--fw-strong);
+  line-height: 1.45;
+  letter-spacing: -0.04em;
+}
+/* 빈 줄은 한 박자 쉬는 자리입니다 — 높이만 차지합니다 */
+.closing__line.is-gap { min-height: 0.7em; }
+/* 지금 찍히는 줄 끝의 커서 */
+.fac-closing__lines .closing__line:last-child::after {
+  content: "";
+  display: inline-block;
+  width: 3px;
+  height: 0.95em;
+  margin-left: 4px;
+  vertical-align: -0.12em;
+  background: var(--accent-line);
+  animation: closing-caret 1s steps(2, jump-none) infinite;
+}
+@keyframes closing-caret { 50% { opacity: 0; } }
+
+.fac-closing__foot { display: flex; align-items: center; gap: var(--sp-4); margin-top: auto; padding-top: clamp(24px, 3vw, 44px); }
+.fac-closing__hint { color: rgba(255, 255, 255, 0.42); font-size: var(--fs-small); }
+
+
+/* ============================================================================
    16. 진행 방법
    ============================================================================ */
 .fac-howto { display: flex; flex-direction: column; height: 100%; min-height: 0; padding: 0; border: 0; background: none; box-shadow: none; }
@@ -999,6 +1060,23 @@ body.fac-body {
 .modal { background: rgba(26, 19, 39, 0.42); }
 .modal__panel { border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--bg-2); }
 .toast { background: var(--text-1); border-color: var(--text-1); color: #FFFFFF; }
+
+/* 모달 안에서도 라벨과 입력이 겹치지 않게 */
+.modal__panel .field-label { display: block; margin: var(--sp-4) 0 var(--sp-2); color: var(--text-2); font-size: var(--fs-small); font-weight: var(--fw-mid); }
+.modal__panel .select { min-height: 44px; padding: 0 var(--sp-3); border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--bg-2); font-size: var(--fs-body); }
+
+/* 세션 생성 실패 — 토스트는 사라집니다. 누른 자리에 남겨둡니다. */
+.sessionfail {
+  margin-top: var(--sp-4);
+  padding: var(--sp-4);
+  border: 1px solid var(--coral-line);
+  border-radius: var(--r-md);
+  background: var(--coral-tint);
+  font-size: var(--fs-small);
+  line-height: 1.55;
+}
+.sessionfail.hidden { display: none; }
+.sessionfail b { color: var(--coral); }
 
 .joinurl {
   display: flex; align-items: center; gap: var(--sp-3);

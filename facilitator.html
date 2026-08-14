@@ -16,35 +16,36 @@
 </head>
 <body class="fac-body">
   <!-- ============================================================
-       진행자 화면 — 챕터를 하나씩 넘기며 진행합니다
+       진행자 화면 — 대형 빔프로젝터에 올라갑니다
 
-       손은 [다음] 하나에만 둡니다. 화면은 지금 할 말과
-       지금 각 조가 어떤 상태인지만 보여줍니다.
-       그 밖의 조작은 전부 [도구] 안으로 숨겼습니다.
+       ★ 이 화면은 모든 조가 함께 봅니다. 진행자만 봐야 할 것
+         (지금 할 일 · 조 접속 현황 · 세션 안내)은 전부 [도구] 안에
+         들어 있습니다. 화면에는 다 같이 볼 것만 크게 둡니다.
+
+       손은 오른쪽 위 [다음 ▶] 하나에만 둡니다.
        ============================================================ -->
   <div class="fac-console">
 
-    <!-- ---------- 1. 머리띠 : 지금 어느 시대인가 ---------- -->
+    <!-- ---------- 1. 머리띠 : 지금 어디쯤 + 다음 ---------- -->
     <header class="fac-top">
       <span class="fac-top__brand">80년의 선택</span>
       <span class="fac-top__era" id="bEraChip">ERA 1 · 1947</span>
       <span class="fac-top__eraname" id="bEra">창업기 · 무엇을 만들 것인가</span>
       <div class="dots" id="bDots" aria-hidden="true"></div>
       <span class="spacer"></span>
+
       <span class="chip" id="bProgress">국면 1 / 6</span>
-      <span class="fac-top__sync chip" id="bSync">로컬 모드</span>
-      <button class="btn btn--sm btn--primary no-print" id="btnSession">교육 세션 만들기</button>
+      <span class="fac-top__warn hidden no-print" id="bNoSession" title="누르면 도구가 열립니다"></span>
+      <span class="fac-top__sync chip no-print" id="bSync">로컬 모드</span>
       <button class="btn btn--sm btn--ghost no-print" id="btnTools">도구 ⋯</button>
+      <button class="fac-drive__back no-print" id="btnBack" aria-label="이전 챕터">←</button>
+      <button class="fac-drive__next no-print" id="btnNextStep">
+        <span class="fac-drive__nextlabel">다음 ▶</span>
+        <span class="fac-drive__nexthint" id="bNextHint">각 조가 결정합니다</span>
+      </button>
     </header>
 
-    <!-- ---------- 2. 조 현황 한 줄 ----------
-         왼쪽 300px 레일을 없애고 한 줄로 줄였습니다.
-         진행자는 "다 했나" 만 알면 됩니다. -->
-    <div class="fac-strip" id="bTeamStrip"></div>
-
-    <div class="fac-nosession hidden" id="bNoSession"></div>
-
-    <!-- ---------- 3. 지금 챕터 ---------- -->
+    <!-- ---------- 2. 지금 챕터 ---------- -->
     <div class="fac-chap">
       <span class="fac-chap__no num" id="bChapNo">1 / 4</span>
       <div class="fac-chap__text">
@@ -129,7 +130,7 @@
           <div class="fac-decision-cards" id="bDecisionRows"></div>
           <div class="fac-decision-grid__foot">
             <span class="chip" id="bDecisionCount">0 / 0조 확정</span>
-            <span class="fac-decision-grid__note">같은 배경에서 나온 서로 다른 판단입니다. 확정한 조에게 먼저 이유를 물어보세요.</span>
+            <span class="fac-decision-grid__note" id="bDecisionNote"></span>
           </div>
         </article>
       </section>
@@ -255,24 +256,20 @@
         </article>
       </section>
 
+      <!-- ······ 맺음말 — 한 글자씩 찍힙니다 ······ -->
+      <section class="fac-stage hidden" id="stageClosing" data-stage-panel="closing">
+        <article class="fac-closing">
+          <div class="fac-closing__lines" id="bClosing"></div>
+          <div class="fac-closing__foot">
+            <button class="btn btn--white btn--sm no-print" id="btnClosingReplay">처음부터 다시</button>
+            <span class="spacer"></span>
+            <span class="fac-closing__hint" id="bClosingHint">화면을 누르면 한 번에 다 보입니다</span>
+          </div>
+        </article>
+      </section>
+
     </main>
 
-    <!-- ---------- 5. 조작 띠 : 손은 여기에만 ---------- -->
-    <footer class="fac-drive">
-      <button class="fac-drive__back no-print" id="btnBack" aria-label="이전 챕터">←<span>뒤로</span></button>
-      <div class="fac-drive__cue">
-        <span class="fac-label">지금 할 일</span>
-        <div class="fac-drive__cuelist" id="bCue"></div>
-      </div>
-      <div class="fac-drive__lock hidden" id="bLock">
-        <span class="fac-drive__locktext" id="bLockCount"></span>
-        <button class="btn btn--sm btn--ghost no-print" id="btnForce">그래도 넘기기</button>
-      </div>
-      <button class="fac-drive__next no-print" id="btnNextStep">
-        <span class="fac-drive__nexthint" id="bNextHint">각 조가 결정합니다</span>
-        <span class="fac-drive__nextlabel">다음 ▶</span>
-      </button>
-    </footer>
   </div>
 
   <!-- ============================================================
@@ -284,6 +281,21 @@
         <b>진행 도구</b>
         <span class="spacer"></span>
         <button class="btn btn--sm btn--ghost" id="btnToolsClose">닫기</button>
+      </div>
+
+      <!-- ★ 진행자만 볼 것들입니다. 빔에는 올라가지 않습니다. -->
+      <div class="fac-tools__group">
+        <span class="fac-label">지금 할 일</span>
+        <div class="fac-drive__cuelist" id="bCue"></div>
+        <div class="fac-drive__lock hidden" id="bLock">
+          <span class="fac-drive__locktext" id="bLockCount"></span>
+          <button class="btn btn--sm btn--ghost" id="btnForce">그래도 넘기기</button>
+        </div>
+      </div>
+
+      <div class="fac-tools__group">
+        <span class="fac-label">조 접속 현황</span>
+        <div class="fac-strip" id="bTeamStrip"></div>
       </div>
 
       <div class="fac-tools__group">
@@ -310,11 +322,14 @@
           <button class="fac-jump__item" data-stage="map">산업 지도</button>
           <button class="fac-jump__item" data-stage="standings">순위 이동</button>
           <button class="fac-jump__item" data-stage="award">시상</button>
+          <button class="fac-jump__item" data-stage="closing">맺음말</button>
         </nav>
       </div>
 
       <div class="fac-tools__group">
         <span class="fac-label">교육 세션</span>
+        <div id="bSessionDetail"></div>
+        <button class="btn btn--primary btn--lg" id="btnSession">교육 세션 만들기</button>
         <div class="fac-session__row" id="bSessionMeta"></div>
         <div class="fac-session__teams" id="bTeamStatus"></div>
         <span class="fac-session__status fac-session__status--paused hidden" id="bSessionStatus">연결 대기</span>

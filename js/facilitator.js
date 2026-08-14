@@ -22,9 +22,9 @@
   /* 참가자에게 공개되는 6단계 — Worker 가 검증하는 목록과 같아야 합니다 */
   var CONTROL_STAGES = ["briefing", "decisions", "event", "actual", "debrief", "map"];
   /* 진행자 화면에만 있는 화면. 순위·시상이 들어 있어 절대 공개하지 않습니다. */
-  var LOCAL_STAGES = ["intro", "howto", "phase", "standings", "award"];
+  var LOCAL_STAGES = ["intro", "howto", "phase", "standings", "award", "closing"];
   var STAGES = ["intro", "howto", "briefing", "decisions", "event", "phase",
-                "actual", "debrief", "map", "standings", "award"];
+                "actual", "debrief", "map", "standings", "award", "closing"];
 
   /* 챕터마다 진행자가 할 말 한 줄. 화면 제목이 곧 대본입니다. */
   var CHAPTER = {
@@ -38,7 +38,8 @@
     actual:    { title: "그때 DRB는 이렇게 했습니다",  tab: "DRB 실제" },
     debrief:   { title: "함께 이야기해봅시다",         tab: "이야기" },
     standings: { title: "여기까지의 순위",             tab: "순위" },
-    award:     { title: "여섯 번의 선택이 끝났습니다", tab: "시상" }
+    award:     { title: "여섯 번의 선택이 끝났습니다", tab: "시상" },
+    closing:   { title: "그리고 2026년부터는",         tab: "맺음말" }
   };
 
   var timeline = [];
@@ -313,6 +314,7 @@
       chaptersFor(turn).forEach(function (stage) { out.push({ turn: turn, stage: stage }); });
     });
     out.push({ turn: timeline.length - 1, stage: "award" });
+    out.push({ turn: timeline.length - 1, stage: "closing" });
     return out;
   }
 
@@ -429,7 +431,7 @@
     if (currentStage === "intro" || currentStage === "howto") {
       el("bChapWhere").textContent = "시작하기 전";
       el("bChapNo").textContent = "준비";
-    } else if (currentStage === "award") {
+    } else if (currentStage === "award" || currentStage === "closing") {
       el("bChapWhere").textContent = "1947 → 2026";
       el("bChapNo").textContent = "끝";
     } else {
@@ -480,12 +482,14 @@
     if (currentStage === "event") return ["헤드라인을 크게 한 번 읽어주세요.", "같은 사건인데 왜 결과가 달랐는지 물어보세요."];
     if (currentStage === "phase") return ["1위 조에게 무엇을 걸었는지 먼저 물어보세요.", "순위는 국면마다 바뀝니다. 끝까지 가봐야 압니다."];
     if (currentStage === "map") return ["거점 수보다 어디에·어떻게 들어갔는지를 비교하세요."];
-    if (currentStage === "actual") return allCompletedRound(teams, item.round)
-      ? ["조별 판단을 먼저 발표시킨 뒤 공개하세요.", "DRB를 정답으로 말하지 마세요."]
-      : ["전 조가 이 시대를 마칠 때까지 잠겨 있습니다."];
+    if (currentStage === "actual") return ["조별 판단을 먼저 발표시킨 뒤 공개 버튼을 누르세요.",
+      allCompletedRound(teams, item.round) || !teams.length
+        ? "DRB를 정답으로 말하지 마세요."
+        : "아직 진행 중인 조가 있습니다 — 그래도 열립니다."];
     if (currentStage === "debrief") return ["판단할 때의 합리성과 결과를 구분해서 물으세요.", item.sub.guide || ""];
     if (currentStage === "standings") return ["이 화면은 진행자만 봅니다. 참가자에게는 순위가 없습니다."];
-    return ["1등이 정답은 아니라는 말로 닫아주세요."];
+    if (currentStage === "award") return ["1등이 정답은 아니라는 말로 닫아주세요."];
+    return ["글자가 다 찍힐 때까지 아무 말도 하지 마세요.", "다 나오면 마지막 두 줄만 소리 내어 읽어주세요."];
   }
 
   /* 조 현황 한 줄 — 왼쪽 레일을 대신합니다 */
@@ -809,20 +813,31 @@
     return cues[item.turn];
   }
 
-  /* 조별 결정 — 표가 아니라 카드입니다. 빔에서 표는 읽히지 않습니다. */
+  /* 조별 결정 — 표가 아니라 카드입니다. 빔에서 표는 읽히지 않습니다.
+
+     ★ 이 화면은 모든 조가 함께 보는 빔입니다. 먼저 낸 조의 선택이 보이면
+       뒤에 내는 조가 그대로 따라 합니다. 그래서 전 조가 확정하기 전까지는
+       "누가 냈는가" 만 보이고 "무엇을 냈는가" 는 가려둡니다.
+       다 내면 그 순간 한꺼번에 열립니다. */
   function renderDecisions(teams) {
     var box = el("bDecisionRows");
     var subId = timeline[selectedTurn].sub.id;
     var budget = timeline[selectedTurn].sub.budget || 0;
     var resultOpen = ["event", "phase", "actual", "debrief", "map", "standings"].indexOf(currentStage) >= 0;
+    var open = allDecided(teams, selectedTurn) || forcedTurn >= selectedTurn;
 
     if (!teams.length) {
       box.style.cssText = "";
       box.innerHTML = "<p class='fac-decision-cards__empty'>참가 조가 연결되면 " +
         "같은 배경에서 나온 서로 다른 판단이 여기에 나란히 놓입니다.</p>";
       el("bDecisionCount").textContent = "0 / 0조 확정";
+      el("bDecisionNote").textContent = "";
       return;
     }
+
+    el("bDecisionNote").textContent = open
+      ? "같은 배경에서 나온 서로 다른 판단입니다. 왜 그렇게 걸었는지 한 조씩 물어보세요."
+      : "모든 조가 확정하면 선택이 한꺼번에 열립니다. 먼저 낸 조를 보고 따라 하지 못하게 가려둡니다.";
 
     box.style.cssText = cardColumns(teams.length);
     box.innerHTML = teams.map(function (team, idx) {
@@ -839,6 +854,15 @@
           "' data-subround-id='" + esc(subId) + "'>" + head +
           "<div class='dcard__wait'><span class='dcard__dots'><i></i><i></i><i></i></span>" +
           "<span>" + (team.placeholder ? "아직 들어오지 않았습니다" : "아직 확정하지 않았습니다") + "</span></div>" +
+        "</div>";
+      }
+
+      /* 냈지만 아직 다 안 낸 상태 — 냈다는 것만 보여줍니다 */
+      if (!open) {
+        return "<div class='dcard is-sealed' data-testid='fac-team-decision' data-team='" + esc(team.name) +
+          "' data-subround-id='" + esc(h.subroundId) + "'>" + head +
+          "<div class='dcard__wait'><span class='dcard__seal' aria-hidden='true'>✓</span>" +
+          "<span>냈습니다 · 다 모이면 열립니다</span></div>" +
         "</div>";
       }
 
@@ -940,12 +964,13 @@
       return;
     }
 
+    /* 한 장에 : 어디에 얼마를 걸었나(자원 배분) · 얼마를 벌었나(매출) · 어떤 전략이었나 */
     el("bPhaseCards").style.cssText = cardColumns(played.length);
     el("bPhaseCards").innerHTML = played.map(function (r, i) {
-      var tags = topIds(r.h.allocation, 2).map(function (a) {
-        return "<span class='phasetag'>" + esc(investName(a.id)) + " " + a.amount + "</span>";
-      }).join("") +
-      "<span class='phasetag'>" + esc(policyName(r.h.policyId, r.h.policyName)) + "</span>";
+      var alloc = topIds(r.h.allocation, 3).map(function (a) {
+        return "<div class='phasecard__row'><span>" + esc(investName(a.id)) +
+               "</span><b class='num'>" + a.amount + "</b></div>";
+      }).join("") || "<div class='phasecard__row is-none'><span>투자 없음 · 전액 보유</span></div>";
 
       return "<div class='phasecard" + (i === 0 ? " phasecard--first" : "") + "'>" +
         "<div class='phasecard__head'>" +
@@ -953,9 +978,14 @@
           "<span class='phasecard__name'>" + esc(r.name) + "</span>" +
           "<span class='phasecard__rank'>" + (i + 1) + "위</span>" +
         "</div>" +
+        "<div class='phasecard__alloc'>" + alloc + "</div>" +
         "<div class='phasecard__value num'>" + fmt(r.revenue) + "</div>" +
         "<div class='phasecard__unit'>매출 · 억</div>" +
-        "<div class='phasecard__tags'>" + tags + "</div>" +
+        "<div class='phasecard__tags'><span class='phasetag'>" +
+          esc(policyName(r.h.policyId, r.h.policyName)) + "</span>" +
+          "<span class='phasetag phasetag--style'>" + esc(styleOf(
+            teams.filter(function (t) { return t.name === r.name; })[0] || { state: {} }
+          )) + "</span></div>" +
       "</div>";
     }).join("");
   }
@@ -1056,12 +1086,16 @@
     var complete = allCompletedRound(teams, item.round);
     var revealed = isRevealed(item.round.id);
 
+    /* ★ 공개 시점은 진행자가 정합니다. 버튼을 잠그지 않습니다.
+         아직 진행 중인 조가 있으면 알려만 주고, 누르면 열립니다. */
     el("bActualLock").classList.toggle("is-unlocked", revealed);
-    el("btnRevealActual").disabled = !complete;
-    el("bLockTitle").textContent = complete ? "모든 조가 이 시대를 마쳤습니다" : "아직 공개하지 마세요";
+    el("btnRevealActual").disabled = false;
+    el("bLockTitle").textContent = "조별 판단을 먼저 들어보세요";
     el("bLockText").textContent = complete
-      ? "조별 판단을 먼저 말하게 한 뒤 DRB의 기록을 공개하세요. 유사도나 정답으로 평가하지 않습니다."
-      : "해당 시대의 두 국면을 모든 조가 마친 뒤 공개할 수 있습니다.";
+      ? "모든 조가 이 시대를 마쳤습니다. 조별 판단을 말하게 한 뒤 누르세요. 유사도나 정답으로 평가하지 않습니다."
+      : (teams.length
+          ? "아직 이 시대를 진행 중인 조가 있습니다. 그래도 지금 열 수 있습니다."
+          : "준비되면 누르세요.");
     el("bActual").dataset.roundId = item.round.id;
     el("bActualWhen").textContent = item.sub.year + " · 검증된 기록";
 
@@ -1165,16 +1199,82 @@
     el("bNewsCount").textContent = teams.reduce(function (sum, team) { return sum + team.turns; }, 0) + "개 결정";
   }
 
+  /* ============================================================
+     맺음말 — 한 글자씩
+
+     빔 앞에서 읽어주는 마지막 말입니다. 문구는 config 의 closing 에 있습니다.
+     5초마다 도는 폴링이 render() 를 다시 부르므로, 한 번 시작하면
+     다시 시작하지 않게 잠가둡니다. 처음부터 다시 보려면 버튼을 누릅니다.
+     ============================================================ */
+  var closing = { timer: null, running: false, done: false };
+
+  function closingLines() { return (CFG.closing && CFG.closing.lines) || []; }
+
+  function startClosing() {
+    if (closing.running || closing.done) return;
+    var lines = closingLines();
+    var box = el("bClosing");
+    if (!box || !lines.length) return;
+
+    closing.running = true;
+    box.innerHTML = "";
+    el("bClosingHint").textContent = "화면을 누르면 한 번에 다 보입니다";
+
+    var charMs = (CFG.closing && CFG.closing.charMs) || 55;
+    var lineMs = (CFG.closing && CFG.closing.lineMs) || 700;
+    var li = 0, ci = 0, node = null;
+
+    function step() {
+      if (li >= lines.length) { finishClosing(true); return; }
+      var text = lines[li];
+      if (!node) {
+        node = document.createElement("p");
+        node.className = "closing__line" + (text ? "" : " is-gap");
+        box.appendChild(node);
+      }
+      if (ci < text.length) {
+        node.textContent = text.slice(0, ++ci);
+        closing.timer = setTimeout(step, charMs);
+      } else {
+        li++; ci = 0; node = null;
+        closing.timer = setTimeout(step, lineMs);
+      }
+    }
+    step();
+  }
+
+  /* 클릭하면 남은 줄을 한 번에 — 시간이 없을 때 씁니다 */
+  function finishClosing(natural) {
+    clearTimeout(closing.timer);
+    closing.timer = null;
+    closing.running = false;
+    closing.done = true;
+    if (!natural) {
+      el("bClosing").innerHTML = closingLines().map(function (line) {
+        return "<p class='closing__line" + (line ? "" : " is-gap") + "'>" + esc(line) + "</p>";
+      }).join("");
+    }
+    el("bClosingHint").textContent = "여러분의 80년은 오늘부터 시작합니다";
+  }
+
+  function replayClosing() {
+    clearTimeout(closing.timer);
+    closing = { timer: null, running: false, done: false };
+    startClosing();
+  }
+
   /* 연결 상태 — 세션이 없으면 조용히 비어 있지 않고 크게 알립니다 */
   function renderStatus(teams) {
     var connected = teams.filter(function (team) { return team.source === "live"; }).length;
     var live = window.DRBLive && window.DRBLive.hasFacilitatorSession && window.DRBLive.hasFacilitatorSession();
 
+    /* 빔에 긴 경고문을 띄우지 않습니다. 작은 칩만 두고 자세한 내용은 도구 안에. */
     var warn = el("bNoSession");
     warn.classList.toggle("hidden", !!live);
-    warn.innerHTML = live ? "" :
-      "<b>교육 세션이 없습니다.</b> 지금은 이 브라우저에 저장된 기록만 보입니다. " +
-      "다른 PC·태블릿의 조를 보려면 <b>[교육 세션 만들기]</b> 를 누르고 참가 주소와 조별 코드를 나눠주세요.";
+    warn.textContent = live ? "" : "⚠ 세션 없음";
+    el("bSessionDetail").innerHTML = live ? "" :
+      "<div class='fac-nosession-detail'><b>교육 세션이 없습니다.</b> 지금은 이 브라우저에 저장된 기록만 보입니다. " +
+      "다른 PC·태블릿의 조를 보려면 <b>[교육 세션 만들기]</b> 를 누르고 참가 주소와 조별 코드를 나눠주세요.</div>";
 
     el("bSessionStatus").textContent = connected ? "실시간 연결" : (live ? "연결 대기" : "세션 없음");
     el("bSessionStatus").classList.toggle("fac-session__status--paused", !connected);
@@ -1265,6 +1365,8 @@
         window.DRBLive && window.DRBLive.hasFacilitatorSession && window.DRBLive.hasFacilitatorSession()) {
       window.DRBLive.control({ currentTurn: selectedTurn, stage: stage }).catch(function () {});
     }
+    /* 맺음말 화면에 들어온 순간 글자가 찍히기 시작합니다 */
+    if (stage === "closing") startClosing();
   }
 
   function jumpTo(stage) {
@@ -1299,14 +1401,33 @@
   function openSession() {
     var creds = window.DRBLive && window.DRBLive.facilitatorCredentials ? window.DRBLive.facilitatorCredentials() : null;
     if (creds) { showSessionDetails(creds); return; }
-    openModal("실시간 교육 세션 만들기", "<p class='hint'>조별 노트북이 서로 다른 PC여도 5초 이내에 결정과 돌발상황 반응을 모읍니다.</p><label class='field-label' for='sessionTeamCount'>참가 조 수</label><select class='select' id='sessionTeamCount'><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option></select><div class='row' style='margin-top:var(--sp-4)'><button class='btn btn--primary' id='sessionCreate'>세션 코드 만들기</button></div>");
+    openModal("실시간 교육 세션 만들기",
+      "<p class='hint'>조별 노트북이 서로 다른 PC여도 5초 이내에 결정과 돌발상황 반응을 모읍니다.</p>" +
+      "<label class='field-label' for='sessionTeamCount'>참가 조 수</label>" +
+      "<select class='select' id='sessionTeamCount'>" +
+      "<option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option></select>" +
+      "<div class='sessionfail hidden' id='sessionFail'></div>" +
+      "<div class='row' style='margin-top:var(--sp-4)'>" +
+      "<button class='btn btn--primary btn--lg' id='sessionCreate'>세션 코드 만들기</button></div>");
+
     el("sessionCreate").onclick = function () {
-      if (!window.DRBLive) { toast("라이브 모듈을 불러오지 못했습니다."); return; }
+      var fail = el("sessionFail");
+      fail.classList.add("hidden");
+      if (!window.DRBLive) { fail.classList.remove("hidden"); fail.textContent = "라이브 모듈을 불러오지 못했습니다."; return; }
       el("sessionCreate").disabled = true;
+      el("sessionCreate").textContent = "만드는 중…";
       window.DRBLive.create({ teamCount: Number(el("sessionTeamCount").value) }).then(function (created) {
         showSessionDetails(created);
         startLivePolling();
-      }).catch(function (err) { toast(err.message || "세션 생성에 실패했습니다."); el("sessionCreate").disabled = false; });
+      }).catch(function (err) {
+        /* ★ 토스트로만 알리면 2초 뒤에 사라져 "그냥 안 되네" 로 보입니다.
+             실패는 눌렀던 자리에 그대로 남겨둡니다. */
+        el("sessionCreate").disabled = false;
+        el("sessionCreate").textContent = "다시 시도";
+        fail.classList.remove("hidden");
+        fail.innerHTML = "<b>세션을 만들지 못했습니다.</b><br>" + esc(err.message || "알 수 없는 오류") +
+          "<br><span class='hint'>계속 실패하면 새로고침 후 다시 눌러보세요.</span>";
+      });
     };
   }
 
@@ -1464,7 +1585,6 @@
 
     el("btnRevealActual").onclick = function () {
       var round = timeline[selectedTurn].round;
-      if (!allCompletedRound(collectTeams(), round)) return;
       sessionStorage.setItem(revealKey(round.id), "1");
       if (window.DRBLive && window.DRBLive.hasFacilitatorSession && window.DRBLive.hasFacilitatorSession()) {
         window.DRBLive.control({ currentTurn: selectedTurn, stage: "actual", revealedActual: round.id }).catch(function () {});
@@ -1474,7 +1594,15 @@
 
     el("bTimer").onclick = toggleClock;
 
+    /* 맺음말 — 화면을 누르면 남은 줄을 한 번에 */
+    el("stageClosing").onclick = function (event) {
+      if (event.target.id === "btnClosingReplay") return;
+      if (closing.running) finishClosing(false);
+    };
+    el("btnClosingReplay").onclick = replayClosing;
+
     el("btnTools").onclick = openTools;
+    el("bNoSession").onclick = openTools;   /* ⚠ 칩을 누르면 자세한 안내가 열립니다 */
     el("btnToolsClose").onclick = closeTools;
     el("bToolsPanel").onclick = function (event) { if (event.target === el("bToolsPanel")) closeTools(); };
 

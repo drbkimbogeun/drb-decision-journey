@@ -562,11 +562,17 @@ export class GameSession extends DurableObject {
         if (request.method !== "POST") methodNotAllowed(["POST"]);
         if (session) throw new ApiError(409, "이미 사용 중인 세션 코드입니다.", "SESSION_EXISTS");
         const body = await readJson(request, 16 * 1024);
+        /* 조별 참가 코드는 4자리 숫자입니다 (JOIN_CODE).
+           ★ 한 세션 안에서 겹치면 안 됩니다 — 겹치면 그 코드로 남의 조에 들어갑니다.
+             코드를 뽑는 쪽에서 이미 막고 있지만, 진짜 관문은 여기입니다. */
         const claims = Array.isArray(body.teamClaims) ? body.teamClaims : [];
-        const validClaims = claims.length === body.teamCount && claims.every((claim, index) =>
-          claim && claim.teamName === `${index + 1}조` &&
-          typeof claim.claimSecret === "string" && /^[A-Za-z0-9_-]{43}$/.test(claim.claimSecret)
-        );
+        const codes = new Set(claims.map((claim) => claim && claim.claimSecret));
+        const validClaims = claims.length === body.teamCount &&
+          codes.size === claims.length &&
+          claims.every((claim, index) =>
+            claim && claim.teamName === `${index + 1}조` &&
+            typeof claim.claimSecret === "string" && JOIN_CODE.test(claim.claimSecret)
+          );
         if (!SESSION_CODE.test(body.sessionId) || !/^\d{4}$/.test(body.pin) ||
             typeof body.facilitatorSecret !== "string" || body.facilitatorSecret.length < 24 ||
             !Number.isInteger(body.teamCount) || body.teamCount < 1 || body.teamCount > 6 || !validClaims) {
