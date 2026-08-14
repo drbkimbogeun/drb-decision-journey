@@ -691,6 +691,63 @@ function checkJoinCodeShape() {
   const live = read("js/live.js");
   expect(/\/\^\\d\{4\}\$\/\.test\(String\(claimSecret/.test(live),
     "참가자 화면도 4자리 숫자로 검사함");
+
+  /* 글자만 맞춰보는 게 아니라 실제로 만들어서 실제 검사식에 넣어봅니다.
+     worker.js 의 진짜 소스를 꺼내 돌리므로 한쪽만 바뀌면 여기서 터집니다. */
+  const sandbox = { crypto: require("crypto").webcrypto, btoa: (s) => Buffer.from(s, "binary").toString("base64") };
+  vm.createContext(sandbox);
+  ["CODE_ALPHABET", "SESSION_CODE", "JOIN_CODE"].forEach((name) => {
+    const line = new RegExp("^const " + name + " = .*$", "m").exec(worker);
+    if (line) vm.runInContext(line[0], sandbox);
+  });
+  /* worker.js 의 함수는 최상위(들여쓰기 0)라 functionSource 로는 끝을 못 찾습니다.
+     중괄호를 세어 그 함수만 잘라냅니다. */
+  function topLevelFunction(source, name) {
+    const start = new RegExp("^function\\s+" + name + "\\s*\\(", "m").exec(source);
+    if (!start) return "";
+    let i = source.indexOf("{", start.index);
+    let depth = 0;
+    for (let j = i; j < source.length; j += 1) {
+      if (source[j] === "{") depth += 1;
+      else if (source[j] === "}") { depth -= 1; if (depth === 0) return source.slice(start.index, j + 1); }
+    }
+    return "";
+  }
+  ["randomString", "randomPin", "randomSecret"].forEach((name) => {
+    const src = topLevelFunction(worker, name);
+    expect(!!src, "worker.js 에서 " + name + " 를 찾음");
+    if (src) vm.runInContext(src, sandbox);
+  });
+
+  const made = vm.runInContext(`(() => {
+    const teamCount = 4;
+    const used = new Set();
+    const teamClaims = Array.from({ length: teamCount }, (_, index) => {
+      let code; do { code = randomPin(); } while (used.has(code)); used.add(code);
+      return { teamName: (index + 1) + "조", claimSecret: code };
+    });
+    return { sessionId: randomString(6), pin: randomPin(), facilitatorSecret: randomSecret(), teamCount, teamClaims };
+  })()`, sandbox);
+
+  /* ★ 검사식을 여기 베껴 쓰면 의미가 없습니다 (베낀 쪽만 맞고 worker 는 틀릴 수 있음).
+       worker.js 의 검사 코드를 그대로 잘라내 돌립니다. throw 만 깃발로 바꿉니다. */
+  const guard = /const claims = Array\.isArray\(body\.teamClaims\)[\s\S]*?(?=const now = Date\.now\(\);)/.exec(worker);
+  if (!expect(!!guard, "worker.js 의 세션 생성 검사 코드를 찾음")) return;
+  const runnable = guard[0].replace(/throw new ApiError\([\s\S]*?\);/, "__rejected = true;");
+
+  sandbox.body = made;
+  sandbox.__rejected = false;
+  try {
+    vm.runInContext("(function(){ " + runnable + " })()", sandbox);
+  } catch (error) {
+    sandbox.__rejected = "오류: " + error.message;
+  }
+
+  expect(sandbox.__rejected === false,
+    "실제로 만든 세션 정보가 worker.js 의 진짜 검사식을 통과함 (400 INVALID_SESSION 재발 방지)" +
+    (sandbox.__rejected === false ? "" : " — " + sandbox.__rejected));
+  expect(made.teamClaims.every((c) => /^\d{4}$/.test(c.claimSecret)),
+    "만들어진 조별 코드가 전부 4자리 숫자임 — " + made.teamClaims.map((c) => c.claimSecret).join(" "));
 }
 
 function main() {
