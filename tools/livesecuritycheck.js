@@ -210,7 +210,67 @@ async function checkFacilitatorRecoveryContract() {
   await window.DRBLive.resetTeam("1조");
 }
 
-Promise.all([checkClientJoinContract(), checkFacilitatorRecoveryContract()]).then(() => {
+/* 스냅샷은 한 번 더 통과시켜도 같은 값이 나와야 합니다.
+   publishHook 이 스냅샷을 다시 snapshotFromState 에 넣는 바람에
+   회고가 통째로 사라진 적이 있습니다 — 배포에서만 보였습니다. */
+async function checkSnapshotIsIdempotent() {
+  const localStorage = new MemoryStorage();
+  const sessionStorage = new MemoryStorage();
+  const window = {
+    localStorage, sessionStorage,
+    location: { search: "", hash: "", pathname: "/" },
+    history: { replaceState() {} },
+    setInterval() { return 1; },
+    clearInterval() {},
+    dispatchEvent() {},
+    addEventListener() {},
+  };
+  const context = {
+    window,
+    document: { title: "test", visibilityState: "visible", addEventListener() {} },
+    location: window.location,
+    URLSearchParams, Headers, Response,
+    CustomEvent: class CustomEvent {},
+    fetch: async () => new Response("{}", { status: 200, headers: { "content-type": "application/json" } }),
+  };
+  vm.createContext(context);
+  vm.runInContext(live, context, { filename: "js/live.js" });
+
+  const save = {
+    activeTeam: "1조",
+    teams: {
+      "1조": {
+        name: "1조",
+        phase: "reflect",
+        turnIndex: 6,
+        state: { cash: 100 },
+        history: [],
+        finalReflection: { picks: ["decision:r1s1", "event:r2s1:ev_x"], comment: "여기서 갈렸습니다" },
+      },
+    },
+  };
+
+  /* vm 안에서 만들어진 객체라 prototype 이 달라 deepStrictEqual 이 걸립니다.
+     값만 보면 되므로 JSON 으로 한 번 옮겨 비교합니다. */
+  const plain = (value) => JSON.parse(JSON.stringify(value === undefined ? null : value));
+
+  const once = window.DRBLive.snapshotFromState(save, "1조");
+  assert.deepStrictEqual(plain(once.reflection),
+    { picks: ["decision:r1s1", "event:r2s1:ev_x"], comment: "여기서 갈렸습니다" },
+    "snapshot must carry the team reflection");
+
+  const twice = window.DRBLive.snapshotFromState(JSON.parse(JSON.stringify(once)), "1조");
+  assert.deepStrictEqual(plain(twice.reflection), plain(once.reflection),
+    "a snapshot fed back through snapshotFromState must keep its reflection");
+  assert.strictEqual(twice.phase, once.phase, "second pass must keep phase");
+  assert.strictEqual(twice.turnIndex, once.turnIndex, "second pass must keep turnIndex");
+}
+
+Promise.all([
+  checkClientJoinContract(),
+  checkFacilitatorRecoveryContract(),
+  checkSnapshotIsIdempotent(),
+]).then(() => {
   console.log("live security contract: PASS");
 }).catch((error) => {
   console.error(error.stack || error);

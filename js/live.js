@@ -217,7 +217,9 @@
       turnIndex: integer(team.turnIndex == null ? data.turnIndex : team.turnIndex, 0, 6, historySource.length),
       state: stateView(team.state || data.state),
       history: historySource.slice(-6).map(historyEntry),
-      reflection: reflectionView(team.finalReflection),
+      /* 저장본은 finalReflection, 스냅샷은 reflection 입니다. 둘 다 받아서
+         스냅샷을 한 번 더 통과시켜도 값이 살아남게 합니다. */
+      reflection: reflectionView(team.finalReflection || team.reflection),
     };
   }
 
@@ -474,7 +476,10 @@
   function publishHook(data, teamName) {
     latestSnapshot = snapshotFromState(data || {}, teamName);
     if (!teamCredentials()) return Promise.resolve({ queued: true, connected: false });
-    return publish(latestSnapshot);
+    /* ★ 만들어둔 스냅샷이 아니라 원본 상태를 넘깁니다.
+       스냅샷을 다시 snapshotFromState 에 넣으면 이름이 바뀌는 필드가 사라집니다
+       (finalReflection → reflection). 실제로 회고가 그렇게 통째로 없어졌습니다. */
+    return publish(data, teamName);
   }
 
   async function snapshot() {

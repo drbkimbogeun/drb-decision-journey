@@ -584,6 +584,16 @@ function checkLiveApi() {
   expect(/reflection:\s*team\.finalReflection/.test(facSource),
     "진행자가 로컬 저장본에서도 회고를 읽음");
 
+  /* ★ 실제로 회고를 통째로 날려먹은 버그입니다.
+     publishHook 이 스냅샷을 만든 뒤 그 스냅샷을 다시 publish 로 넘기는 바람에
+     snapshotFromState 를 두 번 통과했고, 입력 이름(finalReflection)과
+     출력 이름(reflection)이 달라서 두 번째 통과에서 사라졌습니다.
+     그래서 (1) 원본을 넘기게 고치고 (2) 두 번 통과해도 살아남게 했습니다. */
+  expect(/return publish\(data, teamName\)/.test(functionSource(live, "publishHook")),
+    "publishHook 이 스냅샷이 아니라 원본 상태를 넘김");
+  expect(/team\.finalReflection\s*\|\|\s*team\.reflection/.test(snapshotSource),
+    "스냅샷을 한 번 더 통과시켜도 회고가 살아남음");
+
   /* 글자만 맞춰보지 않고 worker.js 의 진짜 검증 함수를 꺼내 돌립니다.
      참가 코드가 죽었을 때처럼 "양쪽 다 통과했는데 실제로는 막힘" 을 막습니다. */
   const reflectBox = {};
