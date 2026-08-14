@@ -545,6 +545,26 @@ function checkLiveApi() {
   expect(/\brevenue\s*:/.test(historySource) && /\bprofit\s*:/.test(historySource),
     "live snapshot history.kpi includes revenue and profit");
 
+  /* ★ 회고는 참가자 → 스냅샷 → Worker → 진행자 네 곳을 지납니다.
+  /* 회고는 참가자 -> 스냅샷 -> Worker -> 진행자 네 곳을 지납니다.
+     한 곳만 바꾸면 조용히 사라집니다 (참가 코드가 그렇게 죽었습니다). */
+  const facSource = read("js/facilitator.js");
+  expect(/reflection:\s*reflectionView\(/.test(snapshotSource),
+    "live snapshot 이 reflection 을 실어 보냄");
+  expect(/function\s+reflectionView\s*\(/.test(live) &&
+    /choice:\s*cleanText/.test(live) && /trigger:\s*cleanText/.test(live) &&
+    /judgement:\s*cleanText/.test(live),
+    "reflectionView 가 choice / trigger / judgement 를 담음");
+  expect(/function\s+sanitizeReflection\s*\(/.test(worker) &&
+    /reflection:\s*sanitizeReflection\(/.test(worker),
+    "Worker 가 reflection 을 검증해서 통과시킴");
+  expect(/cleanText\(value\.choice,\s*120\)/.test(worker),
+    "Worker 가 회고 길이를 잘라냄 (자유 입력)");
+  expect(/reflection:\s*snap\.reflection/.test(facSource),
+    "진행자가 라이브 스냅샷에서 reflection 을 받음");
+  expect(/reflection:\s*team\.finalReflection/.test(facSource),
+    "진행자가 로컬 저장본에서도 회고를 읽음");
+
   const workerSnapshot = functionSource(worker, "sanitizeSnapshot");
   const workerHistory = functionSource(worker, "sanitizeHistoryEntry");
   ["version", "teamName", "phase", "turnIndex", "state", "history"].forEach(function (field) {

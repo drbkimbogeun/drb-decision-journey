@@ -313,6 +313,7 @@ function sanitizeSnapshot(value, expectedTeamName) {
     turnIndex: boundedInteger(value.turnIndex ?? value.turn, 0, 6, historySource.length),
     state: sanitizeState(value.state),
     history: historySource.slice(-6).map(sanitizeHistoryEntry).filter(Boolean),
+    reflection: sanitizeReflection(value.reflection),
   };
   const encoded = JSON.stringify(snapshot);
   if (new TextEncoder().encode(encoded).byteLength > MAX_SNAPSHOT_BYTES) {
@@ -320,6 +321,19 @@ function sanitizeSnapshot(value, expectedTeamName) {
   }
   return snapshot;
 }
+/* 조가 마지막에 적는 회고. 자유 입력이므로 길이를 자르고 제어문자를 없앱니다.
+   ★ 클라이언트에서도 자르지만 진짜 관문은 여기입니다. */
+function sanitizeReflection(value) {
+  if (!value || typeof value !== "object") return null;
+  const out = {
+    turn: boundedInteger(value.turn, 0, 5, 0),
+    choice: cleanText(value.choice, 120),
+    trigger: cleanText(value.trigger, 120),
+    judgement: cleanText(value.judgement, 120),
+  };
+  return (out.choice || out.trigger || out.judgement) ? out : null;
+}
+
 function defaultControl() {
   return { currentTurn: 0, stage: "lobby", deadline: null, revealedActual: null };
 }

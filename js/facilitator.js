@@ -190,6 +190,7 @@
         phase: team.phase || "roundOpen",
         turns: (team.history || []).length,
         finished: !!team.finished,
+        reflection: team.finalReflection || null,
         updatedAt: save.startedAt
       };
     }).filter(Boolean);
@@ -224,6 +225,7 @@
         phase: snap.phase || "roundOpen",
         turns: Number(snap.turnIndex !== undefined ? snap.turnIndex : (snap.turn !== undefined ? snap.turn : (snap.history || []).length)),
         finished: !!snap.finished,
+        reflection: snap.reflection || null,
         updatedAt: snap.updatedAt || team.updatedAt
       };
     }).filter(function (team) { return team.name; });

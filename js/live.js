@@ -217,7 +217,21 @@
       turnIndex: integer(team.turnIndex == null ? data.turnIndex : team.turnIndex, 0, 6, historySource.length),
       state: stateView(team.state || data.state),
       history: historySource.slice(-6).map(historyEntry),
+      reflection: reflectionView(team.finalReflection),
     };
+  }
+
+  /* 마지막에 조가 적는 회고. 진행자 빔에서 조별로 나란히 띄웁니다.
+     자유 입력이라 길이를 잘라 보냅니다 — Worker 도 같은 길이로 다시 자릅니다. */
+  function reflectionView(value) {
+    if (!value || typeof value !== "object") return null;
+    var out = {
+      turn: integer(value.turn, 0, 5, 0),
+      choice: cleanText(value.choice, 120),
+      trigger: cleanText(value.trigger, 120),
+      judgement: cleanText(value.judgement, 120),
+    };
+    return (out.choice || out.trigger || out.judgement) ? out : null;
   }
   function emit(name, detail) {
     try {
