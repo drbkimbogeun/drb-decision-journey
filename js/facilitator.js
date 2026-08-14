@@ -1514,12 +1514,9 @@
       "<option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option></select>" +
       "<label class='field-label' for='sessionRivalCount' style='margin-top:var(--sp-4)'>AI 경쟁사 수</label>" +
       "<select class='select' id='sessionRivalCount'>" +
-      "<option value='1'>1개 — 교촌치킨 (기술 선도형)</option>" +
-      "<option value='2'>2개 — 교촌치킨 · 엽기떡볶이 (앞서가는 쪽 · 지키는 쪽)</option>" +
+      "<option value='1'>1개 — 교촌치킨</option>" +
+      "<option value='2'>2개 — 교촌치킨 · 엽기떡볶이</option>" +
       "<option value='3' selected>3개 — 교촌치킨 · 엽기떡볶이 · 도미노피자</option></select>" +
-      "<p class='hint' style='margin-top:var(--sp-2)'>이름은 일부러 고무와 상관없는 것으로 붙였습니다. " +
-      "조가 볼 것은 이름이 아니라 <b>서로 다른 세 가지 경영 방식</b>입니다. " +
-      "조들과 똑같은 엔진으로 같은 80년을 지나갑니다.</p>" +
       "<div class='sessionfail hidden' id='sessionFail'></div>" +
       "<div class='row' style='margin-top:var(--sp-4)'>" +
       "<button class='btn btn--primary btn--lg' id='sessionCreate'>세션 코드 만들기</button></div>");

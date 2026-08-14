@@ -931,8 +931,12 @@ async function handleApi(request, env) {
     const response = await forwardToSession(env, sessionId, action, request);
     if (action === "join" && !response.ok) {
       try {
+        /* ★ 교육장 노트북은 전부 같은 공인 IP 로 나갑니다. 그래서 조들의 오타가
+             한 곳에 쌓입니다. 코드칸은 4자리를 채우는 순간 자동 전송이라
+             오타 한 번이 곧 실패 한 번입니다 — 10회면 한 반이 통째로 막힙니다.
+             무차별 대입은 아래 세션 한도(15분 60회)와 6자리 세션 코드가 막습니다. */
         await enforceRateLimits(env, request, [
-          { key: `join-fail:ip:{ip}:${sessionId}`, limit: 10, windowMs: RATE_WINDOW_MS },
+          { key: `join-fail:ip:{ip}:${sessionId}`, limit: 30, windowMs: RATE_WINDOW_MS },
           { key: `join-fail:session:${sessionId}`, limit: 60, windowMs: RATE_WINDOW_MS },
         ]);
       } catch (error) {
