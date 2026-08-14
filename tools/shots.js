@@ -116,14 +116,12 @@ const server = http.createServer((req, res) => {
     if (screen === "reflect" && seen.has("T6-reflect-제출")) break;
 
     const next = {
-      roundOpen: "#btnRoundGo", situation: "#btnSitGo", invest: "#btnInvestGo",
-      policy: null, timelapse: "#btnSkipLapse", event: "#btnEventGo",
-      result: "#btnResultGo", actual: "#btnActualGo", ending: "#btnEndNext",
+      timelapse: "#btnSkipLapse", ending: "#btnEndNext",
       final: "#btnFinalGo", whatif: "#btnWhatifGo",
     }[screen];
 
     if (screen === "invest") {
-      /* 예산을 다 씁니다 */
+      /* 예산을 다 쓰고, 같은 화면 아래 띠에서 정책까지 고른 뒤 확정합니다 */
       for (let k = 0; k < 12; k++) {
         const done = await page.evaluate(() => {
           if (parseInt(document.getElementById("inRemain").textContent, 10) <= 0) return true;
@@ -133,20 +131,10 @@ const server = http.createServer((req, res) => {
         });
         if (done) break;
       }
-    }
-    if (screen === "policy") {
       await page.evaluate(() => document.querySelector("#poList .policy").click());
-      await page.waitForTimeout(120);
-      await page.click("#btnPolicyGo");
-    } else if (screen === "actual") {
-      await page.evaluate(() => {
-        ["acKept", "acTradeoff", "acLesson"].forEach((id, i) => {
-          const n = document.getElementById(id);
-          n.value = "테스트 " + (i + 1);
-          n.dispatchEvent(new Event("input", { bubbles: true }));
-        });
-      });
-      await page.click("#btnActualGo");
+      await page.waitForTimeout(150);
+      await capture(page, "T" + turn + "-invest-정책까지");
+      await page.click("#btnInvestGo");
     } else if (screen === "reflect") {
       /* 마지막 회고 — 바꾸겠다고 두 개 고르고 코멘트를 남깁니다 */
       await page.evaluate(() => {

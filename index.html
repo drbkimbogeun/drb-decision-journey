@@ -141,122 +141,10 @@
     <main class="stage__main">
       <div class="stage__inner">
 
-        <!-- ---------- 시대 브리핑 (자세히 보기) ---------- -->
-        <section class="screen" id="sc-roundOpen">
-          <div class="page">
-            <div class="page__body">
-              <div class="round-open">
-                <div class="screen-head__eyebrow" id="roMeta">ERA 1</div>
-                <div class="round-open__era num" id="roYear">1940~60년대</div>
-                <h2 class="round-open__name" id="roName">창업기</h2>
-                <p class="round-open__desc" id="roDesc"></p>
-
-                <div class="round-open__env">
-                  <div class="section-label">산업 브리핑 — 지금 알 수 있는 것</div>
-                  <div class="brief" id="roBrief"></div>
-                </div>
-
-                <div class="visibility" id="roVisibility"></div>
-
-                <div class="round-open__env">
-                  <div class="section-label">이 시대의 질문</div>
-                  <p id="roQuestion" class="round-open__question"></p>
-                </div>
-
-                <div class="round-open__env" id="roRivalsWrap">
-                  <div class="section-label">같은 산업의 경쟁사들</div>
-                  <div id="roRivals"></div>
-                </div>
-              </div>
-            </div>
-            <footer class="page__foot">
-              <span class="page__hint" id="roGuide"></span>
-              <span class="spacer"></span>
-              <button class="btn btn--primary btn--lg" id="btnRoundGo">상황 보기 <span class="btn__arrow">→</span></button>
-            </footer>
-          </div>
-        </section>
-
-        <!-- ---------- 상황 · 브리핑 · 대화 시간 (한 화면) ---------- -->
-        <section class="screen" id="sc-situation">
-          <div class="talk">
-
-            <div class="talk__left">
-              <h2 class="talk__q" id="siTitle"></h2>
-              <p class="talk__lead" id="siLead"></p>
-
-              <!-- 그 시점의 경영진이 알 수 있었던 것 -->
-              <div class="factors">
-                <div class="factors__col">
-                  <div class="factors__label">국내</div>
-                  <div class="factors__list" id="siDomestic"></div>
-                </div>
-                <div class="factors__col">
-                  <div class="factors__label">세계</div>
-                  <div class="factors__list" id="siGlobal"></div>
-                </div>
-              </div>
-
-              <div class="riskbox">
-                <span class="riskbox__label">리스크</span>
-                <div class="riskbox__list" id="siRisk"></div>
-              </div>
-
-              <div id="siEvent" class="eventbox hidden">
-                <div class="eventbox__label" id="siEventLabel">돌발상황</div>
-                <div class="eventbox__title" id="siEventTitle"></div>
-                <div class="eventbox__body" id="siEventBody"></div>
-              </div>
-
-              <p class="talk__foot" id="siFoot"></p>
-            </div>
-
-            <aside class="talk__right">
-              <!-- 전망 선명도 — 시대가 갈수록 흐려집니다 -->
-              <div class="clarity" id="siClarity">
-                <div class="clarity__row">
-                  <span class="clarity__label">전망 선명도</span>
-                  <span class="spacer"></span>
-                  <span class="clarity__value num" id="siClarityValue">85</span>
-                  <span class="clarity__unit">%</span>
-                </div>
-                <div class="clarity__bar"><div class="clarity__fill" id="siClarityFill"></div></div>
-                <p class="clarity__note" id="siClarityNote"></p>
-              </div>
-
-              <!-- 이번 국면에 쓸 수 있는 것 -->
-              <dl class="phasebox" id="siPhaseList"></dl>
-
-              <div class="talk__timerrow">
-                <span class="talk__timerlabel">지금은 대화 시간</span>
-                <span class="spacer"></span>
-                <span class="talk__timer num" id="siTimerText">05:00</span>
-              </div>
-
-              <div class="talkcard">
-                <div class="talkcard__label">지금 이야기할 것</div>
-                <p class="talkcard__q" id="siTalkQ"></p>
-              </div>
-
-              <div class="rolelist" id="siRoles"></div>
-
-              <div class="talk__actions">
-                <button class="btn btn--ghost" id="btnNextSpeaker">다음 사람</button>
-                <button class="btn btn--primary btn--lg" id="btnSitGo">이야기 끝 · 배분하기 <span class="btn__arrow">→</span></button>
-              </div>
-
-              <div class="talk__more">
-                <button class="linkbtn" id="btnSitBrief">시대 전체 브리핑 보기</button>
-                <p class="hint hidden" id="siBody"></p>
-                <div class="env hidden" id="siEnv"></div>
-                <div class="hidden" id="siFigure"></div>
-              </div>
-            </aside>
-
-          </div>
-        </section>
-
-        <!-- ---------- 자원 배분 ---------- -->
+        <!-- ---------- 자원 배분 + 정책 ----------
+             ★ 국면이 도는 동안 노트북에 뜨는 화면은 이것 하나입니다.
+               시대 설명 · 돌발상황 · 결과 · DRB 기록은 전부 빔에서 봅니다.
+               정책만 여기 남습니다 — 조마다 달라야 엔진이 계산합니다. -->
         <section class="screen" id="sc-invest">
           <div class="page">
             <div class="page__body">
@@ -275,39 +163,23 @@
               <div class="decision-scope hidden" id="inDecisionScope" aria-live="polite"></div>
 
               <div class="alloc-list" id="inList"></div>
+
+              <div class="policy-strip">
+                <div class="policy-strip__head">
+                  <span class="policy-strip__label">어떤 회사로 운영할 것인가</span>
+                  <span class="policy-strip__note">하나만 · 자세한 설명은 진행자 화면</span>
+                  <span class="spacer"></span>
+                  <span class="policy-strip__warn hidden" id="poWarn"></span>
+                </div>
+                <div class="policy-list policy-list--strip" id="poList"></div>
+              </div>
             </div>
 
             <footer class="page__foot">
               <span class="page__hint" id="inGuide">카드를 길게 누르면 효과를 봅니다</span>
               <span class="spacer"></span>
               <button class="btn btn--ghost btn--sm" id="btnAllocReset">초기화</button>
-              <button class="btn btn--ghost" id="btnInvestBack">상황 다시</button>
-              <button class="btn btn--primary btn--lg" id="btnInvestGo">정책 정하기 <span class="btn__arrow">→</span></button>
-            </footer>
-          </div>
-        </section>
-
-        <!-- ---------- 경영정책 ---------- -->
-        <section class="screen" id="sc-policy">
-          <div class="page">
-            <div class="page__body">
-              <h2 class="page__q">어떤 회사로 운영할 것인가</h2>
-
-              <div class="policy-list" id="poList"></div>
-
-              <!-- 목록 마지막 칸으로 들어갑니다 (renderPolicy 가 옮겨 붙입니다) -->
-              <div class="policy-note" id="poNote">
-                <div class="policy-note__title">바꾸면 대가가 있습니다</div>
-                <p class="policy-note__body">변경한 국면은 투자효율 <b class="num" id="poNotePct">−15%</b></p>
-              </div>
-
-              <div class="policy-warn hidden" id="poWarn"></div>
-            </div>
-
-            <footer class="page__foot">
-              <span class="spacer"></span>
-              <button class="btn btn--ghost" id="btnPolicyBack">자원 배분 다시</button>
-              <button class="btn btn--primary btn--lg" id="btnPolicyGo" disabled>확정 <span class="btn__arrow">→</span></button>
+              <button class="btn btn--primary btn--lg" id="btnInvestGo" disabled>확정 <span class="btn__arrow">→</span></button>
             </footer>
           </div>
         </section>
@@ -325,123 +197,6 @@
             <p class="lapse__note" id="tlNote">결정의 결과를 계산하는 중</p>
             <div class="lapse__feed" id="tlFeed"></div>
             <button class="btn btn--ghost btn--sm lapse__skip" id="btnSkipLapse">건너뛰기</button>
-          </div>
-        </section>
-
-        <!-- ---------- 돌발상황 ---------- -->
-        <section class="screen" id="sc-event">
-          <div class="page page--shock">
-            <header class="page__top">
-              <span class="stamp-chip stamp-chip--shock">돌발</span>
-              <span class="page__sub num" id="evYear">1955</span>
-            </header>
-
-            <div class="page__body">
-              <h2 class="shock__title" id="evTitle">원료가 끊겼습니다</h2>
-              <div class="shock__cards" id="evCards"></div>
-              <p class="shock__body" id="evBody"></p>
-            </div>
-
-            <footer class="page__foot">
-              <span class="page__hint">피해는 이미 반영되었습니다</span>
-              <span class="spacer"></span>
-              <button class="btn btn--dark btn--lg" id="btnEventGo">확인 <span class="btn__arrow">→</span></button>
-            </footer>
-          </div>
-        </section>
-
-        <!-- ---------- 결과 ---------- -->
-        <section class="screen" id="sc-result">
-          <div class="page">
-            <div class="page__body">
-              <p class="result-lead" id="reHeadline"></p>
-
-              <div class="kpi-row" id="reKpi"></div>
-
-              <div class="tokenstrip">
-                <span class="tokenstrip__title">토큰을 옮기세요</span>
-                <span class="spacer"></span>
-                <div class="tokenstrip__chips" id="reTokens"></div>
-              </div>
-
-              <div class="card teamcard">
-                <div class="card__head"><span class="card__title" id="reTeamsTitle">4개 조</span></div>
-                <div class="teambars" id="reTeamBars"></div>
-                <p class="card__foot">순위를 매기지 않습니다. 같은 시작에서 다른 회사가 되는 중입니다</p>
-              </div>
-
-              <details class="foldout" id="reAdmin">
-                <summary>왜 이렇게 됐나</summary>
-                <div class="pnl" id="rePnlBar"></div>
-                <div class="pnl__caption"><span id="rePnlBase"></span><span class="spacer"></span><span id="rePnlMargin"></span></div>
-                <ul class="whylist" id="reWhy"></ul>
-                <div class="section-label" style="margin-top:var(--sp-4)">모든 지표 변화</div>
-                <div class="breakdown" id="reAdminBody"></div>
-                <div class="section-label" style="margin-top:var(--sp-4)">매출 귀인</div>
-                <div class="breakdown" id="reRevWhy"></div>
-                <div class="section-label" style="margin-top:var(--sp-4)">손익 구성</div>
-                <div class="breakdown" id="reProfitWhy"></div>
-                <div class="section-label" style="margin-top:var(--sp-4)">경쟁사 <span id="reCrowd"></span></div>
-                <div class="standing" id="reStanding"></div>
-                <div style="margin-top:var(--sp-4)" id="reRivalMoves"></div>
-                <div class="hidden" id="reMapWrap">
-                  <div class="section-label" style="margin-top:var(--sp-4)">거점 현황</div>
-                  <div class="worldmap"><div class="worldmap__inner" id="reMap"></div></div>
-                  <div class="map-legend" id="reMapLegend"></div>
-                </div>
-              </details>
-            </div>
-
-            <footer class="page__foot">
-              <span class="page__hint" id="reHint"></span>
-              <span class="spacer"></span>
-              <button class="btn btn--primary btn--lg" id="btnResultGo">다음 <span class="btn__arrow">→</span></button>
-            </footer>
-          </div>
-        </section>
-
-        <!-- ---------- DRB 기록 공개 대기 ----------
-             실제 기록은 진행자 화면(빔)에서만 공개합니다.
-             참가자는 그것을 보면서 한 문장씩 남깁니다. -->
-        <section class="screen" id="sc-actual">
-          <div class="page">
-            <div class="page__body">
-              <h2 class="page__q">진행자 화면을 보세요</h2>
-              <p class="page__lead">그때 DRB가 실제로 무엇을 선택했는지 지금 공개됩니다.</p>
-
-              <div class="watchbox">
-                <div class="watchbox__label" id="acNotice"></div>
-                <div class="watchbox__ours">
-                  <span class="watchbox__ourslabel">우리 조의 선택</span>
-                  <div id="acOurs"></div>
-                </div>
-                <div class="hidden" id="acDrb"></div>
-                <div class="hidden" id="acDetail"></div>
-              </div>
-
-              <div class="checkpoint" id="acCheckpoint">
-                <div class="checkpoint__label">보면서 한 문장씩 남기세요</div>
-                <div class="checkpoint__grid">
-                  <label><span>우리가 끝까지 지킨 것</span><input class="input" id="acKept" maxlength="80" placeholder="예: 위기에도 현금을 남겼다"></label>
-                  <label><span>우리가 감수한 대가</span><input class="input" id="acTradeoff" maxlength="80" placeholder="예: 성장 속도를 포기했다"></label>
-                  <label><span>DRB 기록에서 새로 본 관점</span><input class="input" id="acLesson" maxlength="80" placeholder="예: 시장이 없을 때 기술을 먼저 준비했다"></label>
-                </div>
-                <p class="checkpoint__status" id="acCheckpointStatus">세 문장을 모두 작성하면 다음 시대가 열립니다.</p>
-              </div>
-
-              <details class="foldout" id="acRivalFold">
-                <summary>같은 산업, 다른 선택 <span class="foldout__note">◆ 검증된 자료만</span></summary>
-                <p class="hint" id="acRivalHead"></p>
-                <div class="rivals" id="acRivals"></div>
-                <p class="hint" id="acRivalLesson" style="margin-top:var(--sp-3)"></p>
-              </details>
-            </div>
-
-            <footer class="page__foot">
-              <span class="page__hint">DRB의 실제 기록은 진행자 화면에서만 공개됩니다</span>
-              <span class="spacer"></span>
-              <button class="btn btn--primary btn--lg" id="btnActualGo">다음 시대 <span class="btn__arrow">→</span></button>
-            </footer>
           </div>
         </section>
 

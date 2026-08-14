@@ -49,7 +49,7 @@ const jsSrc = read("js/ui.js") + read("js/main.js");
 const usedIds = new Set([...jsSrc.matchAll(/\bel\("([^"]+)"\)/g)].map(m => m[1]));
 
 /* 화면 전환용 sc-* 는 코드에서 조합해 만든다 */
-const SCREENS = ["roundOpen", "situation", "invest", "policy", "timelapse", "result", "actual", "ending", "whatif", "final"];
+const SCREENS = ["invest", "timelapse", "ending", "whatif", "final", "reflect"];
 SCREENS.forEach(s => usedIds.add("sc-" + s));
 
 let missing = [];
@@ -191,10 +191,9 @@ let guard = 0;
 const trace = [];
 while (S.phase() !== "final" && guard++ < 120) {
   const p = S.phase();
-  if (p === "roundOpen")      { trace.push(`R${S.round().no} 시작`); S.setPhase("situation"); }
-  else if (p === "situation") { S.setPhase("invest"); }
-  else if (p === "invest")    { S.setPhase("policy"); }
-  else if (p === "policy") {
+  /* 노트북은 배분 → 대기 → 다음 배분 만 돕니다.
+     돌발상황·결과·DRB 기록은 진행자 빔에 있어 여기 나오지 않습니다. */
+  if (p === "invest") {
     const budget = S.budget();
     const items = S.investments();
     const alloc = {};
@@ -208,16 +207,8 @@ while (S.phase() !== "final" && guard++ < 120) {
     trace.push(`  ${S.subround().id} 매출 ${r.report.kpi.revenue} 손익 ${r.report.kpi.profit}`);
     S.setPhase("timelapse");
   }
-  else if (p === "timelapse") { S.setPhase("result"); }
-  else if (p === "result") {
-    if (S.isLastSubround()) S.setPhase("actual"); else S.advance();
-  }
-  else if (p === "actual")    {
-    const t = S.team(), r = S.round();
-    t.reflections = t.reflections || {};
-    t.reflections[r.id] = { kept: "검증", tradeoff: "검증", lesson: "검증" };
-    S.save();
-    if (S.isLastRound()) S.setPhase("ending"); else S.advance();
+  else if (p === "timelapse") {
+    if (S.isLastRound() && S.isLastSubround()) S.setPhase("ending"); else S.advance();
   }
   else if (p === "ending")    { S.setPhase("whatif"); }
   else if (p === "whatif")    { S.advance(); }

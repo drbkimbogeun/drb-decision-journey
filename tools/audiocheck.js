@@ -74,10 +74,12 @@ const server = http.createServer((req, res) => {
   expect(Object.keys(music).length === 3, "배경음악이 정확히 세 곡임 (" + Object.keys(music).join(" · ") + ")");
   const unknown = Object.keys(byScreen).filter(s => !music[byScreen[s]]);
   expect(unknown.length === 0, "musicByScreen 이 없는 곡을 가리키지 않음" + (unknown.length ? " — " + unknown.join(", ") : ""));
-  /* 평상시는 국면마다 바뀌지 않습니다. 선택 구간 네 화면이 전부 같은 곡이어야 합니다. */
-  const decide = ["roundOpen", "situation", "invest", "policy"];
-  expect(decide.every(s => byScreen[s] === byScreen.roundOpen),
-    "선택이 끝날 때까지는 한 곡으로 이어짐 (" + byScreen.roundOpen + ")");
+  /* 노트북에 남은 화면은 배분과 대기뿐입니다.
+     배분하는 동안은 평상시, 확정한 뒤 대기는 시대흐름으로 넘어갑니다. */
+  expect(byScreen.invest === "normal", "자원 배분은 평상시 곡 (" + byScreen.invest + ")");
+  expect(byScreen.timelapse === "lapse", "확정 뒤 대기는 시대흐름 곡 (" + byScreen.timelapse + ")");
+  expect(byScreen.ending === "ending" && byScreen.reflect === "ending",
+    "엔딩과 회고는 엔딩 곡");
 
   await new Promise(r => server.listen(PORT, "127.0.0.1", r));
 
@@ -150,12 +152,11 @@ const server = http.createServer((req, res) => {
     if (screen === "final") break;
 
     const next = {
-      roundOpen: "#btnRoundGo", situation: "#btnSitGo", invest: "#btnInvestGo",
-      policy: null, timelapse: "#btnSkipLapse", event: "#btnEventGo",
-      result: "#btnResultGo", actual: "#btnActualGo", ending: "#btnEndNext",
+      timelapse: "#btnSkipLapse", ending: "#btnEndNext",
     }[screen];
 
     if (screen === "invest") {
+      /* 예산을 다 쓰고 정책을 고른 뒤에야 확정이 열립니다 */
       for (let k = 0; k < 12; k++) {
         const done = await page.evaluate(() => {
           if (parseInt(document.getElementById("inRemain").textContent, 10) <= 0) return true;
@@ -165,20 +166,9 @@ const server = http.createServer((req, res) => {
         });
         if (done) break;
       }
-    }
-    if (screen === "policy") {
       await page.evaluate(() => document.querySelector("#poList .policy").click());
       await page.waitForTimeout(120);
-      await page.click("#btnPolicyGo");
-    } else if (screen === "actual") {
-      await page.evaluate(() => {
-        ["acKept", "acTradeoff", "acLesson"].forEach((id, i) => {
-          const n = document.getElementById(id);
-          n.value = "검사 " + (i + 1);
-          n.dispatchEvent(new Event("input", { bubbles: true }));
-        });
-      });
-      await page.click("#btnActualGo");
+      await page.click("#btnInvestGo");
     } else if (next) {
       await page.click(next).catch(() => {});
     } else break;

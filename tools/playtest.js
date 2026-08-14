@@ -132,21 +132,7 @@ const server = http.createServer((req, res) => {
   while (activeScreen() !== "final" && guard++ < 140) {
     const screen = activeScreen();
 
-    if (screen === "roundOpen") {
-      if (!$("roYear").textContent.trim()) bad("라운드 화면에 연도가 비어 있습니다");
-      if ($("roBrief").children.length === 0) bad("산업 브리핑 카드가 비어 있습니다");
-      if (!$("roQuestion").textContent.trim()) bad("라운드 질문이 비어 있습니다");
-      log.push(`R${S.round().no} 시작 — ${$("roYear").textContent} ${$("roName").textContent}`);
-      click("btnRoundGo");
-
-    } else if (screen === "situation") {
-      if (!$("siTitle").textContent.trim()) bad("상황 제목이 비어 있습니다");
-      if (!$("siBody").textContent.trim()) bad("상황 본문이 비어 있습니다");
-      const ev = visible("siEvent") ? ` [사건: ${$("siEventTitle").textContent}]` : "";
-      log.push(`  ${S.subround().id} 상황 확인${ev}`);
-      click("btnSitGo");
-
-    } else if (screen === "invest") {
+    if (screen === "invest") {
       const cards = $("inList").children;
       if (cards.length === 0) { bad("투자 항목이 하나도 없습니다"); break; }
 
@@ -190,22 +176,17 @@ const server = http.createServer((req, res) => {
           bad("예산이 0인데 더 투자할 수 있었습니다");
         }
       }
+
+      /* 정책은 같은 화면 아래 띠에 있습니다. 고르기 전에는 확정이 잠깁니다. */
+      const policies = $("poList").children;
+      if (policies.length === 0) { bad("정책 항목이 없습니다"); break; }
+      if (!$("btnInvestGo").disabled) bad("정책을 고르기 전인데 확정 버튼이 활성화되어 있습니다");
+      const picked = policies[guard % policies.length];
+      picked.click();
+      if ($("btnInvestGo").disabled) { bad("정책을 골랐는데 확정 버튼이 잠겨 있습니다"); break; }
+      log.push(`  정책 — ${picked.querySelector(".policy__name").textContent.trim()}`);
+
       click("btnInvestGo");
-
-    } else if (screen === "policy") {
-      const list = $("poList").children;
-      if (list.length === 0) { bad("정책 항목이 없습니다"); break; }
-      if (!$("btnPolicyGo").disabled) bad("정책을 고르기 전인데 확정 버튼이 활성화되어 있습니다");
-      list[guard % list.length].click();
-      if ($("btnPolicyGo").disabled) { bad("정책을 골랐는데 확정 버튼이 잠겨 있습니다"); break; }
-      log.push(`  정책 — ${list[guard % list.length].querySelector(".policy__name").textContent.trim()}`);
-      click("btnPolicyGo");
-
-    } else if (screen === "event") {
-      if (!$("evTitle").textContent.trim()) bad("돌발상황 제목이 비어 있습니다");
-      if (!$("evCards").children.length) bad("돌발상황 영향 카드가 비어 있습니다");
-      log.push(`  돌발상황 — ${$("evTitle").textContent.trim()}`);
-      click("btnEventGo");
 
     } else if (screen === "timelapse") {
       if (!$("tlYear").textContent.trim()) bad("타임랩스 연도가 비어 있습니다");
@@ -228,40 +209,6 @@ const server = http.createServer((req, res) => {
       }
       if ($("sc-ending").classList.contains("is-active")) bad("엔딩이 끝나지 않았습니다");
       log.push("  2026 UNKNOWN 엔딩 2단계 통과");
-
-    } else if (screen === "result") {
-      if (!$("reHeadline").textContent.trim()) bad("결과 요약 문장이 비어 있습니다");
-      if ($("reKpi").children.length !== 3) bad("KPI 3개(매출·손익·현금)가 나오지 않았습니다");
-      if (!$("rePnlBar").children.length) bad("손익 구성 막대가 비어 있습니다");
-      if (!$("reWhy").children.length) bad("'이렇게 나온 이유' 가 비어 있습니다");
-      if ($("reTeamBars").children.length !== S.teamNames().length) bad("조별 비교 막대 수가 맞지 않습니다");
-      if ($("reRevWhy").children.length === 0) bad("매출 원인 설명이 비어 있습니다");
-      if ($("reTokens").children.length === 0) bad("자원 변화 표시가 비어 있습니다");
-      if (!$("reStanding").children.length) bad("경쟁사 대비 위치가 비어 있습니다");
-      const kpi = S.lastHistory().report.kpi;
-      log.push(`  결과 — 매출 ${kpi.revenue} 손익 ${kpi.profit} 대응력 ${kpi.adaptive}`);
-      click("btnResultGo");
-
-    } else if (screen === "actual") {
-      if (!$("acOurs").textContent.trim()) bad("'우리 조의 선택' 이 비어 있습니다");
-      /* DRB 실제 기록은 진행자 화면에서만 공개합니다.
-         참가자 DOM 에 들어 있으면 스포일러가 됩니다. */
-      {
-        const leaked = $("acDrb").textContent.trim();
-        if (leaked) bad("참가자 화면에 DRB 실제 기록이 들어 있습니다: " + leaked.slice(0, 40));
-      }
-      if (!$("acRivals").children.length) bad("경쟁사 비교 칸이 비어 있습니다");
-      log.push(`  DRB 공개 대기 + 경쟁사 비교 (${$("acRivals").children.length}칸)`);
-
-      /* ERA 클리어 체크포인트 — 세 문장을 채워야 다음 시대가 열린다 */
-      if (!$("btnActualGo").disabled) bad("체크포인트가 비었는데 다음 시대가 열려 있습니다");
-      ["acKept", "acTradeoff", "acLesson"].forEach((id, i) => {
-        $(id).value = "테스트 문장 " + (i + 1);
-        $(id).dispatchEvent(new win.Event("input", { bubbles: true }));
-      });
-      if ($("btnActualGo").disabled) bad("세 문장을 채웠는데도 다음 시대가 열리지 않습니다");
-      else ok("ERA 클리어 체크포인트 통과");
-      click("btnActualGo");
 
     } else {
       bad("알 수 없는 화면: " + screen);
@@ -355,7 +302,7 @@ const server = http.createServer((req, res) => {
   if (S.g().activeTeam !== other) bad("조 전환이 되지 않았습니다");
   else if (S.team().history.length !== 0) bad("전환한 조에 남의 기록이 섞였습니다");
   else ok(`조 전환 정상 (${other} 는 시작 상태)`);
-  if (activeScreen() !== "roundOpen") bad("조를 바꿨는데 첫 화면으로 돌아가지 않았습니다");
+  if (activeScreen() !== "invest") bad("조를 바꿨는데 그 조의 배분 화면으로 가지 않았습니다");
   else ok("조 전환 시 해당 조 진행 위치로 이동");
 
   /* ---------- 관리자 모드 ---------- */

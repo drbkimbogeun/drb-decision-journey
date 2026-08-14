@@ -195,14 +195,11 @@ button, .btn, .policy, .alloc, .teampick__btn { touch-action: manipulation; }
 
 /* 화면마다 상단바가 다릅니다 */
 #app[data-screen="ending"] .topbar,
-#app[data-screen="timelapse"] .topbar,
-#app[data-screen="event"] .topbar { display: none; }
+#app[data-screen="timelapse"] .topbar { display: none; }
 #app[data-screen="invest"] .dots,
-#app[data-screen="policy"] .dots,
-#app[data-screen="result"] .dots,
 #app[data-screen="final"] .dots,
 #app[data-screen="whatif"] .dots,
-#app[data-screen="actual"] .dots { display: none; }
+#app[data-screen="reflect"] .dots { display: none; }
 
 
 /* ============================================================
@@ -809,6 +806,10 @@ button, .btn, .policy, .alloc, .teampick__btn { touch-action: manipulation; }
   object-fit: cover;
   opacity: 0;
   transition: opacity 1200ms ease;
+  /* 생성툴 워터마크가 오른쪽 아래 구석에 박혀 있어 살짝 키워서 화면 밖으로 밀어냅니다.
+     워터마크 없는 영상으로 바꾸면 이 한 줄만 지우면 됩니다. */
+  transform: scale(1.08);
+  transform-origin: 40% 50%;
 }
 .cover__video.is-playing { opacity: 0.4; }
 .cover__veil {
@@ -1058,16 +1059,17 @@ button, .btn, .policy, .alloc, .teampick__btn { touch-action: manipulation; }
 .alloc-list[data-rows="2"] .alloc__stepper { padding-top: var(--sp-3); }
 .alloc-list[data-rows="2"] .alloc__stepper .btn--icon { height: 42px; }
 
-/* 3줄 — 여기서부터는 꽤 줄여야 +/- 가 카드 안에 들어옵니다 */
-.alloc-list[data-rows="3"] .alloc { padding: 10px var(--sp-3); }
+/* 3줄 — 아래 정책 띠까지 얹히므로 여기서부터는 꽤 줄여야 +/- 가 카드 안에 들어옵니다 */
+.alloc-list[data-rows="3"] .alloc { padding: 5px var(--sp-3); }
 /* 3줄이 되면 전략군 딱지는 뺍니다 — 이 20px 때문에 +/- 가 카드 밖으로 밀립니다 */
 .alloc-list[data-rows="3"] .alloc__group { display: none; }
-.alloc-list[data-rows="3"] .alloc__stepper { margin-top: auto; padding-top: 6px; gap: 6px; }
+.alloc-list[data-rows="3"] .alloc__stepper { margin-top: auto; padding-top: 2px; gap: 6px; }
 .alloc-list[data-rows="3"] .alloc__name { font-size: 14px; padding-right: 52px; }
-.alloc-list[data-rows="3"] .alloc__amount { margin-top: 2px; font-size: 26px; }
-.alloc-list[data-rows="3"] .alloc__level { margin-top: 4px; }
-.alloc-list[data-rows="3"] .alloc__pip { width: 6px; height: 6px; }
-.alloc-list[data-rows="3"] .alloc__stepper .btn--icon { height: 34px; font-size: 16px; }
+.alloc-list[data-rows="3"] .alloc__amount { margin-top: 2px; font-size: 23px; line-height: 1.1; }
+/* 3줄에서는 점 표시를 뺍니다 — 바로 위에 숫자가 크게 있고, 이 한 줄 때문에
+   +/- 가 카드 밖으로 밀려납니다 (전략군 딱지를 뺀 것과 같은 이유) */
+.alloc-list[data-rows="3"] .alloc__level { display: none; }
+.alloc-list[data-rows="3"] .alloc__stepper .btn--icon { height: 30px; font-size: 16px; }
 .alloc-list[data-rows="3"] .alloc__note { padding-top: var(--sp-2); font-size: var(--fs-tiny); }
 .alloc-list[data-rows="3"] .alloc__new { top: 6px; right: 6px; font-size: 9px; }
 
@@ -1273,3 +1275,60 @@ button, .btn, .policy, .alloc, .teampick__btn { touch-action: manipulation; }
 }
 .reflect-comment .textarea { min-height: 96px; }
 .reflect-comment__count { justify-self: end; color: var(--text-3); font-size: var(--fs-tiny); }
+
+
+/* ============================================================
+   경영정책 — 배분 화면 맨 아래 한 줄
+
+   정책이 무엇인지는 진행자가 빔에서 설명합니다. 여기서는 고르기만 하므로
+   카드가 아니라 띠입니다. 배분 카드가 차지할 높이를 뺏지 않아야 합니다.
+   ============================================================ */
+.policy-strip { flex: 0 0 auto; margin-top: var(--sp-3); }
+
+.policy-strip__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  margin-bottom: 5px;
+}
+.policy-strip__label { font-size: 16px; font-weight: var(--fw-strong); letter-spacing: -0.02em; }
+.policy-strip__note { color: var(--text-3); font-size: var(--fs-tiny); }
+.policy-strip__warn { color: var(--coral); font-size: var(--fs-tiny); font-weight: var(--fw-mid); }
+
+.policy-list--strip {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: var(--sp-2);
+  flex: 0 0 auto;
+}
+.policy-list--strip .policy {
+  min-height: 0;
+  padding: 7px 11px;
+  border-radius: var(--r-md);
+}
+.policy-list--strip .policy__name {
+  gap: 6px;
+  margin-bottom: 2px;
+  font-size: 15px;
+  line-height: 1.2;
+}
+.policy-list--strip .policy.is-selected .policy__name::after {
+  width: 16px; height: 16px;
+  font-size: 9px;
+}
+/* 장점 · 단점을 한 줄에 나란히 — 두 줄이 되면 배분 카드가 눌립니다 */
+.policy-list--strip .policy__lines {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0 10px;
+  font-size: var(--fs-tiny);
+  line-height: 1.3;
+}
+.policy-list--strip .policy__current { font-size: 9px; }
+
+/* 정책이 6개까지 늘어나면 한 줄에 다 넣기가 빡빡합니다 */
+@media (max-width: 1280px) {
+  .policy-list--strip .policy { padding: 8px 10px; }
+  .policy-list--strip .policy__name { font-size: 13px; }
+}

@@ -66,7 +66,8 @@ window.DRBState = (function () {
          (한 대의 PC에서 여러 조를 번갈아 플레이해도 섞이지 않게) */
       roundIndex: 0,
       subIndex: 0,
-      phase: "roundOpen"
+      /* 노트북은 배분 화면 하나로 돕니다 — 설명과 결과는 진행자 빔에서 봅니다 */
+      phase: "invest"
     };
   }
 
@@ -401,11 +402,11 @@ window.DRBState = (function () {
     var t = team();
     if (!isLastSubround()) {
       t.subIndex++;
-      t.phase = "situation";
+      t.phase = "invest";
     } else if (!isLastRound()) {
       t.roundIndex++;
       t.subIndex = 0;
-      t.phase = "roundOpen";
+      t.phase = "invest";
     } else {
       t.phase = "final";
       t.finished = true;

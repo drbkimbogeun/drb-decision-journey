@@ -21,12 +21,9 @@
   var lastResult = null;
   var timerId = null;
   var stopLapse = null;
-  var waitingEvent = false;
-  var waitingActual = false;
   var waitingBriefing = false;
   var lapseTurn = -1;
-  var lastLiveEventOpen = null;
-  var lastLiveActualOpen = null;
+  var lastControlStage = null;   // 돌발상황 알람을 한 번만 울리기 위한 표시
   var liveParams = new URLSearchParams(location.search);
   var liveUrl = liveParams.has("session");
   var liveJoinPending = false;
@@ -41,22 +38,8 @@
     return window.DRBLive && window.DRBLive.currentControl ? window.DRBLive.currentControl() : null;
   }
 
-  function liveEventOpen() {
-    var control = liveControl();
-    if (!control) return true;
-    var turn = S.turnIndex();
-    return control.currentTurn > turn ||
-      (control.currentTurn === turn && ["event", "actual", "debrief", "map", "complete"].indexOf(control.stage) >= 0);
-  }
-
-  function liveActualOpen() {
-    var control = liveControl();
-    if (!control) return true;
-    var revealed = control.revealedActual;
-    if (!/^r[1-3]$/.test(revealed || "")) return false;
-    return Number(revealed.slice(1)) >= S.round().no;
-  }
-
+  /* 다음 국면을 여는 것은 진행자입니다. 이것 하나가 노트북의 유일한 잠금장치입니다.
+     (돌발상황·결과·DRB 기록은 이제 빔에서만 보므로 따로 잠글 것이 없습니다) */
   function liveNextBriefingOpen() {
     var control = liveControl();
     if (!control) return true;
@@ -327,18 +310,17 @@
 
   /* 배경음악은 지금 무엇을 하는 중인가를 따라갑니다 — 평상시 / 시대흐름 / 엔딩.
      어느 화면이 어느 곡인지는 config 의 musicByScreen 에 있습니다.
-     돌발상황에서는 음악이 물러나고 알람이 옵니다. */
+     돌발상황은 이제 빔에서 뜨므로, 음악을 낮추는 것은 진행자 단계를 보고 합니다. */
   function musicForScreen(name) {
     if (!window.DRBAudio) return;
     window.DRBAudio.scene(name);
-    window.DRBAudio.duck(name === "event");
   }
 
   /* ============================================================
      화면 전환
      ============================================================ */
-  var SCREENS = ["roundOpen", "situation", "invest", "policy", "timelapse", "event", "result",
-                 "actual", "ending", "whatif", "final", "reflect"];
+  /* 노트북에 남은 화면. 국면이 도는 동안은 invest 와 timelapse(대기) 둘뿐입니다. */
+  var SCREENS = ["invest", "timelapse", "ending", "whatif", "final", "reflect"];
 
   function showScreen(name) {
     el("app").setAttribute("data-screen", name);
@@ -385,90 +367,19 @@
     stopTimer();
 
     switch (phase) {
-      case "roundOpen":
-        UI.renderRoundOpen();
-        showScreen("roundOpen");
-        break;
-
-      case "situation":
-        UI.renderSituation();
-        showScreen("situation");
-        startTimer();
-        break;
-
       case "invest":
         UI.renderInvest(alloc, changeAlloc, choices, pickChoice);
+        UI.renderPolicy(pickedPolicy, pickPolicy);
+        el("btnInvestGo").disabled = !pickedPolicy;
         showScreen("invest");
         startTimer();
         break;
 
-      case "policy":
-        UI.renderPolicy(pickedPolicy, pickPolicy);
-        el("btnPolicyGo").disabled = !pickedPolicy;
-        showScreen("policy");
-        startTimer();
-        break;
-
-      case "event":
-        if (!lastResult) {
-          var eh = S.lastHistory();
-          if (eh) lastResult = { report: eh.report };
-        }
-        if (lastResult && UI.renderEvent(lastResult)) {
-          showScreen("event");
-          sfx("shock");
-          if (window.DRBAudio) window.DRBAudio.alarm();
-        } else {
-          S.setPhase("result");
-          render();
-        }
-        break;
-
-      case "result":
-        if (liveControl() && !liveEventOpen()) {
-          waitingEvent = true;
-          lastLiveEventOpen = false;
-          showScreen("timelapse");
-          UI.renderLiveWait("event");
-          break;
-        }
-        waitingEvent = false;
-        lastLiveEventOpen = liveControl() ? true : null;
-        if (!lastResult) {
-          /* 새로고침 등으로 결과가 사라졌으면 기록에서 복원 */
-          var h = S.lastHistory();
-          if (h) lastResult = { report: h.report };
-        }
-        if (lastResult) UI.renderResult(lastResult);
-        showScreen("result");
-        sfx("result");
-        break;
-
+      /* 확정한 뒤부터 다음 국면이 열릴 때까지 여기 머뭅니다.
+         그 사이 돌발상황·결과·DRB 기록은 진행자 빔에서 봅니다. */
       case "timelapse":
         showScreen("timelapse");
-        if (!liveEventOpen()) {
-          waitingEvent = true;
-          lastLiveEventOpen = false;
-          UI.renderLiveWait("event");
-        } else {
-          waitingEvent = false;
-          lastLiveEventOpen = liveControl() ? true : null;
-          runTimelapse();
-        }
-        break;
-
-      case "actual":
-        if (!liveActualOpen()) {
-          waitingActual = true;
-          lastLiveActualOpen = false;
-          showScreen("timelapse");
-          UI.renderLiveWait("actual");
-        } else {
-          waitingActual = false;
-          lastLiveActualOpen = liveControl() ? true : null;
-          UI.renderActual();
-          showScreen("actual");
-        }
+        runTimelapse();
         break;
 
       case "ending":
@@ -488,7 +399,7 @@
         break;
 
       default:
-        S.setPhase("roundOpen");
+        S.setPhase("invest");
         render();
     }
   }
@@ -519,7 +430,6 @@
       var s = Math.abs(timerRemain) % 60;
       var text = (timerRemain < 0 ? "-" : "") + (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
       el("tbTimerText").textContent = text;
-      el("siTimerText").textContent = text;      /* 대화 화면의 큰 타이머 */
       box.classList.toggle("is-urgent", timerRemain <= CFG.timer.warnSeconds);
       timerRemain--;
     }
@@ -576,7 +486,7 @@
     pickedPolicy = id;
     sfx("pick");
     UI.renderPolicy(pickedPolicy, pickPolicy);
-    el("btnPolicyGo").disabled = false;
+    el("btnInvestGo").disabled = false;
   }
 
   /* ============================================================
@@ -600,7 +510,6 @@
     lastResult = S.commitSubround(alloc, pickedPolicy, choices);
     sfx("commit");
 
-    UI.resetSpeakers();
     alloc = {};
     choices = {};
     pickedPolicy = null;
@@ -616,7 +525,7 @@
      ============================================================ */
   function runTimelapse() {
     var hist = S.lastHistory();
-    if (!hist) { S.setPhase("result"); render(); return; }
+    if (!hist) { afterLapse(); return; }
     var turn = S.turnIndex();
     if (lapseTurn === turn && stopLapse) return;
     if (stopLapse) { stopLapse(); stopLapse = null; }
@@ -625,82 +534,35 @@
     stopLapse = UI.renderTimelapse(hist, function () {
       if (lapseTurn !== turn || S.phase() !== "timelapse") return;
       stopLapse = null;
-      S.setPhase("event");
-      render();
+      afterLapse();
     });
   }
 
   function skipLapse() {
-    if (liveControl() && !liveEventOpen()) return;
     if (stopLapse) { stopLapse(); stopLapse = null; }
     lapseTurn = -1;
-    S.setPhase("event");
-    render();
+    afterLapse();
   }
 
-  /* ============================================================
-     결과 → 다음
-     ============================================================ */
-  function afterResult() {
-    if (liveControl() && !liveEventOpen()) return;
-    if (S.isLastSubround()) {
-      if (liveControl() && !liveActualOpen()) {
-        S.setPhase("actual");
-        render();
-        return;
-      }
-      S.setPhase("actual");
-    } else {
-      if (liveControl() && !liveNextBriefingOpen()) {
-        waitingBriefing = true;
-        showScreen('timelapse');
-        UI.renderLiveWait('briefing');
-        return;
-      }
-      S.advance();          // 다음 소라운드
-    }
-    lastResult = null;
-    render();
-  }
-
-  function updateEraCheckpoint() {
-    var t = S.team();
-    var r = S.round();
-    var reflection = {
-      kept: el("acKept").value.trim(),
-      tradeoff: el("acTradeoff").value.trim(),
-      lesson: el("acLesson").value.trim()
-    };
-    t.reflections = t.reflections || {};
-    t.reflections[r.id] = reflection;
-    S.save();
-    var ready = !!(reflection.kept && reflection.tradeoff && reflection.lesson);
-    el("acCheckpoint").classList.toggle("is-complete", ready);
-    el("acCheckpointStatus").textContent = ready
-      ? "교육 체크포인트 완료 · 다음 시대를 열 수 있습니다."
-      : "세 문장을 모두 작성하면 다음 시대가 열립니다.";
-    el("btnActualGo").disabled = !ready;
-  }
-  function afterActual() {
-    if (liveControl() && !liveActualOpen()) return;
-    var reflection = S.team().reflections && S.team().reflections[S.round().id];
-    if (!reflection || !reflection.kept || !reflection.tradeoff || !reflection.lesson) {
-      UI.toast("세 문장을 모두 작성하면 다음 시대로 이동할 수 있습니다.");
+  /* 시간이 다 흘렀습니다. 다음 국면을 여는 것은 진행자입니다.
+     그 사이 돌발상황 · 결과 · DRB 기록은 빔에서 봅니다 — 노트북은 기다립니다. */
+  function afterLapse() {
+    if (S.isLastRound() && S.isLastSubround()) {
+      waitingBriefing = false;
+      lastResult = null;
+      S.setPhase("ending");
+      render();
       return;
     }
-    /* 마지막 시대(2026)가 끝났다면 엔딩 연출로 */
-    if (S.isLastRound()) {
-      S.setPhase("ending");
-    } else {
-      if (liveControl() && !liveNextBriefingOpen()) {
-        waitingBriefing = true;
-        showScreen('timelapse');
-        UI.renderLiveWait('briefing');
-        return;
-      }
-      S.advance();          // 다음 시대
+    if (liveControl() && !liveNextBriefingOpen()) {
+      waitingBriefing = true;
+      showScreen("timelapse");
+      UI.renderLiveWait("briefing");
+      return;
     }
+    waitingBriefing = false;
     lastResult = null;
+    S.advance();
     render();
   }
 
@@ -860,32 +722,16 @@
     el("btnStart").onclick    = startNewGame;
     el("btnContinue").onclick = continueGame;
 
-    /* 대화 시간 — 다음 사람에게 넘깁니다 (역할마다 시간을 재지는 않습니다) */
-    el("btnNextSpeaker").onclick = UI.nextSpeaker;
-
-    /* 돌발상황은 [확인] 말고는 넘어갈 방법이 없습니다 */
-    el("btnEventGo").onclick  = function () { S.setPhase("result"); render(); };
-
     /* 최종 → What If */
     el("btnFinalGo").onclick  = function () { S.setPhase("whatif"); render(); };
 
-    el("btnRoundGo").onclick  = function () { S.setPhase("situation"); render(); };
-    el("btnSitGo").onclick    = function () { S.setPhase("invest"); render(); };
-    el("btnSitBrief").onclick = function () { S.setPhase("roundOpen"); render(); };
-    el("btnInvestBack").onclick = function () { S.setPhase("situation"); render(); };
+    /* 배분과 정책을 한 화면에서 정하고 여기서 바로 확정합니다 */
     el("btnInvestGo").onclick = function () {
       if (UI.allocSum(alloc) === 0 &&
           !confirm("아무 곳에도 투자하지 않았습니다. 예산 전액을 현금으로 남길까요?")) return;
-      S.setPhase("policy"); render();
+      commit();
     };
     el("btnAllocReset").onclick = resetAlloc;
-    el("btnPolicyBack").onclick = function () { S.setPhase("invest"); render(); };
-    el("btnPolicyGo").onclick = commit;
-    el("btnResultGo").onclick = afterResult;
-    el("btnActualGo").onclick = afterActual;
-    ["acKept", "acTradeoff", "acLesson"].forEach(function (id) {
-      el(id).addEventListener("input", updateEraCheckpoint);
-    });
     el("btnWhatifGo").onclick = afterWhatIf;
     el("btnReflectSend").onclick = sendReflection;
     el("rfComment").addEventListener("input", function () {
@@ -921,21 +767,26 @@
         if (el("app").getAttribute("data-screen") !== "reflect") render();
         return;
       }
+      /* 돌발상황 화면은 빔에 있지만 알람은 노트북에서 울립니다.
+         조가 고개를 드는 순간이라 소리까지 빼면 사건이 지나가버립니다. */
+      var control = liveControl();
+      var stage = control ? control.stage : null;
+      if (stage !== lastControlStage) {
+        if (window.DRBAudio) window.DRBAudio.duck(stage === "event");
+        if (stage === "event") {
+          sfx("shock");
+          if (window.DRBAudio) window.DRBAudio.alarm();
+          if (waitingBriefing) UI.renderLiveWait("event");
+        }
+      }
+      lastControlStage = stage;
+
       if (waitingBriefing && liveNextBriefingOpen()) {
         waitingBriefing = false;
         S.advance();
         lastResult = null;
         render();
-        return;
       }
-      var eventOpen = liveEventOpen();
-      var actualOpen = liveActualOpen();
-      var eventJustOpened = lastLiveEventOpen === false && eventOpen === true;
-      var actualJustOpened = lastLiveActualOpen === false && actualOpen === true;
-      lastLiveEventOpen = eventOpen;
-      lastLiveActualOpen = actualOpen;
-      if ((waitingEvent && (eventJustOpened || eventOpen)) ||
-          (waitingActual && (actualJustOpened || actualOpen))) render();
     });
   }
 

@@ -66,45 +66,31 @@ window.DRBUI = (function () {
   /* ============================================================
      상단바
 
-     화면마다 보여줄 것이 다릅니다.
-       브리핑        → 우리 조 · 진행 점 6개
-       배분 / 정책    → 우리 조 · "1947 · STEP 1 자원 배분"
-       결과          → 우리 조 · "1947 → 1965 · 첫 번째 결과"
-       ACTUAL DRB    → 금색 도장
-       최종          → GAME OVER 도장
+     노트북에 남은 화면이 몇 개 없습니다.
+       배분   → "ERA 1 · 자원 배분 · 1947" · 남은 예산 · 타이머
+       대기   → 진행자가 다음 국면을 열 때까지
+       최종   → GAME OVER 도장
      ============================================================ */
   function renderTopbar() {
     var g = S.g();
     var r = S.round();
     var sr = S.subround();
-    var e = S.era();
     var phase = S.phase();
-    var turn = S.turnIndex();
     var subs = allSubrounds();
 
     /* ---------- 화면마다 다른 머리말 ----------
        [도장] [제목] [부제] [점]  …  [메타] [예산] [타이머] */
-    var nextYear = subs[turn + 1] ? subs[turn + 1].year : null;
     var stamp = "", title = "", sub = "", meta = "";
 
-    if (phase === "roundOpen" || phase === "situation") {
+    if (phase === "invest") {
       stamp = "ERA " + r.no;
-      title = String(sr.year);
-      meta  = "전망 선명도 " + (e.visibility === undefined ? 70 : e.visibility) + "%";
-    } else if (phase === "invest") {
       title = "자원 배분";
       sub   = String(sr.year);
-    } else if (phase === "policy") {
-      title = "경영정책";
-      sub   = "하나만 고릅니다";
-    } else if (phase === "result") {
-      title = "결과";
-      sub   = nextYear ? sr.year + " → " + nextYear : String(sr.year);
       meta  = g.activeTeam;
-    } else if (phase === "actual") {
-      title = "DRB 기록";
-      sub   = "ERA " + r.no;
-      meta  = "진행자 화면을 보세요";
+    } else if (phase === "timelapse") {
+      title = String(sr.year);
+      sub   = "진행자 화면을 보세요";
+      meta  = g.activeTeam;
     } else if (phase === "final") {
       stamp = "결과";
       title = g.activeTeam;
@@ -175,40 +161,7 @@ window.DRBUI = (function () {
   }
 
   /* ============================================================
-     전망 선명도 (Forecast Visibility)
-     ============================================================ */
-  function renderVisibility(node, era) {
-    if (!node) return;
-    clearNode(node);
-
-    var v = era.visibility === undefined ? 70 : era.visibility;
-    var on = Math.round(v / 10);
-
-    var label = document.createElement("span");
-    label.className = "visibility__label";
-    label.textContent = "전망 선명도";
-
-    var bar = document.createElement("span");
-    bar.className = "visibility__bar";
-    for (var i = 0; i < 10; i++) {
-      var cell = document.createElement("span");
-      var cls = "visibility__cell";
-      if (i < on) cls += v >= 60 ? " is-on" : (v >= 40 ? " is-mid" : " is-low");
-      cell.className = cls;
-      bar.appendChild(cell);
-    }
-
-    var note = document.createElement("span");
-    note.className = "visibility__note";
-    note.textContent = v + "% — " + (era.visibilityNote || "");
-
-    node.appendChild(label);
-    node.appendChild(bar);
-    node.appendChild(note);
-  }
-
-  /* ============================================================
-     경쟁사 목록 (시대 시작 화면 / 결과 화면)
+     경쟁사 목록 (최종 화면)
      ============================================================ */
   function renderRivalList(node, opts) {
     if (!node) return;
@@ -365,245 +318,6 @@ window.DRBUI = (function () {
       "<div class='breakdown'>" + pend + "</div>");
   }
 
-  /* ============================================================
-     환경 지표 블록
-     ============================================================ */
-  function renderEnv(node, list) {
-    clearNode(node);
-    list.forEach(function (d) {
-      var box = document.createElement("div");
-      box.className = "env__item";
-      var n = document.createElement("div");
-      n.className = "env__name";
-      n.textContent = d.name;
-      var v = document.createElement("div");
-      v.className = "env__value";
-      v.textContent = d.value;
-      if (d.tone === "good") v.style.color = "var(--good)";
-      if (d.tone === "bad")  v.style.color = "var(--bad)";
-      box.appendChild(n);
-      box.appendChild(v);
-      node.appendChild(box);
-    });
-  }
-
-  /* ============================================================
-     산업 브리핑 카드 — 그 시점에 알 수 있었던 것만
-     ============================================================ */
-  var MARKS = { up: "▲", down: "▼", q: "?", flat: "·" };
-
-  function renderBriefing(node, brief) {
-    clearNode(node);
-    if (!brief) return;
-
-    var head = document.createElement("div");
-    head.className = "brief__head";
-    head.textContent = brief.title;
-    node.appendChild(head);
-
-    var body = document.createElement("div");
-    body.className = "brief__body";
-
-    function column(label, lines, isRisk) {
-      var col = document.createElement("div");
-      col.className = "brief__col" + (isRisk ? " brief__col--risk" : "");
-      var l = document.createElement("div");
-      l.className = "brief__label";
-      l.textContent = label;
-      col.appendChild(l);
-
-      lines.forEach(function (item) {
-        var tone = isRisk ? "down" : (item.tone || "flat");
-        var text = isRisk ? item : item.text;
-        var row = document.createElement("div");
-        row.className = "brief__line brief__line--" + tone;
-        var mark = document.createElement("span");
-        mark.className = "brief__mark";
-        mark.textContent = isRisk ? "−" : (MARKS[tone] || "·");
-        var t = document.createElement("span");
-        t.textContent = text;
-        row.appendChild(mark);
-        row.appendChild(t);
-        col.appendChild(row);
-      });
-      return col;
-    }
-
-    if (brief.domestic) body.appendChild(column("국내", brief.domestic, false));
-    if (brief.global)   body.appendChild(column("글로벌", brief.global, false));
-    if (brief.risk)     body.appendChild(column("RISK", brief.risk, true));
-
-    node.appendChild(body);
-  }
-
-  /* 국면 브리핑의 국내 / 세계 한 줄씩 */
-  function renderFactors(node, lines) {
-    if (!node) return;
-    clearNode(node);
-    lines.forEach(function (item) {
-      var tone = item.tone || "flat";
-      var row = document.createElement("div");
-      row.className = "factor factor--" + tone;
-
-      var mark = document.createElement("span");
-      mark.className = "factor__mark";
-      mark.textContent = MARKS[tone] || "·";
-
-      var text = document.createElement("span");
-      text.className = "factor__text";
-      text.textContent = item.text;
-
-      row.appendChild(mark);
-      row.appendChild(text);
-      node.appendChild(row);
-    });
-  }
-
-  /* ============================================================
-     라운드 시작 화면
-     ============================================================ */
-  function renderRoundOpen() {
-    var r = S.round();
-    var e = S.era();
-    el("roMeta").textContent = "ERA " + r.no + " · " + r.title + "  (" + e.span + ")";
-    el("roYear").textContent = e.yearLabel;
-    el("roName").textContent = e.name;
-    el("roDesc").textContent = e.narrative;
-    el("roQuestion").textContent = "“" + (e.question || r.subtitle) + "”";
-    el("roGuide").textContent = r.subtitle;
-    renderBriefing(el("roBrief"), e.briefing);
-    renderVisibility(el("roVisibility"), e);
-
-    /* 경쟁사는 2번째 시대부터 소개합니다 (첫 시대는 우리 회사에 집중) */
-    if (r.no >= 2) {
-      el("roRivalsWrap").classList.remove("hidden");
-      renderRivalList(el("roRivals"), { showMove: true });
-    } else {
-      el("roRivalsWrap").classList.add("hidden");
-    }
-  }
-
-  /* ============================================================
-     상황 · 대화 시간 화면
-
-     왼쪽은 국면 질문과 판단에 걸리는 것 세 줄.
-     오른쪽은 대화 시간 — 타이머 하나와 지금 말할 사람.
-     ============================================================ */
-  var speakerIndex = 0;
-
-  function renderSituation() {
-    var r = S.round();
-    var sr = S.subround();
-    var e = S.era();
-
-    /* ---------- 왼쪽 : 이 국면의 질문과 그때 알 수 있던 것 ---------- */
-    /* 국면 제목은 "첫 번째 국면 · 고무신인가, 벨트인가" 형태입니다.
-       가운뎃점 뒤쪽이 이 국면의 질문입니다. */
-    var parts = String(sr.title).split("·");
-    el("siTitle").textContent = (parts.length > 1 ? parts.slice(1).join("·") : parts[0]).trim();
-    el("siLead").textContent = sr.situation.title;
-    el("siBody").textContent = sr.situation.body;
-
-    /* 산업 브리핑을 이 화면에 함께 놓습니다.
-       상황과 브리핑을 따로 보여주면 조가 앞 화면을 기억해야 합니다. */
-    var brief = e.briefing || {};
-    renderFactors(el("siDomestic"), brief.domestic || []);
-    renderFactors(el("siGlobal"), brief.global || []);
-
-    var riskBox = el("siRisk");
-    clearNode(riskBox);
-    (brief.risk || []).forEach(function (text) {
-      var item = document.createElement("div");
-      item.className = "riskbox__item";
-      item.textContent = text;
-      riskBox.appendChild(item);
-    });
-
-    /* 시대가 갈수록 한 번의 결정이 담당하는 기간이 짧아집니다 */
-    var era1 = window.DRB_ERAS.era1;
-    el("siFoot").textContent = r.no > 1 && e.pace && era1.pace
-      ? "한 번의 결정이 담당하는 기간 — ERA 1 " + era1.pace.yearsPerSubround +
-        "년 → 지금 " + e.pace.yearsPerSubround + "년"
-      : "이 시대에 알 수 있는 것은 여기까지입니다";
-
-    /* ---------- 오른쪽 : 전망 선명도 · 제약 · 대화 ---------- */
-    var v = e.visibility === undefined ? 70 : e.visibility;
-    el("siClarityValue").textContent = v;
-    el("siClarityFill").style.width = v + "%";
-    el("siClarityNote").textContent = e.visibilityNote || "";
-    el("siClarity").classList.toggle("is-low", v < 40);
-
-    var budget = S.budget();
-    var choiceCount = (S.availableInvestments ? S.availableInvestments() : S.investments()).length;
-    renderPhaseBox([
-      { name: "선택지", value: choiceCount + "개" },
-      { name: "예산", value: String(budget) },
-      { name: "실물 토큰", value: (budget / CFG.tokenUnit) + "개" },
-      r.no > 1
-        ? { name: "경쟁사", value: (window.DRB_RIVALS || []).length + "곳" }
-        : { name: "경쟁사", value: "ERA 2부터", muted: true }
-    ]);
-
-    el("siTalkQ").textContent = r.subtitle || e.question || "";
-    renderSpeakers();
-
-    /* 라이브 교육에서는 진행자가 결정을 잠근 뒤 사건을 공개합니다. */
-    var evBox = el("siEvent");
-    var liveControl = window.DRBLive && window.DRBLive.currentControl ? window.DRBLive.currentControl() : null;
-    var eventIsRevealed = !liveControl || liveControl.currentTurn > S.turnIndex() ||
-      (liveControl.currentTurn === S.turnIndex() && ["event", "actual", "debrief", "map"].indexOf(liveControl.stage) >= 0);
-    if (sr.event && window.DRB_EVENTS[sr.event] && eventIsRevealed) {
-      var ev = window.DRB_EVENTS[sr.event];
-      el("siEventTitle").textContent = ev.title;
-      el("siEventBody").textContent = ev.body;
-      evBox.classList.remove("hidden");
-    } else {
-      evBox.classList.add("hidden");
-    }
-
-    renderEnv(el("siEnv"), e.display);
-  }
-
-  /* 오른쪽 레일의 '이번 국면' 표 */
-  function renderPhaseBox(rows) {
-    var node = el("siPhaseList");
-    if (!node) return;
-    clearNode(node);
-    rows.forEach(function (row) {
-      var line = document.createElement("div");
-      line.className = "phasebox__row" + (row.muted ? " is-muted" : "");
-      line.innerHTML = "<dt>" + escapeHtml(row.name) + "</dt>" +
-                       "<dd class='num'>" + escapeHtml(row.value) + "</dd>";
-      node.appendChild(line);
-    });
-  }
-
-
-  function renderSpeakers() {
-    var box = el("siRoles");
-    clearNode(box);
-    var roles = CFG.roles || [];
-    if (speakerIndex >= roles.length) speakerIndex = 0;
-
-    roles.forEach(function (role, i) {
-      var row = document.createElement("div");
-      row.className = "rolerow" + (i === speakerIndex ? " is-now" : "");
-      row.innerHTML =
-        "<span class='rolerow__tag'>" + escapeHtml(role.name.replace(" 관점", "")) + "</span>" +
-        "<span class='rolerow__state'>" +
-          (i === speakerIndex ? "말하는 중" : i === speakerIndex + 1 ? "다음" : "대기") +
-        "</span>" +
-        "<span class='rolerow__q'>" + escapeHtml(role.question) + "</span>";
-      box.appendChild(row);
-    });
-  }
-
-  function nextSpeaker() {
-    speakerIndex = (speakerIndex + 1) % Math.max(1, (CFG.roles || []).length);
-    renderSpeakers();
-  }
-
-  function resetSpeakers() { speakerIndex = 0; }
 
   /* ============================================================
      투자 배분 화면
@@ -942,17 +656,14 @@ window.DRBUI = (function () {
   }
 
   /* ============================================================
-     정책 화면
-     ============================================================ */
-  /* '정책은 하나만' 안내 카드. 목록을 다시 그릴 때마다 떨어져 나오므로
-     한 번 잡아두고 계속 같은 노드를 다시 붙입니다.
-     (떨어져 있는 동안에는 getElementById 로 찾을 수 없습니다) */
-  var policyNote = null;
+     경영정책 — 배분 화면 아래 한 줄
 
+     각 정책이 무엇인지는 진행자가 빔에서 설명합니다. 여기서는 고르기만 합니다.
+     그래도 정책은 노트북에 남습니다 — 조마다 달라야 엔진이 다르게 계산합니다.
+     ============================================================ */
   function renderPolicy(selectedId, onPick) {
     var list = el("poList");
     var prev = S.team().prevPolicyId;
-    if (!policyNote) policyNote = el("poNote");
     clearNode(list);
 
     S.policies().forEach(function (p) {
@@ -967,315 +678,39 @@ window.DRBUI = (function () {
       if (prev === p.id) {
         var cur = document.createElement("span");
         cur.className = "policy__current";
-        cur.textContent = "(지난 국면과 동일)";
+        cur.textContent = "지난 국면";
         name.appendChild(cur);
       }
 
+      /* 한 줄이라 장점·단점을 하나씩만 붙입니다. 나머지는 빔에 있습니다. */
       var lines = document.createElement("div");
       lines.className = "policy__lines";
-      (p.pros || []).forEach(function (s) {
-        var d = document.createElement("span");
-        d.className = "policy__pro";
-        d.textContent = s;
-        lines.appendChild(d);
-      });
-      (p.cons || []).forEach(function (s) {
-        var d = document.createElement("span");
-        d.className = "policy__con";
-        d.textContent = s;
-        lines.appendChild(d);
-      });
+      if ((p.pros || [])[0]) {
+        var pro = document.createElement("span");
+        pro.className = "policy__pro";
+        pro.textContent = p.pros[0];
+        lines.appendChild(pro);
+      }
+      if ((p.cons || [])[0]) {
+        var con = document.createElement("span");
+        con.className = "policy__con";
+        con.textContent = p.cons[0];
+        lines.appendChild(con);
+      }
 
       btn.appendChild(name);
       btn.appendChild(lines);
       list.appendChild(btn);
     });
 
-    /* '정책은 하나만' 안내는 목록의 마지막 칸으로 들어갑니다 */
     var pct = Math.round((1 - CFG.engine.policyChangePenalty) * 100);
-    if (policyNote) {
-      var pctNode = policyNote.querySelector("#poNotePct");
-      if (pctNode) pctNode.textContent = pct + "%";
-      list.appendChild(policyNote);
-    }
-
     var warn = el("poWarn");
     if (prev && selectedId && selectedId !== prev) {
-      warn.textContent = "정책을 바꾸면 조직이 흔들립니다. 이번 국면의 투자 효율이 " +
-                         pct + "% 떨어지고 조직피로도가 올라갑니다.";
+      warn.textContent = "정책을 바꿨습니다 — 이번 국면 투자 효율 −" + pct + "% · 조직피로도 상승";
       warn.classList.remove("hidden");
     } else {
       warn.classList.add("hidden");
     }
-  }
-
-  /* ============================================================
-     결과 화면의 부품들
-     ============================================================ */
-
-  /* 직전 국면의 기록 (증감을 계산하려고) */
-  function prevHistory() {
-    var h = S.team().history;
-    return h.length >= 2 ? h[h.length - 2] : null;
-  }
-
-  function renderKpiRow(items) {
-    var box = el("reKpi");
-    clearNode(box);
-    items.forEach(function (k) {
-      var tile = document.createElement("div");
-      tile.className = "kpi-tile";
-
-      var name = document.createElement("div");
-      name.className = "kpi-tile__name";
-      name.textContent = k.name;
-
-      var row = document.createElement("div");
-      row.className = "kpi-tile__row";
-      row.innerHTML = "<span class='kpi-tile__value num'>" + k.value + "</span>" +
-                      "<span class='kpi-tile__unit'>" + k.unit + "</span>";
-
-      if (k.delta !== null && k.delta !== undefined) {
-        var d = document.createElement("span");
-        var dir = k.delta > 0.5 ? "is-up" : k.delta < -0.5 ? "is-down" : "is-flat";
-        d.className = "kpi-tile__delta num " + dir;
-        d.textContent = (dir === "is-up" ? "▲ " : dir === "is-down" ? "▼ " : "") + signed(k.delta, 0);
-        row.appendChild(d);
-      }
-
-      tile.appendChild(name);
-      tile.appendChild(row);
-      box.appendChild(tile);
-    });
-  }
-
-  /* 매출이 어디로 갔는지 한 줄로 — 변동비 / 고정비 / 남은 것 */
-  function renderPnl(rep) {
-    var bar = el("rePnlBar");
-    clearNode(bar);
-
-    var rows = rep.profitBreakdown || [];
-    var revenue = rep.kpi.revenue || 0;
-    var varCost = Math.abs((rows[1] && rows[1].value) || 0);
-    var fixCost = Math.abs((rows[2] && rows[2].value) || 0);
-    var profit  = rep.kpi.profit || 0;
-    var total = varCost + fixCost + Math.abs(profit);
-    if (total <= 0) return;
-
-    function seg(cls, label, value) {
-      var s = document.createElement("span");
-      s.className = "pnl__seg pnl__seg--" + cls;
-      s.style.width = (Math.abs(value) / total * 100) + "%";
-      s.textContent = label;
-      s.title = label;
-      bar.appendChild(s);
-    }
-    seg("var", "변동비 " + fmt(varCost), varCost);
-    seg("fixed", "고정비 " + fmt(fixCost), fixCost);
-    seg(profit >= 0 ? "good" : "bad", signed(profit), profit);
-
-    el("rePnlBase").textContent = "손익 구성 · 매출 " + fmt(revenue) + "억 기준";
-    el("rePnlMargin").textContent = revenue > 0
-      ? "영업이익률 " + Math.round(profit / revenue * 100) + "%"
-      : "";
-  }
-
-  /* 왜 이렇게 나왔는지 — 엔진이 실제로 계산한 값에서만 뽑습니다 */
-  function renderWhy(rep, hist) {
-    var box = el("reWhy");
-    clearNode(box);
-
-    var lines = [];
-    var contrib = (rep.revenueBreakdown || []).filter(function (c) { return c.value > 0; });
-    if (contrib.length) {
-      lines.push({ text: contrib[0].label + " — 매출을 " + fmt(contrib[0].value) + "억 끌어올렸습니다" });
-    }
-
-    if (rep.kpi.fillRate < 100) {
-      lines.push({ text: "설비가 모자라 주문의 일부를 만들지 못했습니다 (납기 충족 " + rep.kpi.fillRate + "%)" });
-    } else if (rep.kpi.utilization < 60) {
-      lines.push({ text: "설비가 놀았습니다 (가동률 " + rep.kpi.utilization + "%)" });
-    }
-
-    var drag = (rep.revenueBreakdown || []).filter(function (c) { return c.value < 0; });
-    if (drag.length) {
-      lines.push({ text: drag[0].label + " — 매출을 " + fmt(Math.abs(drag[0].value)) + "억 깎았습니다" });
-    }
-
-    /* 아직 도착하지 않은 투자 — "효과는 늦게 온다"를 보여주는 자리 */
-    var pending = (S.team().state.pending || []).length;
-    if (pending) {
-      lines.push({ muted: true, text: "아직 도착하지 않은 투자가 " + pending + "건 있습니다. 다음 국면 이후에 열립니다" });
-    }
-
-    if (!lines.length) lines.push({ muted: true, text: "이번 국면에는 크게 움직인 것이 없습니다." });
-
-    lines.slice(0, 4).forEach(function (l) {
-      var li = document.createElement("li");
-      if (l.muted) li.className = "is-muted";
-      li.textContent = l.text;
-      box.appendChild(li);
-    });
-  }
-
-  /* 조별 매출 비교 — 순위를 붙이지 않습니다.
-     "같은 시작에서 서로 다른 회사가 되고 있다"를 보여주는 그림입니다.
-     경쟁 순위는 진행자 화면에서만 공개합니다. */
-  function renderTeamBars() {
-    var box = el("reTeamBars");
-    if (!box) return;
-    clearNode(box);
-
-    var g = S.g();
-    var turn = S.turnIndex();
-    var rows = g.teamNames.map(function (n) {
-      var t = g.teams[n];
-      var h = t && t.history ? t.history[turn] : null;
-      return { name: n, value: h ? h.report.kpi.revenue : null };
-    });
-
-    var max = Math.max.apply(null, rows.map(function (r) { return r.value || 0; }).concat([1]));
-    el("reTeamsTitle").textContent = rows.length + "개 조";
-
-    rows.forEach(function (r) {
-      var row = document.createElement("div");
-      row.className = "teambar" + (r.name === g.activeTeam ? " is-ours" : "");
-      row.innerHTML =
-        "<span class='teambar__name'>" + escapeHtml(r.name) + "</span>" +
-        "<span class='teambar__track'><span class='teambar__fill' style='width:" +
-        (r.value === null ? 0 : Math.round(r.value / max * 100)) + "%'></span></span>" +
-        "<span class='teambar__value num'>" + (r.value === null ? "—" : fmt(r.value)) + "</span>";
-      box.appendChild(row);
-    });
-  }
-
-  /* ============================================================
-     결과 화면
-     ============================================================ */
-  function renderResult(result) {
-    var rep = result.report;
-    var hist = S.lastHistory();
-
-    el("reHeadline").textContent = rep.headline;
-    /* 2026년 마지막 결정에는 '실제 결과'가 없습니다. 교육용 신호라는 것을 밝힙니다. */
-    var finalDecision = !!S.subround().isFinalDecision;
-    el("reHint").textContent = finalDecision
-      ? "이 수치는 실제 미래 성과가 아니라 선택의 구조를 비교하기 위한 신호입니다."
-      : "같은 사건도 준비 상태에 따라 다른 결과가 됩니다.";
-
-    /* 돌발상황과 우리 회사의 반응 */
-    /* ---------- KPI 세 칸 : 매출 · 영업손익 · 현금 ---------- */
-    var prev = prevHistory();
-    renderKpiRow([
-      { name: "매출", value: fmt(rep.kpi.revenue), unit: "억",
-        delta: prev ? rep.kpi.revenue - prev.report.kpi.revenue : null },
-      { name: "영업손익", value: signed(rep.kpi.profit), unit: "억",
-        delta: prev ? rep.kpi.profit - prev.report.kpi.profit : null },
-      { name: "현금", value: fmt(hist.after.cash), unit: "억",
-        delta: hist.after.cash - hist.before.cash }
-    ]);
-
-    /* ---------- 실물 토큰 이동 안내 ---------- */
-    var tk = el("reTokens");
-    clearNode(tk);
-    CFG.metrics.concat(CFG.detailMetrics || []).forEach(function (m) {
-      if (m.key === "cash") return;          /* 현금은 위 KPI에 이미 있습니다 */
-      if (hist.after[m.key] === undefined) return;
-      var diff = hist.after[m.key] - hist.before[m.key];
-      if (Math.abs(diff) < 0.5) return;
-
-      var chip = document.createElement("div");
-      chip.className = "tokenchip " + (diff > 0 ? "is-up" : "is-down");
-      chip.innerHTML = "<span class='tokenchip__name'>" + escapeHtml(m.name) + "</span>" +
-                       "<span class='tokenchip__value num'>" + signed(diff, 0) + "</span>";
-      tk.appendChild(chip);
-    });
-    if (!tk.children.length) {
-      var none = document.createElement("p");
-      none.className = "hint";
-      none.textContent = "이번 국면에는 눈에 띄는 자원 변화가 없었습니다.";
-      tk.appendChild(none);
-    }
-
-    /* ---------- 손익 구성 막대 · 왜 이렇게 됐는지 ---------- */
-    renderPnl(rep);
-    renderWhy(rep, hist);
-    renderTeamBars();
-
-    /* 매출 귀인 (접힌 칸 안) */
-    renderBreakdown(el("reRevWhy"), rep.revenueBreakdown, "억", fmt(rep.kpi.revenue) + "억");
-    renderBreakdown(el("reProfitWhy"), rep.profitBreakdown, "억", signed(rep.kpi.profit) + "억");
-
-    /* 계산 근거 — 접혀 있다가 펴면 모든 지표 변화가 나옵니다.
-       관리자 모드에서는 처음부터 펴 둡니다. */
-    var adminBox = el("reAdmin");
-    adminBox.open = !!S.g().adminMode;
-    var body = el("reAdminBody");
-    clearNode(body);
-    Object.keys(rep.changes).forEach(function (metric) {
-      var head = document.createElement("div");
-      head.className = "section-label";
-      head.style.marginTop = "var(--sp-3)";
-      head.textContent = metric;
-      body.appendChild(head);
-      rep.changes[metric].forEach(function (c) {
-        var row = document.createElement("div");
-        row.className = "breakdown__row";
-        var l = document.createElement("span");
-        l.className = "breakdown__label";
-        l.textContent = c.label;
-        var v = document.createElement("span");
-        v.className = "breakdown__value delta " + deltaClass(c.amount);
-        v.textContent = signed(c.amount, 1);
-        row.appendChild(l); row.appendChild(v);
-        body.appendChild(row);
-      });
-    });
-    var effRow = document.createElement("div");
-    effRow.className = "breakdown__row breakdown__total";
-    effRow.innerHTML = "<span class='breakdown__label'>이번 턴 투자 효율</span>" +
-                       "<span class='breakdown__value'>×" + rep.investEff + "</span>";
-    body.appendChild(effRow);
-
-    /* 경쟁 상황 */
-    el("reCrowd").textContent = "경쟁강도 " + (rep.competitionLevel || 0) + "%" +
-      (rep.crowding > 0 ? " · 같은 분야에 몰림 " + rep.crowding + "%" : "");
-    renderStanding(el("reStanding"));
-
-    var mv = el("reRivalMoves");
-    clearNode(mv);
-    var moves = (hist && hist.rivalMoves) || [];
-    if (moves.length) {
-      var head = document.createElement("div");
-      head.className = "section-label";
-      head.textContent = "그 사이 경쟁사들은";
-      mv.appendChild(head);
-      moves.forEach(function (m) {
-        var def = (window.DRB_RIVALS || []).filter(function (d) { return d.id === m.id; })[0];
-        var row = document.createElement("div");
-        row.className = "rival-row";
-        row.innerHTML =
-          "<span class='rival-row__name'><span class='rival-row__badge' style='background:" +
-          (def ? def.color : "var(--text-3)") + "'></span>" + escapeHtml(m.name) + "</span>" +
-          "<span class='rival-row__move'>" + escapeHtml(m.text) + "</span>" +
-          "<span class='rival-row__type'>" + (m.year || "") + "</span>";
-        mv.appendChild(row);
-      });
-    }
-
-    /* 해외 거점이 하나라도 있으면 지도를 보여준다 */
-    var sites = S.team().state.sites || [];
-    var anyRivalSite = S.rivals().some(function (r) { return (r.state.sites || []).length > 0; });
-    if (sites.length || anyRivalSite) {
-      el("reMapWrap").classList.remove("hidden");
-      renderWorldMap(el("reMap"), el("reMapLegend"));
-    } else {
-      el("reMapWrap").classList.add("hidden");
-    }
-
-    el("reHint").textContent = S.isLastSubround()
-      ? "이 시대가 끝났습니다. 다음은 실제 DRB의 선택입니다."
-      : "결과를 팀에서 한 문장으로 정리한 뒤 다음으로 넘어가세요.";
   }
 
   /* ============================================================
@@ -1362,37 +797,36 @@ window.DRBUI = (function () {
     if (box) clearNode(box);
   }
 
+  /* 확정한 뒤 노트북이 머무는 화면.
+     이 사이 돌발상황 · 결과 · DRB 기록은 진행자 빔에서 봅니다 —
+     그래서 여기서는 "화면을 보세요" 말고 할 말이 없어야 맞습니다. */
   function renderLiveWait(kind) {
     clearNewsFlash();
     var feed = el("tlFeed");
     clearNode(feed);
-    if (kind === 'briefing') {
-      el('tlYear').textContent = 'LIVE';
-      el('tlCaption').textContent = '다음 공통 배경 공개 대기 · 이전 국면 토론을 정리하세요';
-      var briefingCard = document.createElement('div');
-      briefingCard.className = 'timelapse__line timelapse__line--market';
-      var briefingWho = document.createElement('span');
-      briefingWho.className = 'timelapse__who';
-      briefingWho.textContent = '토론 정리';
-      var briefingCopy = document.createElement('span');
-      briefingCopy.textContent = '다음 국면의 정보는 진행자가 공통 배경을 공개하면 표시됩니다.';
-      briefingCard.appendChild(briefingWho);
-      briefingCard.appendChild(briefingCopy);
-      feed.appendChild(briefingCard);
-      el('btnSkipLapse').classList.add('hidden');
-      return;
+    el("btnSkipLapse").classList.add("hidden");
+    el("tlYear").textContent = "LIVE";
+
+    var who = "결정 잠금 완료";
+    var copy = "결정은 전송됐습니다. 앞을 보세요 — 결과는 진행자 화면에서 함께 봅니다.";
+    if (kind === "event") {
+      el("tlCaption").textContent = "돌발상황 · 진행자 화면을 보세요";
+      who = "돌발상황";
+      copy = "모든 조에게 같은 일이 일어났습니다. 우리가 무엇을 쌓아뒀는지에 따라 다르게 맞습니다.";
+    } else {
+      el("tlCaption").textContent = "다음 국면 공개 대기 · 진행자 화면을 보세요";
     }
-    el("tlYear").textContent = kind === "actual" ? "DRB" : "LIVE";
-    el("tlCaption").textContent = kind === "actual"
-      ? "진행자가 DRB 기록을 공개할 때까지 조별 판단을 정리하세요"
-      : "모든 조의 결정이 모였습니다 · 진행자의 돌발상황 공개를 기다립니다";
+
     var card = document.createElement("div");
     card.className = "timelapse__line timelapse__line--market";
-    card.innerHTML = kind === "actual"
-      ? "<span class='timelapse__who'>교육 체크포인트</span><span>우리 조는 무엇을 지켰고 어떤 대가를 감수했는지 먼저 말해보세요.</span>"
-      : "<span class='timelapse__who'>결정 잠금 완료</span><span>결정은 전송됐습니다. 다른 조의 선택은 아직 공개되지 않습니다.</span>";
+    var label = document.createElement("span");
+    label.className = "timelapse__who";
+    label.textContent = who;
+    var body = document.createElement("span");
+    body.textContent = copy;
+    card.appendChild(label);
+    card.appendChild(body);
     feed.appendChild(card);
-    el("btnSkipLapse").classList.add("hidden");
   }
   function renderTimelapse(hist, onDone) {
     el("btnSkipLapse").classList.remove("hidden");
@@ -1479,59 +913,6 @@ window.DRBUI = (function () {
     });
   }
 
-  /* ============================================================
-     돌발상황 — 화면을 통째로 덮는 경고
-
-     결과에 묻어가지 않게 따로 세웁니다. 다른 조작은 막히고
-     [확인] 하나만 남습니다. "큰일이 났다"가 먼저 와야 합니다.
-     ============================================================ */
-  function renderEvent(result) {
-    var rep = result.report;
-    var hist = S.lastHistory();
-    var ev = (rep.events || [])[0];
-    if (!ev) return false;
-
-    el("evYear").textContent = hist.year || S.subround().year;
-    el("evTitle").textContent = ev.title;
-    el("evBody").textContent = ev.body;
-
-    /* 이 사건이 우리 지표를 얼마나 흔들었는지 세 칸까지 */
-    var box = el("evCards");
-    clearNode(box);
-
-    var shown = 0;
-    CFG.metrics.forEach(function (m) {
-      if (shown >= 2) return;
-      var diff = hist.after[m.key] - hist.before[m.key];
-      if (diff >= -0.5) return;                 /* 피해만 먼저 보여줍니다 */
-      var c = document.createElement("div");
-      c.className = "shockcard";
-      c.innerHTML = "<div class='shockcard__name'>" + escapeHtml(m.name) + "</div>" +
-                    "<div class='shockcard__value num'>" + signed(diff, 0) + "</div>";
-      box.appendChild(c);
-      shown++;
-    });
-
-    /* 준비해 둔 것이 막아준 몫 — 같은 사건도 조마다 다르게 작용합니다 */
-    var shield = (ev.reactions || []).filter(function (r) { return r.positive; })[0];
-    if (shield) {
-      var g = document.createElement("div");
-      g.className = "shockcard shockcard--good";
-      g.innerHTML = "<div class='shockcard__name'>" + escapeHtml(shield.text) + "</div>" +
-                    "<div class='shockcard__value num'>막아냈습니다</div>";
-      box.appendChild(g);
-    }
-
-    if (!box.children.length) {
-      var none = document.createElement("div");
-      none.className = "shockcard shockcard--good";
-      none.innerHTML = "<div class='shockcard__name'>우리 회사</div>" +
-                       "<div class='shockcard__value num'>버텼습니다</div>";
-      box.appendChild(none);
-    }
-    return true;
-  }
-
   /* 지나온 여섯 개의 연도 — 마지막 2026만 켜집니다 */
   function renderEndingYears() {
     var box = el("endYears");
@@ -1557,147 +938,6 @@ window.DRBUI = (function () {
     } else {
       el("btnEndNext").innerHTML = "다음 <span class='btn__arrow'>→</span>";
     }
-  }
-
-  function renderBreakdown(node, rows, unit, totalText) {
-    clearNode(node);
-    if (!rows.length) {
-      var p = document.createElement("p");
-      p.className = "hint";
-      p.textContent = "특별한 요인이 없었습니다.";
-      node.appendChild(p);
-      return;
-    }
-    rows.forEach(function (r) {
-      var row = document.createElement("div");
-      row.className = "breakdown__row";
-      var l = document.createElement("span");
-      l.className = "breakdown__label";
-      l.textContent = r.label;
-      var v = document.createElement("span");
-      v.className = "breakdown__value delta " + deltaClass(r.value);
-      v.textContent = signed(r.value) + unit;
-      row.appendChild(l); row.appendChild(v);
-      node.appendChild(row);
-    });
-    var total = document.createElement("div");
-    total.className = "breakdown__row breakdown__total";
-    total.innerHTML = "<span class='breakdown__label'>결과</span>" +
-                      "<span class='breakdown__value'>" + totalText + "</span>";
-    node.appendChild(total);
-  }
-
-  /* ============================================================
-     ACTUAL DRB 화면
-     ============================================================ */
-  function renderActual() {
-    var t = S.team();
-    var r = S.round();
-
-    el("acNotice").textContent =
-      "DRB의 실제 선택은 진행자 화면(빔)에서 공개됩니다. 보면서 아래 세 문장을 남기세요.";
-
-    /* 우리 조가 이번 시대에 한 일 */
-    var ours = el("acOurs");
-    clearNode(ours);
-    var mine = t.history.filter(function (h) { return h.roundId === r.id; });
-    var totals = {};
-    mine.forEach(function (h) {
-      Object.keys(h.allocation).forEach(function (k) {
-        totals[k] = (totals[k] || 0) + h.allocation[k];
-      });
-    });
-    var items = S.investments();
-    var sorted = Object.keys(totals)
-      .filter(function (k) { return totals[k] > 0; })
-      .sort(function (a1, b1) { return totals[b1] - totals[a1]; });
-
-    if (!sorted.length) {
-      ours.innerHTML = "<p class='hint'>이번 시대에는 아무 곳에도 투자하지 않았습니다.</p>";
-    } else {
-      var html = "<div class='breakdown'>";
-      sorted.slice(0, 4).forEach(function (k) {
-        var item = items.filter(function (i) { return i.id === k; })[0];
-        html += "<div class='breakdown__row'><span class='breakdown__label'>" +
-                escapeHtml(item ? item.name : k) + "</span><span class='breakdown__value num'>" +
-                totals[k] + "</span></div>";
-      });
-      html += "</div><p class='hint' style='margin-top:var(--sp-3)'>정책 · " +
-              escapeHtml(mine.map(function (h) { return h.policyName; }).join(" → ")) + "</p>";
-      ours.innerHTML = html;
-    }
-
-    renderRivals(r.id, sorted, items);
-
-    /* 시대를 넘기기 전에 판단을 한 문장으로 남깁니다 */
-    var reflection = t.reflections && t.reflections[r.id] ? t.reflections[r.id] : {};
-    [["acKept", "kept"], ["acTradeoff", "tradeoff"], ["acLesson", "lesson"]].forEach(function (pair) {
-      el(pair[0]).value = reflection[pair[1]] || "";
-    });
-    var checkpointReady = !!(reflection.kept && reflection.tradeoff && reflection.lesson);
-    el("acCheckpoint").classList.toggle("is-complete", checkpointReady);
-    el("acCheckpointStatus").textContent = checkpointReady
-      ? "작성 완료 · 다음 시대를 열 수 있습니다."
-      : "세 문장을 모두 작성하면 다음 시대가 열립니다.";
-    el("btnActualGo").disabled = !checkpointReady;
-    el("btnActualGo").innerHTML = (S.isLastRound() ? "마지막 시대로" : "다음 시대") +
-                                  " <span class='btn__arrow'>→</span>";
-  }
-
-  /* ============================================================
-     같은 산업, 다른 선택 (경쟁기업 비교)
-     — 검증된 자료만. 비어 있으면 그렇다고 밝힌다.
-     ============================================================ */
-  function renderRivals(roundId, ourTop, items) {
-    var data = (window.DRB_COMPETITORS && window.DRB_COMPETITORS.byRound[roundId]) || null;
-    var box = el("acRivals");
-    var head = el("acRivalHead");
-    var lesson = el("acRivalLesson");
-    clearNode(box);
-
-    if (!data) {
-      head.textContent = "이 라운드의 경쟁사 비교 자료가 아직 없습니다.";
-      lesson.textContent = "";
-      return;
-    }
-
-    head.textContent = data.filled
-      ? data.headline
-      : "[검증 후 입력 예정] 같은 시대에 다른 회사들은 어떤 선택을 했는지, People팀이 확인한 자료만 여기에 들어갑니다.";
-
-    /* 우리 조 */
-    var ours = document.createElement("div");
-    ours.className = "rival rival--ours";
-    ours.innerHTML =
-      "<div class='rival__name'>우리 조</div>" +
-      "<div class='rival__country'>" + escapeHtml(S.g().activeTeam) + "</div>" +
-      "<div class='rival__choice'>" +
-      (ourTop && ourTop.length
-        ? escapeHtml(ourTop.slice(0, 2).map(function (k) {
-            var it = items.filter(function (i) { return i.id === k; })[0];
-            return it ? it.name : k;
-          }).join(" + ")) + " 중심"
-        : "투자 없음") +
-      "</div>";
-    box.appendChild(ours);
-
-    (window.DRB_COMPETITORS.companies || []).forEach(function (c) {
-      var choice = (data.choices || []).filter(function (x) { return x.id === c.id; })[0];
-      var text = choice && choice.text ? choice.text : "";
-      var card = document.createElement("div");
-      card.className = "rival";
-      card.innerHTML =
-        "<div class='rival__name'>" + escapeHtml(c.name) + "</div>" +
-        "<div class='rival__country'>" + escapeHtml(c.country) + " · " + escapeHtml(c.note) + "</div>" +
-        (text
-          ? "<div class='rival__choice'>" + escapeHtml(text) + "</div>"
-          : "<div class='rival__choice rival__choice--empty'>[입력 예정]</div>");
-      box.appendChild(card);
-    });
-
-    lesson.textContent = data.filled && data.lesson
-      ? data.lesson
-      : "누가 정답이었는지를 고르는 화면이 아닙니다. 각 선택이 무엇을 얻고 무엇을 포기했는지 보세요.";
   }
 
   /* ============================================================
@@ -2132,13 +1372,11 @@ window.DRBUI = (function () {
     el: el, fmt: fmt, signed: signed, deltaClass: deltaClass,
     toast: toast, openModal: openModal, closeModal: closeModal,
     renderTopbar: renderTopbar, renderSide: renderSide, showDetail: showDetail,
-    renderRoundOpen: renderRoundOpen, renderSituation: renderSituation,
     renderInvest: renderInvest, updateBudgetBar: updateBudgetBar, allocSum: allocSum,
-    renderPolicy: renderPolicy, renderResult: renderResult,
-    renderActual: renderActual, renderWhatIf: renderWhatIf, renderFinal: renderFinal,
+    renderPolicy: renderPolicy,
+    renderWhatIf: renderWhatIf, renderFinal: renderFinal,
     renderDecisionCard: renderDecisionCard,
     renderTimeline: renderTimeline, renderLiveWait: renderLiveWait, renderTimelapse: renderTimelapse,
-    renderEvent: renderEvent, nextSpeaker: nextSpeaker, resetSpeakers: resetSpeakers,
     showEndingStep: showEndingStep, renderWorldMap: renderWorldMap,
     renderReflect: renderReflect,
     showNewsFlash: showNewsFlash, clearNewsFlash: clearNewsFlash,

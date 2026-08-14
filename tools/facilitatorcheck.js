@@ -656,8 +656,7 @@ function checkLiveIntegration() {
   const createSource = functionSource(live, "create");
   const publishSource = functionSource(mainSource, "publishLiveState");
   const commitSource = functionSource(mainSource, "commit");
-  const afterResultSource = functionSource(mainSource, "afterResult");
-  const afterActualSource = functionSource(mainSource, "afterActual");
+  const afterLapseSource = functionSource(mainSource, "afterLapse");
   const bindSource = functionSource(facilitator, "bind");
   const normalizeSource = functionSource(facilitator, "normalizeHistory");
 
@@ -666,17 +665,18 @@ function checkLiveIntegration() {
     "participant publishes state through DRBLive.publishHook");
   expect(/addEventListener\s*\(\s*[\"']drb-live-control[\"']/.test(participant),
     "participant listens for drb-live-control");
-  expect(/\brevealedActual\b/.test(participant),
-    "participant consumes facilitator revealedActual control");
+  /* 노트북에는 이제 잠글 화면이 하나뿐입니다 — 다음 국면.
+     돌발상황·결과·DRB 기록은 빔에만 있어서 참가자가 앞질러 볼 방법이 없습니다. */
   expect(/function\s+liveNextBriefingOpen\s*\(/.test(mainSource) &&
     /control\.stage\s*!==\s*["']lobby["']/.test(mainSource),
     "participant gates the next briefing against quoted lobby stage");
-  expect(/liveNextBriefingOpen\s*\(\s*\)/.test(afterResultSource) &&
-    /waitingBriefing\s*=\s*true/.test(afterResultSource),
-    "afterResult waits before advancing to the next subround briefing");
-  expect(/liveNextBriefingOpen\s*\(\s*\)/.test(afterActualSource) &&
-    /waitingBriefing\s*=\s*true/.test(afterActualSource),
-    "afterActual waits before advancing to the next era briefing");
+  expect(isNonEmptyString(afterLapseSource) &&
+    /liveNextBriefingOpen\s*\(\s*\)/.test(afterLapseSource) &&
+    /waitingBriefing\s*=\s*true/.test(afterLapseSource),
+    "afterLapse waits for the facilitator before opening the next phase");
+  expect(!/function\s+liveEventOpen\s*\(/.test(mainSource) &&
+    !/function\s+liveActualOpen\s*\(/.test(mainSource),
+    "돌발상황·DRB 잠금은 노트북에서 사라짐 (빔에서만 봅니다)");
   expect(/waitingBriefing\s*&&\s*liveNextBriefingOpen\s*\(\s*\)[\s\S]*?waitingBriefing\s*=\s*false[\s\S]*?S\.advance\s*\(\s*\)/.test(mainSource),
     "live control wake advances a waiting participant after briefing opens");
   expect(!/showScreen\s*\(\s*timelapse\s*\)/.test(mainSource) &&
@@ -696,61 +696,52 @@ function checkLiveIntegration() {
     "DRBLive.create persists pin in facilitator credentials before storage");
 }
 
-function checkEraLearningCheckpoint() {
-  section("11. ERA learning checkpoint input / button lock contract");
+function checkParticipantScreenIsAllocationOnly() {
+  section("11. 참가자 노트북 — 배분 화면 하나인가");
 
   const html = read("index.html");
   const mainSource = read("js/main.js");
   const uiSource = read("js/ui.js");
-  const updateSource = functionSource(mainSource, "updateEraCheckpoint");
-  const renderSource = functionSource(uiSource, "renderActual");
-  const expectedInputs = ["acKept", "acTradeoff", "acLesson"];
 
-  expect(/\bid=["']acCheckpoint["']/.test(html),
-    "participant actual screen has ERA learning checkpoint marker");
-  expectedInputs.forEach(function (id) {
-    const tagMatch = new RegExp("<input\\b(?=[^>]*\\bid=[\\\"']" + id + "[\\\"'])[^>]*>", "i").exec(html);
-    const tag = tagMatch ? tagMatch[0] : "";
-    expect(isNonEmptyString(tag), "ERA checkpoint has input #" + id);
-    expect(/\bmaxlength=["']80["']/.test(tag), "ERA checkpoint #" + id + " has an 80-character limit");
+  /* 시대 설명 · 돌발상황 · 결과 · DRB 기록은 전부 빔으로 옮겼습니다.
+     노트북에 하나라도 되살아나면 조들이 고개를 숙이고 각자 화면을 봅니다. */
+  const gone = ["sc-roundOpen", "sc-situation", "sc-policy", "sc-event", "sc-result", "sc-actual"];
+  gone.forEach(function (id) {
+    expect(html.indexOf('id="' + id + '"') < 0,
+      "참가자 화면에 " + id + " 가 없음 (빔에서 봅니다)");
   });
-  const checkpointInputMarkers = Array.from(html.matchAll(
-    /<input\b(?=[^>]*\bid=["']ac(?:Kept|Tradeoff|Lesson)["'])[^>]*>/gi
-  ));
-  expect(checkpointInputMarkers.length === 3,
-    "ERA checkpoint exposes exactly three required input markers");
-  expect(/\bid=["']acCheckpointStatus["']/.test(html),
-    "ERA checkpoint has completion status marker");
-  expect(/<button\b(?=[^>]*\bid=["']btnActualGo["'])[^>]*>/.test(html),
-    "ERA checkpoint has gated next-ERA button marker");
 
-  expect(isNonEmptyString(updateSource), "participant defines updateEraCheckpoint");
-  expectedInputs.forEach(function (id) {
-    expect(new RegExp("el\\([\\\"']" + id + "[\\\"']\\)\\.value\\.trim\\(\\)").test(updateSource),
-      "checkpoint update trims input #" + id);
-  });
-  expect(/t\.reflections\s*=\s*t\.reflections\s*\|\|\s*\{\}/.test(updateSource) &&
-    /t\.reflections\s*\[\s*r\.id\s*\]\s*=\s*reflection/.test(updateSource),
-    "checkpoint saves reflection by ERA id");
-  expect(/reflection\.kept\s*&&\s*reflection\.tradeoff\s*&&\s*reflection\.lesson/.test(updateSource),
-    "checkpoint completion requires all three inputs");
-  expect(/el\(["']btnActualGo["']\)\.disabled\s*=\s*!ready/.test(updateSource),
-    "checkpoint input update locks next-ERA button until complete");
-  expect(/\bS\.save\s*\(\s*\)/.test(updateSource),
-    "checkpoint input update persists the current ERA reflection");
-  expect(/\[[^\]]*["']acKept["'][^\]]*["']acTradeoff["'][^\]]*["']acLesson["'][^\]]*\][\s\S]*?addEventListener\s*\(\s*["']input["']\s*,\s*updateEraCheckpoint\s*\)/.test(mainSource),
-    "all three checkpoint inputs update the ERA lock on input");
+  const screens = Array.from(html.matchAll(/<section class="screen" id="sc-([^"]+)"/g),
+    function (match) { return match[1]; });
+  expect(sameList(screens.slice().sort(),
+    ["ending", "final", "invest", "reflect", "timelapse", "whatif"]),
+    "노트북에 남은 화면은 배분 · 대기 · 엔딩 · 최종 · WhatIf · 회고 뿐");
 
-  expect(isNonEmptyString(renderSource), "participant actual renderer restores ERA checkpoint state");
-  expect(/t\.reflections\s*&&\s*t\.reflections\s*\[\s*r\.id\s*\]/.test(renderSource),
-    "participant restores reflection for the current ERA id");
-  expectedInputs.forEach(function (id) {
-    expect(new RegExp("[\\\"']" + id + "[\\\"']").test(renderSource),
-      "actual renderer restores checkpoint input #" + id);
+  /* SCREENS 는 순서가 아니라 목록입니다 — HTML 과 한 글자라도 어긋나면
+     그 화면은 영영 안 열리거나 영영 안 닫힙니다. */
+  const screenList = /var SCREENS = \[([\s\S]*?)\]/.exec(mainSource);
+  const declared = screenList
+    ? Array.from(screenList[1].matchAll(/"([^"]+)"/g), function (m) { return m[1]; })
+    : [];
+  expect(sameList(declared.slice().sort(), screens.slice().sort()),
+    "main.js SCREENS 가 실제 화면과 같음");
+
+  /* 정책만 노트북에 남습니다 — 조마다 달라야 엔진이 다르게 계산합니다. */
+  const invest = html.slice(html.indexOf('id="sc-invest"'), html.indexOf('id="sc-timelapse"'));
+  expect(/id="inList"/.test(invest) && /id="poList"/.test(invest),
+    "배분과 정책이 한 화면에 같이 있음");
+  expect(/<button[^>]*id="btnInvestGo"[^>]*disabled/.test(invest),
+    "정책을 고르기 전에는 확정 버튼이 잠겨 있음");
+  expect(/el\("btnInvestGo"\)\.disabled = !pickedPolicy/.test(mainSource) &&
+    /el\("btnInvestGo"\)\.disabled = false/.test(functionSource(mainSource, "pickPolicy")),
+    "정책을 고르면 확정이 열림");
+
+  /* 사라진 화면의 렌더러가 남아 있으면 다음 사람이 되살립니다 */
+  ["renderRoundOpen", "renderSituation", "renderResult", "renderActual", "renderEvent"].forEach(function (name) {
+    expect(!new RegExp("function\\s+" + name + "\\s*\\(").test(uiSource) &&
+      !new RegExp("UI\\." + name + "\\s*\\(").test(mainSource),
+      name + " 는 참가자 쪽에 남아 있지 않음");
   });
-  expect(/reflection\.kept\s*&&\s*reflection\.tradeoff\s*&&\s*reflection\.lesson/.test(renderSource) &&
-    /el\(["']btnActualGo["']\)\.disabled\s*=\s*!checkpointReady/.test(renderSource),
-    "actual renderer reapplies the three-input next-ERA lock");
 }
 
 /* 조별 참가 코드는 "만드는 쪽"과 "받는 쪽"이 같은 모양을 써야 합니다.
@@ -852,7 +843,7 @@ function main() {
   checkFacilitatorStages();
   checkLiveApi();
   checkLiveIntegration();
-  checkEraLearningCheckpoint();
+  checkParticipantScreenIsAllocationOnly();
   checkJoinCodeShape();
 
   console.log("\n" + "=".repeat(78));
