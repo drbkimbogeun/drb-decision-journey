@@ -748,6 +748,21 @@ function checkJoinCodeShape() {
     (sandbox.__rejected === false ? "" : " — " + sandbox.__rejected));
   expect(made.teamClaims.every((c) => /^\d{4}$/.test(c.claimSecret)),
     "만들어진 조별 코드가 전부 4자리 숫자임 — " + made.teamClaims.map((c) => c.claimSecret).join(" "));
+
+  /* 배포된 사이트에서 /play 가 진행자 화면을 내주던 사고를 막습니다.
+     html_handling 기본값이 /index.html 을 / 로 넘기고, / 는 진행자 화면입니다. */
+  section("13. 참가자 화면으로 가는 길");
+
+  const wranglerText = read("wrangler.jsonc").replace(/^\s*\/\/.*$/gm, "");
+  expect(/"html_handling"\s*:\s*"none"/.test(wranglerText),
+    'assets.html_handling 이 "none" 임 (안 끄면 /play 가 진행자 화면으로 넘어갑니다)');
+  expect(/url\.pathname === "\/play"/.test(worker) &&
+    /ASSETS\.fetch\(new Request\(new URL\("\/index\.html"/.test(worker),
+    "worker 가 /play 를 index.html 로 연결함");
+  expect(/ASSETS\.fetch\(new Request\(new URL\("\/facilitator\.html"/.test(worker),
+    "worker 가 / 를 facilitator.html 로 연결함");
+  expect(/"run_worker_first"\s*:\s*\[[^\]]*"\/"/.test(wranglerText),
+    "/ 는 워커가 먼저 받도록 되어 있음");
 }
 
 function main() {

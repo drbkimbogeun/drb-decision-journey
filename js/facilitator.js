@@ -1602,7 +1602,13 @@
     el("btnClosingReplay").onclick = replayClosing;
 
     el("btnTools").onclick = openTools;
-    el("bNoSession").onclick = openTools;   /* ⚠ 칩을 누르면 자세한 안내가 열립니다 */
+    /* ⚠ 칩을 누르면 도구가 열리면서 세션 만드는 자리까지 데려갑니다 */
+    el("bNoSession").onclick = function () {
+      openTools();
+      setTimeout(function () {
+        try { el("btnSession").scrollIntoView({ block: "center" }); } catch (e) {}
+      }, 0);
+    };
     el("btnToolsClose").onclick = closeTools;
     el("bToolsPanel").onclick = function (event) { if (event.target === el("bToolsPanel")) closeTools(); };
 

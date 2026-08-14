@@ -6,7 +6,14 @@
   "assets": {
     "directory": ".",
     "binding": "ASSETS",
-    "run_worker_first": ["/api/*", "/"]
+    "run_worker_first": ["/api/*", "/"],
+
+    // ★ 이걸 끄지 않으면 참가자 화면에 아무도 못 들어갑니다.
+    //   기본값(auto-trailing-slash)은 /index.html 요청을 / 로 넘깁니다.
+    //   그런데 / 는 run_worker_first 라 진행자 화면으로 갑니다. 그래서
+    //     /play → 워커 → ASSETS.fetch("/index.html") → / 로 넘김 → 진행자 화면
+    //   이 되어 참가자 화면이 영영 안 나왔습니다. 파일 이름 그대로 주게 합니다.
+    "html_handling": "none"
   },
   "durable_objects": {
     "bindings": [
