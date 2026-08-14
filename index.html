@@ -562,6 +562,36 @@
           </div>
         </section>
 
+        <!-- ---------- 마지막 회고 ----------
+             국면마다 받지 않습니다. 여섯 번을 다 지나고 시상까지 끝난 뒤,
+             진행자가 빔에서 이 화면을 열어줄 때 한 번만 받습니다. -->
+        <section class="screen" id="sc-reflect">
+          <div class="page">
+            <div class="page__body">
+              <h2 class="page__q">다시 한다면, 어디를 바꾸겠습니까</h2>
+              <p class="page__lead">
+                80년 동안 우리 조가 내린 결정입니다.
+                <b>지금이라면 다르게 하겠다</b> 싶은 것을 고르세요. 여러 개를 골라도 됩니다.
+              </p>
+
+              <div class="reflect-list" id="rfList"></div>
+
+              <div class="reflect-comment">
+                <label class="reflect-comment__label" for="rfComment">왜 그렇게 생각했습니까</label>
+                <textarea class="textarea" id="rfComment" maxlength="200"
+                          placeholder="예) 그때는 현금을 지키는 것이 먼저라고 봤는데, 시장이 열리는 시점을 놓쳤습니다."></textarea>
+                <span class="reflect-comment__count"><span class="num" id="rfCount">0</span> / 200</span>
+              </div>
+            </div>
+
+            <footer class="page__foot">
+              <span class="page__hint" id="rfStatus">제출하면 진행자 화면에 올라갑니다</span>
+              <span class="spacer"></span>
+              <button class="btn btn--primary btn--lg" id="btnReflectSend">제출 <span class="btn__arrow">→</span></button>
+            </footer>
+          </div>
+        </section>
+
       </div>
     </main>
   </div>

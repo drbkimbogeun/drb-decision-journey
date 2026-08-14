@@ -338,7 +338,7 @@
      화면 전환
      ============================================================ */
   var SCREENS = ["roundOpen", "situation", "invest", "policy", "timelapse", "event", "result",
-                 "actual", "ending", "whatif", "final"];
+                 "actual", "ending", "whatif", "final", "reflect"];
 
   function showScreen(name) {
     el("app").setAttribute("data-screen", name);
@@ -364,6 +364,16 @@
     UI.renderTopbar();
     UI.renderSide();
     publishLiveState();      /* 국면이 바뀔 때마다 진행자 화면에 현재 상태를 올립니다 */
+
+    /* 회고는 진행 순서 밖에 있습니다 — 시상이 끝난 뒤 진행자가 열어야 뜹니다.
+       기다리는 중이든 어느 화면이든 이 화면으로 덮습니다. */
+    if (reflectOpen()) {
+      stopTimer();
+      loadReflectDraft();
+      UI.renderReflect(reflectDraft, toggleReflectPick);
+      showScreen("reflect");
+      return;
+    }
 
     if (waitingBriefing && !liveNextBriefingOpen()) {
       showScreen('timelapse');
@@ -709,8 +719,61 @@
     UI.showEndingStep(endingStep);
   }
 
+  /* 라이브 세션에서는 진행자가 시상을 마친 뒤 이 화면을 엽니다.
+     혼자 연습할 때는 What If 다음에 바로 열어줍니다. */
   function afterWhatIf() {
-    UI.toast("수고하셨습니다. 진행자 화면에서 마무리합니다.");
+    if (liveControl()) {
+      UI.toast("회고는 진행자 화면에서 열어줍니다. 잠시 기다려주세요.");
+      return;
+    }
+    localReflect = true;
+    render();
+  }
+
+  /* ============================================================
+     마지막 회고 — 여섯 번을 다 지나온 뒤 한 번만
+     ============================================================ */
+  var reflectDraft = { picks: {}, comment: "", submitted: false, loaded: false };
+  var localReflect = false;
+
+  function reflectOpen() {
+    if (localReflect) return true;
+    var control = liveControl();
+    return !!(control && control.stage === "reflect");
+  }
+
+  /* 새로고침해도 적어둔 것이 남아 있어야 합니다 */
+  function loadReflectDraft() {
+    if (reflectDraft.loaded) return;
+    reflectDraft.loaded = true;
+    var saved = S.team() && S.team().finalReflection;
+    if (!saved) return;
+    (saved.picks || []).forEach(function (id) { reflectDraft.picks[id] = true; });
+    reflectDraft.comment = saved.comment || "";
+    reflectDraft.submitted = true;
+  }
+
+  function toggleReflectPick(id, on) {
+    if (on) reflectDraft.picks[id] = true;
+    else delete reflectDraft.picks[id];
+    UI.renderReflect(reflectDraft, toggleReflectPick);
+  }
+
+  function sendReflection() {
+    var picks = Object.keys(reflectDraft.picks);
+    var comment = el("rfComment").value.trim();
+    if (!picks.length && !comment) {
+      UI.toast("바꾸고 싶은 결정을 고르거나, 한 줄이라도 남겨주세요.");
+      el("rfComment").focus();
+      return;
+    }
+    reflectDraft.comment = comment;
+    reflectDraft.submitted = true;
+    S.team().finalReflection = { picks: picks, comment: comment };
+    S.save();
+    UI.renderReflect(reflectDraft, toggleReflectPick);
+    publishLiveState();
+    UI.toast("제출했습니다. 진행자 화면을 보세요.");
   }
 
   /* ============================================================
@@ -824,6 +887,11 @@
       el(id).addEventListener("input", updateEraCheckpoint);
     });
     el("btnWhatifGo").onclick = afterWhatIf;
+    el("btnReflectSend").onclick = sendReflection;
+    el("rfComment").addEventListener("input", function () {
+      reflectDraft.comment = this.value;
+      el("rfCount").textContent = this.value.length;
+    });
     el("btnSkipLapse").onclick = skipLapse;
     el("btnEndNext").onclick = nextEnding;
 
@@ -848,6 +916,11 @@
     });
     window.addEventListener("drb-live-control", function () {
       if (!S.g()) return;
+      /* 진행자가 회고를 열었습니다. 이미 그 화면이면 적던 것을 지우지 않습니다. */
+      if (reflectOpen()) {
+        if (el("app").getAttribute("data-screen") !== "reflect") render();
+        return;
+      }
       if (waitingBriefing && liveNextBriefingOpen()) {
         waitingBriefing = false;
         S.advance();

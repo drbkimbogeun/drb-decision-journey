@@ -62,6 +62,19 @@ function functionSource(source, functionName) {
   return source.slice(match.index, next ? match.index + match[0].length + next.index : source.length);
 }
 
+/* worker.js 의 함수는 최상위(들여쓰기 0)라 functionSource 로는 끝을 못 찾습니다.
+   중괄호를 세어 그 함수만 잘라냅니다. */
+function topLevelFunction(source, name) {
+  const start = new RegExp("^function\\s+" + name + "\\s*\\(", "m").exec(source);
+  if (!start) return "";
+  let depth = 0;
+  for (let j = source.indexOf("{", start.index); j < source.length; j += 1) {
+    if (source[j] === "{") depth += 1;
+    else if (source[j] === "}") { depth -= 1; if (depth === 0) return source.slice(start.index, j + 1); }
+  }
+  return "";
+}
+
 function sameList(actual, expected) {
   return JSON.stringify(actual) === JSON.stringify(expected);
 }
@@ -459,14 +472,15 @@ function checkParticipantAvailability(W, timeline) {
 function checkFacilitatorStages() {
   section("8. Facilitator stages / Worker CONTROL_STAGES");
 
-  /* 참가자에게 공개되는 6단계. Worker 가 검증하는 목록과 정확히 같아야 합니다. */
-  const expectedStages = ["briefing", "decisions", "event", "actual", "debrief", "map"];
-  /* 시상은 진행자 화면에만 있는 7번째 탭입니다. 순위가 들어 있어
-     참가자에게 절대 내보내지 않으므로 Worker 목록에는 없어야 합니다. */
+  /* 참가자에게 공개되는 단계. Worker 가 검증하는 목록과 정확히 같아야 합니다.
+     reflect 는 시상이 끝난 뒤 조 노트북을 회고 화면으로 돌리는 단계입니다. */
+  const expectedStages = ["briefing", "decisions", "event", "actual", "debrief", "map", "reflect"];
+  /* 시상·순위는 진행자 화면에만 있습니다. 참가자에게 절대 내보내지 않으므로
+     Worker 목록에는 없어야 합니다. */
   const facilitatorOnlyStages = ["intro", "howto", "phase", "standings", "award", "closing"];
   /* 탭 순서는 실제 진행 순서입니다 (진행자 전용 화면이 사이사이 끼어 있습니다) */
   const allTabStages = ["intro", "howto", "briefing", "decisions", "event", "phase",
-                        "actual", "debrief", "map", "standings", "award", "closing"];
+                        "actual", "debrief", "map", "standings", "award", "reflect", "closing"];
   const html = read("facilitator.html");
   const worker = read("worker.js");
   const tabStages = Array.from(html.matchAll(/\bdata-stage=[\"']([^\"']+)[\"']/g), function (match) {
@@ -545,25 +559,80 @@ function checkLiveApi() {
   expect(/\brevenue\s*:/.test(historySource) && /\bprofit\s*:/.test(historySource),
     "live snapshot history.kpi includes revenue and profit");
 
-  /* ★ 회고는 참가자 → 스냅샷 → Worker → 진행자 네 곳을 지납니다.
-  /* 회고는 참가자 -> 스냅샷 -> Worker -> 진행자 네 곳을 지납니다.
+  /* ★ 회고는 참가자 -> 스냅샷 -> Worker -> 진행자 네 곳을 지납니다.
      한 곳만 바꾸면 조용히 사라집니다 (참가 코드가 그렇게 죽었습니다). */
   const facSource = read("js/facilitator.js");
+  const reflectionView = functionSource(live, "reflectionView");
+  const workerReflection = functionSource(worker, "sanitizeReflection");
   expect(/reflection:\s*reflectionView\(/.test(snapshotSource),
     "live snapshot 이 reflection 을 실어 보냄");
-  expect(/function\s+reflectionView\s*\(/.test(live) &&
-    /choice:\s*cleanText/.test(live) && /trigger:\s*cleanText/.test(live) &&
-    /judgement:\s*cleanText/.test(live),
-    "reflectionView 가 choice / trigger / judgement 를 담음");
-  expect(/function\s+sanitizeReflection\s*\(/.test(worker) &&
+  expect(isNonEmptyString(reflectionView) &&
+    /picks:\s*picks/.test(reflectionView) && /comment:\s*comment/.test(reflectionView),
+    "reflectionView 가 picks / comment 를 담음");
+  expect(/cleanId\(raw,\s*48\)/.test(reflectionView) && /cleanText\(value\.comment,\s*200\)/.test(reflectionView),
+    "참가자 쪽에서 회고 id 와 코멘트를 먼저 자름");
+  expect(isNonEmptyString(workerReflection) &&
     /reflection:\s*sanitizeReflection\(/.test(worker),
     "Worker 가 reflection 을 검증해서 통과시킴");
-  expect(/cleanText\(value\.choice,\s*120\)/.test(worker),
-    "Worker 가 회고 길이를 잘라냄 (자유 입력)");
+  expect(/cleanId\(raw,\s*48\)/.test(workerReflection) &&
+    /cleanText\(value\.comment,\s*200\)/.test(workerReflection),
+    "Worker 가 회고 id 와 코멘트 길이를 잘라냄 (진짜 관문)");
+  expect(/picks\.length\s*>=\s*12/.test(workerReflection),
+    "Worker 가 체크 개수에 상한을 둠");
   expect(/reflection:\s*snap\.reflection/.test(facSource),
     "진행자가 라이브 스냅샷에서 reflection 을 받음");
   expect(/reflection:\s*team\.finalReflection/.test(facSource),
     "진행자가 로컬 저장본에서도 회고를 읽음");
+
+  /* 글자만 맞춰보지 않고 worker.js 의 진짜 검증 함수를 꺼내 돌립니다.
+     참가 코드가 죽었을 때처럼 "양쪽 다 통과했는데 실제로는 막힘" 을 막습니다. */
+  const reflectBox = {};
+  vm.createContext(reflectBox);
+  ["cleanText", "cleanId", "sanitizeReflection"].forEach((name) => {
+    const src = topLevelFunction(worker, name);
+    expect(!!src, "worker.js 에서 " + name + " 를 찾음");
+    if (src) vm.runInContext(src, reflectBox);
+  });
+  const sane = vm.runInContext(`sanitizeReflection({
+    picks: ["decision:r1s1", "event:r2s1:ev_oil", "decision:r1s1", "<script>", "  "],
+    comment: "  현금을\\u0007 지키는  것이 먼저라고 봤습니다.  "
+  })`, reflectBox);
+  expect(sane && sameList(sane.picks, ["decision:r1s1", "event:r2s1:ev_oil"]),
+    "Worker 가 중복과 이상한 id 를 걸러냄");
+  expect(sane && sane.comment === "현금을 지키는 것이 먼저라고 봤습니다.",
+    "Worker 가 코멘트의 제어문자와 겹공백을 정리함");
+  const trimmed = vm.runInContext(
+    `sanitizeReflection({ picks: Array.from({length: 30}, (_, i) => "decision:r" + i), comment: "가".repeat(400) })`,
+    reflectBox);
+  expect(trimmed && trimmed.picks.length === 12 && trimmed.comment.length === 200,
+    "Worker 가 체크 12개 · 코멘트 200자에서 끊음");
+  expect(vm.runInContext(`sanitizeReflection({ picks: [], comment: "   " })`, reflectBox) === null &&
+    vm.runInContext(`sanitizeReflection(["decision:r1s1"])`, reflectBox) === null &&
+    vm.runInContext(`sanitizeReflection(null)`, reflectBox) === null,
+    "빈 회고와 엉뚱한 형식은 null 로 떨어짐");
+
+  /* 회고는 국면마다가 아니라 시상이 끝난 뒤 딱 한 번입니다.
+     진행자가 열어줘야 참가자 화면이 바뀝니다 — 참가자가 먼저 갈 수 없습니다. */
+  const mainSource = read("js/main.js");
+  const uiSource = read("js/ui.js");
+  expect(/control\.stage\s*===\s*"reflect"/.test(mainSource),
+    "참가자 회고 화면은 진행자가 reflect 단계를 열어야 뜸");
+  expect(/function\s+reflectItems\s*\(/.test(uiSource) &&
+    /"decision:"\s*\+\s*h\.subroundId/.test(uiSource) &&
+    /"event:"\s*\+\s*h\.subroundId/.test(uiSource),
+    "체크 목록은 그 조 자신의 국면 결정과 돌발상황에서 만들어짐");
+  expect(/finalReflection\s*=\s*\{\s*picks:\s*picks,\s*comment:\s*comment\s*\}/.test(mainSource),
+    "제출하면 finalReflection 에 저장됨");
+  expect(/function\s+renderReflection\s*\(/.test(facSource) &&
+    /bReflectCount/.test(facSource),
+    "진행자 화면이 조별 제출 현황을 셈");
+  /* reflect 는 참가자 화면을 바꿔야 하므로 LOCAL_STAGES 에 있으면 안 됩니다.
+     (LOCAL_STAGES 에 들어가면 조 노트북은 영영 회고 화면으로 넘어가지 않습니다) */
+  const localBlock = /var\s+LOCAL_STAGES\s*=\s*\[([\s\S]*?)\]/.exec(facSource);
+  expect(!!localBlock && localBlock[1].indexOf("reflect") < 0,
+    "reflect 는 진행자 전용이 아님 — 참가자에게 반드시 나가야 함");
+  expect(/out\.push\(\{\s*turn:\s*timeline\.length\s*-\s*1,\s*stage:\s*"reflect"\s*\}\);[\s\S]{0,120}stage:\s*"closing"/.test(facSource),
+    "회고 챕터는 시상 다음 · 맺음말 앞");
 
   const workerSnapshot = functionSource(worker, "sanitizeSnapshot");
   const workerHistory = functionSource(worker, "sanitizeHistoryEntry");
@@ -720,19 +789,6 @@ function checkJoinCodeShape() {
     const line = new RegExp("^const " + name + " = .*$", "m").exec(worker);
     if (line) vm.runInContext(line[0], sandbox);
   });
-  /* worker.js 의 함수는 최상위(들여쓰기 0)라 functionSource 로는 끝을 못 찾습니다.
-     중괄호를 세어 그 함수만 잘라냅니다. */
-  function topLevelFunction(source, name) {
-    const start = new RegExp("^function\\s+" + name + "\\s*\\(", "m").exec(source);
-    if (!start) return "";
-    let i = source.indexOf("{", start.index);
-    let depth = 0;
-    for (let j = i; j < source.length; j += 1) {
-      if (source[j] === "{") depth += 1;
-      else if (source[j] === "}") { depth -= 1; if (depth === 0) return source.slice(start.index, j + 1); }
-    }
-    return "";
-  }
   ["randomString", "randomPin", "randomSecret"].forEach((name) => {
     const src = topLevelFunction(worker, name);
     expect(!!src, "worker.js 에서 " + name + " 를 찾음");

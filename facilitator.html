@@ -256,6 +256,21 @@
         </article>
       </section>
 
+      <!-- ······ 각 조의 회고 ······
+           시상까지 끝난 뒤 여기서 조 노트북이 회고 화면으로 바뀝니다.
+           조가 다 적으면 이 화면에 동시에 올라옵니다. -->
+      <section class="fac-stage hidden" id="stageReflect" data-stage-panel="reflect">
+        <article class="fac-reflect">
+          <div class="fac-reflect__head">
+            <span class="fac-award__stamp">REVIEW</span>
+            <span class="fac-reflect__lead">각 조가 고른 결정과 그 이유</span>
+            <span class="spacer"></span>
+            <span class="chip" id="bReflectCount">0 / 0조 제출</span>
+          </div>
+          <div class="fac-reflect__grid" id="bReflectGrid"></div>
+        </article>
+      </section>
+
       <!-- ······ 맺음말 — 한 글자씩 찍힙니다 ······ -->
       <section class="fac-stage hidden" id="stageClosing" data-stage-panel="closing">
         <article class="fac-closing">
@@ -322,6 +337,7 @@
           <button class="fac-jump__item" data-stage="map">산업 지도</button>
           <button class="fac-jump__item" data-stage="standings">순위 이동</button>
           <button class="fac-jump__item" data-stage="award">시상</button>
+          <button class="fac-jump__item" data-stage="reflect">회고</button>
           <button class="fac-jump__item" data-stage="closing">맺음말</button>
         </nav>
       </div>

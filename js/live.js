@@ -221,17 +221,18 @@
     };
   }
 
-  /* 마지막에 조가 적는 회고. 진행자 빔에서 조별로 나란히 띄웁니다.
-     자유 입력이라 길이를 잘라 보냅니다 — Worker 도 같은 길이로 다시 자릅니다. */
+  /* 마지막에 조가 한 번 적는 회고. 진행자 빔에서 조별로 나란히 띄웁니다.
+     picks 는 "다시 한다면 바꾸겠다" 고 고른 결정 id 들이고 comment 만 자유 입력입니다.
+     여기서 자르지만 진짜 관문은 Worker 입니다 — 같은 규칙으로 다시 자릅니다. */
   function reflectionView(value) {
-    if (!value || typeof value !== "object") return null;
-    var out = {
-      turn: integer(value.turn, 0, 5, 0),
-      choice: cleanText(value.choice, 120),
-      trigger: cleanText(value.trigger, 120),
-      judgement: cleanText(value.judgement, 120),
-    };
-    return (out.choice || out.trigger || out.judgement) ? out : null;
+    if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+    var picks = [];
+    (Array.isArray(value.picks) ? value.picks.slice(0, 24) : []).forEach(function (raw) {
+      var id = cleanId(raw, 48);
+      if (id && picks.indexOf(id) < 0 && picks.length < 12) picks.push(id);
+    });
+    var comment = cleanText(value.comment, 200);
+    return (picks.length || comment) ? { picks: picks, comment: comment } : null;
   }
   function emit(name, detail) {
     try {

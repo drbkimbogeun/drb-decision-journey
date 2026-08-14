@@ -19,12 +19,13 @@
   var PASTED_KEY = CFG.storage.key + "_pasted";
   var FAC_KEY = CFG.storage.key + "_facilitator";
   var TEAM_COLORS = ["#e31d38", "#f2c14e", "#4dd4c0", "#7aa2f7", "#f78fb3", "#7fd18a"];
-  /* 참가자에게 공개되는 6단계 — Worker 가 검증하는 목록과 같아야 합니다 */
-  var CONTROL_STAGES = ["briefing", "decisions", "event", "actual", "debrief", "map"];
+  /* 참가자에게 공개되는 7단계 — Worker 가 검증하는 목록과 같아야 합니다.
+     reflect 는 시상이 끝난 뒤 조별 노트북을 회고 화면으로 돌립니다. */
+  var CONTROL_STAGES = ["briefing", "decisions", "event", "actual", "debrief", "map", "reflect"];
   /* 진행자 화면에만 있는 화면. 순위·시상이 들어 있어 절대 공개하지 않습니다. */
   var LOCAL_STAGES = ["intro", "howto", "phase", "standings", "award", "closing"];
   var STAGES = ["intro", "howto", "briefing", "decisions", "event", "phase",
-                "actual", "debrief", "map", "standings", "award", "closing"];
+                "actual", "debrief", "map", "standings", "award", "reflect", "closing"];
 
   /* 챕터마다 진행자가 할 말 한 줄. 화면 제목이 곧 대본입니다. */
   var CHAPTER = {
@@ -39,6 +40,7 @@
     debrief:   { title: "함께 이야기해봅시다",         tab: "이야기" },
     standings: { title: "여기까지의 순위",             tab: "순위" },
     award:     { title: "여섯 번의 선택이 끝났습니다", tab: "시상" },
+    reflect:   { title: "다시 한다면 어디를 바꾸겠습니까", tab: "회고" },
     closing:   { title: "그리고 2026년부터는",         tab: "맺음말" }
   };
 
@@ -316,6 +318,7 @@
       chaptersFor(turn).forEach(function (stage) { out.push({ turn: turn, stage: stage }); });
     });
     out.push({ turn: timeline.length - 1, stage: "award" });
+    out.push({ turn: timeline.length - 1, stage: "reflect" });
     out.push({ turn: timeline.length - 1, stage: "closing" });
     return out;
   }
@@ -433,7 +436,7 @@
     if (currentStage === "intro" || currentStage === "howto") {
       el("bChapWhere").textContent = "시작하기 전";
       el("bChapNo").textContent = "준비";
-    } else if (currentStage === "award" || currentStage === "closing") {
+    } else if (currentStage === "award" || currentStage === "reflect" || currentStage === "closing") {
       el("bChapWhere").textContent = "1947 → 2026";
       el("bChapNo").textContent = "끝";
     } else {
@@ -491,6 +494,8 @@
     if (currentStage === "debrief") return ["판단할 때의 합리성과 결과를 구분해서 물으세요.", item.sub.guide || ""];
     if (currentStage === "standings") return ["이 화면은 진행자만 봅니다. 참가자에게는 순위가 없습니다."];
     if (currentStage === "award") return ["1등이 정답은 아니라는 말로 닫아주세요."];
+    if (currentStage === "reflect") return ["조 노트북이 회고 화면으로 바뀌었습니다. 적을 시간을 주세요.",
+      "다 들어오면 한두 조만 골라 이유를 물어보세요."];
     return ["글자가 다 찍힐 때까지 아무 말도 하지 마세요.", "다 나오면 마지막 두 줄만 소리 내어 읽어주세요."];
   }
 
@@ -668,6 +673,75 @@
       "<div class='awards'>" + buildAwards(teams, rows) + "</div>" +
       "<p class='fac-award__message'>1등이 정답은 아닙니다.<br>" +
       timeline.length + "번의 선택이 회사의 성격을 만들었습니다.</p>";
+  }
+
+  /* ============================================================
+     회고 — 시상이 끝난 뒤 조가 노트북에서 올린 것
+
+     조가 보내는 것은 결정 id 목록과 코멘트 한 줄뿐입니다.
+     화면에 뜨는 이름·연도는 전부 여기서 우리 데이터로 붙입니다.
+     ============================================================ */
+  function reflectLabel(team, pickId) {
+    var parts = String(pickId).split(":");
+    var spot = timeline.filter(function (item) { return item.sub.id === parts[1]; })[0];
+    var where = spot ? (spot.turn + 1) + "국면 · " + spot.sub.year : parts[1];
+    if (parts[0] === "event") {
+      var title = "";
+      (team.history || []).forEach(function (h) {
+        ((h.report && h.report.events) || []).forEach(function (event) {
+          if (event && event.id === parts[2] && event.title) title = event.title;
+        });
+      });
+      return { kind: "event", where: where, title: title || "돌발상황" };
+    }
+    /* 제목이 "첫 번째 국면 · 고무신인가" 라 왼쪽 위치표시와 겹칩니다 */
+    return {
+      kind: "decision",
+      where: where,
+      title: spot ? spot.sub.title.replace(/^[^·]*번째 국면\s*·\s*/, "") : ""
+    };
+  }
+
+  function renderReflection(teams) {
+    var grid = el("bReflectGrid");
+    var arrived = teams.filter(function (team) { return team.reflection; });
+    el("bReflectCount").textContent = arrived.length + " / " + teams.length + "조 제출";
+    grid.setAttribute("style", cardColumns(Math.max(teams.length, 1)));
+
+    grid.innerHTML = teams.map(function (team) {
+      var reflection = team.reflection;
+      var head =
+        "<div class='rfcard__head'>" +
+          "<span class='rfcard__dot' style='background:" + teamColor(team.name) + "'></span>" +
+          "<span class='rfcard__name'>" + esc(team.name) + "</span>" +
+          "<span class='spacer'></span>" +
+          "<span class='rfcard__state" + (reflection ? " is-in" : "") + "'>" +
+            (reflection ? "제출" : "작성 중") +
+          "</span>" +
+        "</div>";
+
+      if (!reflection) {
+        return "<article class='rfcard rfcard--wait'>" + head +
+          "<p class='rfcard__empty'>노트북에서 적고 있습니다</p></article>";
+      }
+
+      var picks = (reflection.picks || []).map(function (id) {
+        var label = reflectLabel(team, id);
+        return "<li class='rfpick rfpick--" + label.kind + "'>" +
+          "<span class='rfpick__where'>" + esc(label.where) + "</span>" +
+          "<span class='rfpick__title'>" + esc(label.title) + "</span>" +
+        "</li>";
+      }).join("");
+
+      return "<article class='rfcard'>" + head +
+        (picks
+          ? "<ul class='rfcard__picks'>" + picks + "</ul>"
+          : "<p class='rfcard__empty'>바꾸겠다고 고른 결정은 없습니다</p>") +
+        (reflection.comment
+          ? "<p class='rfcard__comment'>" + esc(reflection.comment) + "</p>"
+          : "") +
+      "</article>";
+    }).join("");
   }
 
   function buildAwards(teams, rows) {
@@ -1346,6 +1420,7 @@
     renderCrowd(teams);
     renderRank(teams);
     renderAward(teams);
+    renderReflection(teams);
     renderDrive(teams);
     if (clock.turn !== selectedTurn) resetClock();
     paintClock();

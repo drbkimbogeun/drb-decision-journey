@@ -856,7 +856,7 @@ body.fac-body {
 /* ============================================================================
    15. 표지 · 시상 — 딥퍼플 전면
    ============================================================================ */
-.fac-cover, .fac-award {
+.fac-cover, .fac-award, .fac-reflect {
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -996,6 +996,65 @@ body.fac-body {
 
 .fac-closing__foot { display: flex; align-items: center; gap: var(--sp-4); margin-top: auto; padding-top: clamp(24px, 3vw, 44px); }
 .fac-closing__hint { color: rgba(255, 255, 255, 0.42); font-size: var(--fs-small); }
+
+
+/* ============================================================================
+   15-b. 회고 — 시상과 맺음말 사이. 조가 올린 것을 한 화면에 나란히
+   ============================================================================ */
+.fac-reflect { justify-content: flex-start; }
+.fac-reflect__head { display: flex; align-items: center; gap: var(--sp-3); margin-bottom: clamp(20px, 2.4vw, 36px); }
+.fac-reflect__lead { color: rgba(255, 255, 255, 0.72); font-size: var(--fs-lead); font-weight: var(--fw-strong); letter-spacing: -0.03em; }
+.fac-reflect__head .chip { border-color: rgba(255, 255, 255, 0.28); background: none; color: rgba(255, 255, 255, 0.7); }
+
+.fac-reflect__grid { display: grid; gap: var(--sp-3); flex: 1 1 auto; min-height: 0; }
+
+.rfcard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  min-height: 0;
+  padding: var(--sp-4) var(--sp-5);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--r-md);
+  overflow-y: auto;
+}
+.rfcard--wait { border-style: dashed; border-color: rgba(255, 255, 255, 0.12); }
+
+.rfcard__head { display: flex; align-items: center; gap: var(--sp-2); }
+.rfcard__dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+.rfcard__name { font-size: var(--fs-body); font-weight: var(--fw-strong); letter-spacing: -0.02em; }
+.rfcard__state {
+  padding: 3px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--r-pill);
+  color: rgba(255, 255, 255, 0.45);
+  font-size: var(--fs-tiny);
+  font-weight: var(--fw-strong);
+}
+.rfcard__state.is-in { border-color: var(--accent-line); color: var(--accent-line); }
+.rfcard__empty { color: rgba(255, 255, 255, 0.38); font-size: var(--fs-small); }
+
+.rfcard__picks { display: flex; flex-direction: column; gap: 7px; list-style: none; margin: 0; padding: 0; }
+.rfpick {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 12px;
+  border-left: 3px solid var(--accent-line);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  background: rgba(255, 255, 255, 0.06);
+}
+.rfpick--event { border-left-color: var(--coral); }
+.rfpick__where { color: rgba(255, 255, 255, 0.45); font-size: var(--fs-tiny); font-weight: var(--fw-strong); letter-spacing: 0.06em; }
+.rfpick__title { font-size: var(--fs-small); font-weight: var(--fw-strong); line-height: 1.35; }
+
+.rfcard__comment {
+  padding-top: var(--sp-3);
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: var(--fs-small);
+  line-height: 1.6;
+}
 
 
 /* ============================================================================

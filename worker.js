@@ -18,6 +18,8 @@ const CONTROL_STAGES = new Set([
   "actual",
   "debrief",
   "map",
+  /* 시상이 끝난 뒤 조별 노트북을 회고 화면으로 돌립니다 */
+  "reflect",
   "complete",
 ]);
 
@@ -321,17 +323,20 @@ function sanitizeSnapshot(value, expectedTeamName) {
   }
   return snapshot;
 }
-/* 조가 마지막에 적는 회고. 자유 입력이므로 길이를 자르고 제어문자를 없앱니다.
+/* 조가 마지막에 한 번 적는 회고 — 국면마다가 아니라 시상이 끝난 뒤입니다.
+   "다시 한다면 바꾸겠다" 고 고른 결정들(picks)과 짧은 코멘트가 전부입니다.
+   picks 는 결정 id 라서 자유 입력이 아니고, comment 만 자유 입력입니다.
    ★ 클라이언트에서도 자르지만 진짜 관문은 여기입니다. */
 function sanitizeReflection(value) {
-  if (!value || typeof value !== "object") return null;
-  const out = {
-    turn: boundedInteger(value.turn, 0, 5, 0),
-    choice: cleanText(value.choice, 120),
-    trigger: cleanText(value.trigger, 120),
-    judgement: cleanText(value.judgement, 120),
-  };
-  return (out.choice || out.trigger || out.judgement) ? out : null;
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const picks = [];
+  for (const raw of Array.isArray(value.picks) ? value.picks.slice(0, 24) : []) {
+    const id = cleanId(raw, 48);
+    if (id && picks.indexOf(id) < 0) picks.push(id);
+    if (picks.length >= 12) break;
+  }
+  const comment = cleanText(value.comment, 200);
+  return (picks.length || comment) ? { picks, comment } : null;
 }
 
 function defaultControl() {

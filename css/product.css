@@ -1205,3 +1205,71 @@ button, .btn, .policy, .alloc, .teampick__btn { touch-action: manipulation; }
 
 /* 항목이 많은 시대에는 리스크를 두 줄로 눕힙니다 */
 .riskbox__list { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+
+
+/* ============================================================
+   마지막 회고 — 다시 한다면 어디를 바꾸겠는가
+
+   여섯 번을 다 지나고 시상까지 끝난 뒤, 진행자가 열어줄 때만 뜹니다.
+   조가 자기 기록을 보고 체크하는 화면이라 카드가 커야 합니다.
+   ============================================================ */
+.reflect-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
+}
+
+.rfitem {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--bg-1);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.rfitem:hover { border-color: var(--text-3); }
+.rfitem.is-picked {
+  border-color: var(--accent-line);
+  background: var(--accent-tint);
+}
+
+.rfitem__box {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.rfitem__body { display: grid; gap: 4px; min-width: 0; }
+.rfitem__head { display: flex; align-items: baseline; gap: var(--sp-2); }
+.rfitem__tag {
+  color: var(--text-3);
+  font-size: var(--fs-tiny);
+  font-weight: var(--fw-strong);
+  letter-spacing: 0.08em;
+}
+.rfitem--event .rfitem__tag { color: var(--coral); }
+.rfitem__year { color: var(--text-3); font-size: var(--fs-tiny); }
+.rfitem__title {
+  color: var(--text-1);
+  font-size: var(--fs-body);
+  font-weight: var(--fw-strong);
+  line-height: 1.35;
+}
+.rfitem__detail { color: var(--text-3); font-size: var(--fs-small); }
+
+.reflect-comment { display: grid; gap: 6px; margin-top: var(--sp-5); }
+.reflect-comment__label {
+  color: var(--text-3);
+  font-size: var(--fs-tiny);
+  font-weight: var(--fw-strong);
+  letter-spacing: 0.1em;
+}
+.reflect-comment .textarea { min-height: 96px; }
+.reflect-comment__count { justify-self: end; color: var(--text-3); font-size: var(--fs-tiny); }

@@ -2029,6 +2029,105 @@ window.DRBUI = (function () {
     return found || id;
   }
 
+  /* ============================================================
+     마지막 회고 — 다시 한다면 어디를 바꾸겠는가
+
+     국면마다 받지 않습니다. 여섯 번을 다 지나고 시상까지 끝난 뒤,
+     진행자가 빔에서 이 화면을 열어줄 때 한 번만 받습니다.
+     ============================================================ */
+
+  /* 체크할 항목은 조 자신의 기록에서 만듭니다 — 남의 결정은 나오지 않습니다.
+     국면 결정 6개 + 그 조가 실제로 맞은 돌발상황들. */
+  function reflectItems() {
+    var t = S.team();
+    var out = [];
+    (t && t.history ? t.history : []).forEach(function (h, index) {
+      var alloc = h.allocation || {};
+      var top = Object.keys(alloc)
+        .filter(function (id) { return alloc[id] > 0; })
+        .sort(function (a, b) { return alloc[b] - alloc[a]; })
+        .slice(0, 2)
+        .map(function (id) { return investName(id); });
+      out.push({
+        id: "decision:" + h.subroundId,
+        kind: "decision",
+        tag: (index + 1) + "국면",
+        year: h.year,
+        /* 제목이 "첫 번째 국면 · 고무신인가" 라 왼쪽 태그와 겹칩니다 */
+        title: String(h.subTitle || "").replace(/^[^·]*번째 국면\s*·\s*/, ""),
+        detail: (top.length ? top.join(" + ") + " 중심" : "투자 없음") +
+                (h.policyName ? " · " + h.policyName : "")
+      });
+      ((h.report && h.report.events) || []).forEach(function (event) {
+        if (!event || !event.id) return;
+        out.push({
+          id: "event:" + h.subroundId + ":" + event.id,
+          kind: "event",
+          tag: "돌발",
+          year: h.year,
+          title: event.title || "",
+          detail: "이 사건을 겪고 우리가 내린 판단"
+        });
+      });
+    });
+    return out;
+  }
+
+  /* draft = { picks: { id: true }, comment: "", submitted: bool } */
+  function renderReflect(draft, onToggle) {
+    /* 상단바는 진행 단계를 따라갑니다. 회고는 그 밖에 있어서 여기서 덮어씁니다 */
+    el("tbStamp").textContent = "";
+    el("tbTitle").textContent = "회고";
+    el("tbSub").textContent = "다시 한다면";
+    el("tbMeta").textContent = "";     /* 조 이름은 오른쪽 선택상자에 이미 있습니다 */
+
+    var list = el("rfList");
+    clearNode(list);
+
+    var items = reflectItems();
+    if (!items.length) {
+      list.innerHTML = "<p class='hint'>아직 기록이 없습니다. 국면을 진행하면 여기에 우리 조의 결정이 쌓입니다.</p>";
+    }
+
+    items.forEach(function (item) {
+      var picked = !!draft.picks[item.id];
+      var row = document.createElement("label");
+      row.className = "rfitem rfitem--" + item.kind + (picked ? " is-picked" : "");
+
+      var box = document.createElement("input");
+      box.type = "checkbox";
+      box.className = "rfitem__box";
+      box.checked = picked;
+      box.onchange = function () { onToggle(item.id, box.checked); };
+
+      var body = document.createElement("span");
+      body.className = "rfitem__body";
+      body.innerHTML =
+        "<span class='rfitem__head'>" +
+          "<span class='rfitem__tag'>" + escapeHtml(item.tag) + "</span>" +
+          "<span class='rfitem__year num'>" + escapeHtml(item.year) + "</span>" +
+        "</span>" +
+        "<span class='rfitem__title'>" + escapeHtml(item.title) + "</span>" +
+        "<span class='rfitem__detail'>" + escapeHtml(item.detail) + "</span>";
+
+      row.appendChild(box);
+      row.appendChild(body);
+      list.appendChild(row);
+    });
+
+    var comment = el("rfComment");
+    if (comment.value !== draft.comment) comment.value = draft.comment;
+    el("rfCount").textContent = comment.value.length;
+
+    var count = Object.keys(draft.picks).length;
+    el("rfStatus").textContent = draft.submitted
+      ? "제출 완료 · 진행자 화면을 보세요 (고치면 다시 제출할 수 있습니다)"
+      : (count ? count + "개를 골랐습니다. 제출하면 진행자 화면에 올라갑니다."
+               : "바꾸고 싶은 결정을 고르세요. 없으면 코멘트만 남겨도 됩니다.");
+    el("btnReflectSend").innerHTML = (draft.submitted ? "다시 제출" : "제출") +
+                                     " <span class='btn__arrow'>→</span>";
+  }
+
   return {
     el: el, fmt: fmt, signed: signed, deltaClass: deltaClass,
     toast: toast, openModal: openModal, closeModal: closeModal,
@@ -2041,6 +2140,7 @@ window.DRBUI = (function () {
     renderTimeline: renderTimeline, renderLiveWait: renderLiveWait, renderTimelapse: renderTimelapse,
     renderEvent: renderEvent, nextSpeaker: nextSpeaker, resetSpeakers: resetSpeakers,
     showEndingStep: showEndingStep, renderWorldMap: renderWorldMap,
+    renderReflect: renderReflect,
     showNewsFlash: showNewsFlash, clearNewsFlash: clearNewsFlash,
     investName: investName, escapeHtml: escapeHtml
   };

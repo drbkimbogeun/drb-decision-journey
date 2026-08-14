@@ -74,7 +74,7 @@ window.DRB_CONFIG = {
     musicByScreen: {
       roundOpen: "normal",  situation: "normal",  invest: "normal",  policy: "normal",
       timelapse: "lapse",   event:     "lapse",   result: "lapse",   actual: "lapse",
-      ending:    "ending",  final:     "ending",  whatif: "ending"
+      ending:    "ending",  final:     "ending",  whatif: "ending",  reflect: "ending"
     },
 
     shock: "assets/audio/shock.m4a",   // 돌발상황이 뜨는 순간 한 번

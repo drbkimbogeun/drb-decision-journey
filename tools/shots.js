@@ -113,12 +113,13 @@ const server = http.createServer((req, res) => {
     const turn = await page.evaluate(() => (window.DRBState && window.DRBState.turnIndex ? window.DRBState.turnIndex() + 1 : 0));
     const key = "T" + turn + "-" + screen;
     if (!seen.has(key)) { seen.add(key); await capture(page, key); }
-    if (screen === "final") break;
+    if (screen === "reflect" && seen.has("T6-reflect-제출")) break;
 
     const next = {
       roundOpen: "#btnRoundGo", situation: "#btnSitGo", invest: "#btnInvestGo",
       policy: null, timelapse: "#btnSkipLapse", event: "#btnEventGo",
       result: "#btnResultGo", actual: "#btnActualGo", ending: "#btnEndNext",
+      final: "#btnFinalGo", whatif: "#btnWhatifGo",
     }[screen];
 
     if (screen === "invest") {
@@ -146,6 +147,22 @@ const server = http.createServer((req, res) => {
         });
       });
       await page.click("#btnActualGo");
+    } else if (screen === "reflect") {
+      /* 마지막 회고 — 바꾸겠다고 두 개 고르고 코멘트를 남깁니다 */
+      await page.evaluate(() => {
+        [...document.querySelectorAll("#rfList .rfitem__box")].slice(0, 2).forEach((box) => {
+          box.checked = true;
+          box.dispatchEvent(new Event("change", { bubbles: true }));
+        });
+        const comment = document.getElementById("rfComment");
+        comment.value = "그때는 현금을 지키는 것이 먼저라고 봤는데, 시장이 열리는 시점을 놓쳤습니다.";
+        comment.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      await page.waitForTimeout(150);
+      await page.click("#btnReflectSend");
+      await page.waitForTimeout(300);
+      seen.add("T6-reflect-제출");
+      await capture(page, "T6-reflect-제출");
     } else if (next) {
       await page.click(next).catch(() => {});
     } else break;
