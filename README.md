@@ -1,4 +1,4 @@
-# DRB Decision Journey — 80년의 선택, 그리고 다음
+# DRB Decision Journey — 80년의 여정, 그리고 다음
 
 2026 DRB 신규입사자 온보딩 · 조별 경영 시뮬레이션 게임
 
