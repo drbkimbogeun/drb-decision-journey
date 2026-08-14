@@ -695,6 +695,8 @@ window.DRBUI = (function () {
     choices = choices || {};
     clearNode(list);
     list.className = "alloc-list";
+    list.style.gridTemplateColumns = "";
+    delete list.dataset.rows;
     renderDecisionScope(decisionContext);
 
     var planned = S.subround().budget;
@@ -807,47 +809,29 @@ window.DRBUI = (function () {
       return card;
     }
 
-    if (decisionContext && decisionContext.grouped) {
-      list.classList.add("alloc-list--grouped");
-      decisionContext.groups.forEach(function (group) {
-        var groupItems = items.filter(function (item) {
-          return (item.strategyGroup || "resilience") === group.id;
-        });
-        if (!groupItems.length) return;
-
-        var section = document.createElement("section");
-        section.className = "strategy-group";
-        section.setAttribute("data-strategy", group.id);
-
-        var head = document.createElement("div");
-        head.className = "strategy-group__head";
-        var title = document.createElement("h3");
-        title.className = "strategy-group__title";
-        title.textContent = group.name;
-        var cue = document.createElement("span");
-        cue.className = "strategy-group__cue";
-        cue.textContent = group.cue;
-        var itemCount = document.createElement("span");
-        itemCount.className = "strategy-group__count num";
-        itemCount.textContent = groupItems.length + "개";
-        head.appendChild(title);
-        head.appendChild(cue);
-        head.appendChild(itemCount);
-
-        var grid = document.createElement("div");
-        grid.className = "strategy-group__items";
-        groupItems.forEach(function (item) {
-          grid.appendChild(buildAllocationCard(item));
-        });
-        section.appendChild(head);
-        section.appendChild(grid);
-        list.appendChild(section);
-      });
-    } else {
-      items.forEach(function (item) {
-        list.appendChild(buildAllocationCard(item));
-      });
+    /* ★ 한 판으로 놓습니다. 칸은 4개로 고정하고, 국면이 갈수록 줄이 늘어납니다.
+         4개 → 1줄 · 6~8개 → 2줄 · 10개 → 3줄.
+         전략군은 카드 위 작은 딱지로 남겨 어디에 속한 선택인지 알 수 있게 합니다. */
+    var groupName = {};
+    if (decisionContext && decisionContext.groups) {
+      decisionContext.groups.forEach(function (g) { groupName[g.id] = g.name; });
     }
+    items.forEach(function (item) {
+      var card = buildAllocationCard(item);
+      var gid = item.strategyGroup || "resilience";
+      if (groupName[gid]) {
+        var tag = document.createElement("span");
+        tag.className = "alloc__group";
+        tag.textContent = groupName[gid];
+        card.insertBefore(tag, card.firstChild);
+      }
+      list.appendChild(card);
+    });
+
+    var cols = Math.min(4, Math.max(1, items.length));
+    var rows = Math.ceil(items.length / cols);
+    list.style.gridTemplateColumns = "repeat(" + cols + ", minmax(0, 1fr))";
+    list.dataset.rows = String(rows);
 
     updateBudgetBar(alloc);
   }
