@@ -806,17 +806,24 @@ button, .btn, .policy, .alloc, .teampick__btn { touch-action: manipulation; }
   object-fit: cover;
   opacity: 0;
   transition: opacity 1200ms ease;
-  /* 생성툴 워터마크가 오른쪽 아래 구석에 박혀 있어 살짝 키워서 화면 밖으로 밀어냅니다.
-     워터마크 없는 영상으로 바꾸면 이 한 줄만 지우면 됩니다. */
-  transform: scale(1.08);
-  transform-origin: 40% 50%;
+  /* 생성툴 워터마크가 오른쪽 아래 구석에 박혀 있어 키워서 화면 밖으로 밀어냅니다.
+     막을 옅게 할수록 워터마크가 잘 보이므로 함께 조절해야 합니다.
+     워터마크 없는 영상으로 바꾸면 이 두 줄을 지우면 됩니다. */
+  transform: scale(1.16);
+  transform-origin: 34% 40%;
 }
-.cover__video.is-playing { opacity: 0.4; }
+.cover__video.is-playing { opacity: 0.62; }
+/* 보라 막은 글자를 읽히게 하려고 있는 것이지 영상을 가리려는 게 아닙니다.
+   글자가 있는 왼쪽만 진하게 덮고, 오른쪽은 영상이 보이도록 열어둡니다.
+   (색은 --accent-deep #43277F 과 같은 값이고 알파만 다릅니다) */
 .cover__veil {
   position: absolute;
   inset: 0;
   z-index: 1;
-  background: linear-gradient(100deg, var(--accent-deep) 30%, rgba(67, 39, 127, 0.72));
+  background: linear-gradient(100deg,
+    rgba(67, 39, 127, 0.92) 0%,
+    rgba(67, 39, 127, 0.80) 32%,
+    rgba(67, 39, 127, 0.38) 100%);
 }
 
 /* 참가 코드 */
