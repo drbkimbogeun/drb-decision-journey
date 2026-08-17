@@ -597,7 +597,7 @@
   /* ============================================================
      마지막 회고 — 여섯 번을 다 지나온 뒤 한 번만
      ============================================================ */
-  var reflectDraft = { picks: {}, comment: "", submitted: false, loaded: false };
+  var reflectDraft = { pick: "", comment: "", submitted: false, loaded: false };
   var localReflect = false;
 
   function reflectOpen() {
@@ -612,28 +612,30 @@
     reflectDraft.loaded = true;
     var saved = S.team() && S.team().finalReflection;
     if (!saved) return;
-    (saved.picks || []).forEach(function (id) { reflectDraft.picks[id] = true; });
+    reflectDraft.pick = saved.pick || "";
     reflectDraft.comment = saved.comment || "";
     reflectDraft.submitted = true;
   }
 
-  function toggleReflectPick(id, on) {
-    if (on) reflectDraft.picks[id] = true;
-    else delete reflectDraft.picks[id];
+  function toggleReflectPick(id) {
+    reflectDraft.pick = id;
     UI.renderReflect(reflectDraft, toggleReflectPick);
   }
 
   function sendReflection() {
-    var picks = Object.keys(reflectDraft.picks);
     var comment = el("rfComment").value.trim();
-    if (!picks.length && !comment) {
-      UI.toast("바꾸고 싶은 결정을 고르거나, 한 줄이라도 남겨주세요.");
+    if (!reflectDraft.pick) {
+      UI.toast("이야기하고 싶은 결정을 하나 고르세요.");
+      return;
+    }
+    if (!comment) {
+      UI.toast("앞으로 어떻게 하겠는지 한 줄이라도 남겨주세요.");
       el("rfComment").focus();
       return;
     }
     reflectDraft.comment = comment;
     reflectDraft.submitted = true;
-    S.team().finalReflection = { picks: picks, comment: comment };
+    S.team().finalReflection = { pick: reflectDraft.pick, comment: comment };
     S.save();
     UI.renderReflect(reflectDraft, toggleReflectPick);
     publishLiveState();

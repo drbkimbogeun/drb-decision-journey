@@ -1321,16 +1321,18 @@ window.DRBUI = (function () {
       list.innerHTML = "<p class='hint'>아직 기록이 없습니다. 국면을 진행하면 여기에 우리 조의 결정이 쌓입니다.</p>";
     }
 
+    /* 하나만 고릅니다. 여러 개를 고르면 간담회에서 무엇을 이야기할지 흐려집니다. */
     items.forEach(function (item) {
-      var picked = !!draft.picks[item.id];
+      var picked = draft.pick === item.id;
       var row = document.createElement("label");
       row.className = "rfitem rfitem--" + item.kind + (picked ? " is-picked" : "");
 
       var box = document.createElement("input");
-      box.type = "checkbox";
+      box.type = "radio";
+      box.name = "rfPick";
       box.className = "rfitem__box";
       box.checked = picked;
-      box.onchange = function () { onToggle(item.id, box.checked); };
+      box.onchange = function () { onToggle(item.id); };
 
       var body = document.createElement("span");
       body.className = "rfitem__body";
@@ -1351,11 +1353,11 @@ window.DRBUI = (function () {
     if (comment.value !== draft.comment) comment.value = draft.comment;
     el("rfCount").textContent = comment.value.length;
 
-    var count = Object.keys(draft.picks).length;
+    var chosen = items.filter(function (item) { return item.id === draft.pick; })[0];
     el("rfStatus").textContent = draft.submitted
       ? "제출 완료 · 진행자 화면을 보세요 (고치면 다시 제출할 수 있습니다)"
-      : (count ? count + "개를 골랐습니다. 제출하면 진행자 화면에 올라갑니다."
-               : "바꾸고 싶은 결정을 고르세요. 없으면 코멘트만 남겨도 됩니다.");
+      : (chosen ? "고른 것 · " + chosen.tag + " " + chosen.year + " " + chosen.title
+                : "이야기하고 싶은 결정 하나를 고르세요.");
     el("btnReflectSend").innerHTML = (draft.submitted ? "다시 제출" : "제출") +
                                      " <span class='btn__arrow'>→</span>";
   }

@@ -324,19 +324,14 @@ function sanitizeSnapshot(value, expectedTeamName) {
   return snapshot;
 }
 /* 조가 마지막에 한 번 적는 회고 — 국면마다가 아니라 시상이 끝난 뒤입니다.
-   "다시 한다면 바꾸겠다" 고 고른 결정들(picks)과 짧은 코멘트가 전부입니다.
-   picks 는 결정 id 라서 자유 입력이 아니고, comment 만 자유 입력입니다.
+   고른 국면 하나(pick)와 "앞으로 이런 상황이면 어떻게 하겠는가"(comment) 뿐입니다.
+   pick 은 국면 id 라서 자유 입력이 아니고, comment 만 자유 입력입니다.
    ★ 클라이언트에서도 자르지만 진짜 관문은 여기입니다. */
 function sanitizeReflection(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  const picks = [];
-  for (const raw of Array.isArray(value.picks) ? value.picks.slice(0, 24) : []) {
-    const id = cleanId(raw, 48);
-    if (id && picks.indexOf(id) < 0) picks.push(id);
-    if (picks.length >= 12) break;
-  }
-  const comment = cleanText(value.comment, 200);
-  return (picks.length || comment) ? { picks, comment } : null;
+  const pick = cleanId(value.pick, 48);
+  const comment = cleanText(value.comment, 300);
+  return (pick || comment) ? { pick, comment } : null;
 }
 
 function defaultControl() {
@@ -977,6 +972,10 @@ export default {
     }
     if (url.pathname === "/play" || url.pathname === "/play/") {
       return env.ASSETS.fetch(new Request(new URL("/index.html", url), request));
+    }
+    /* 간담회 자료. 서버에서 읽어오는 것이 없고, 진행자 PC 에 저장된 것만 보여줍니다. */
+    if (url.pathname === "/review" || url.pathname === "/review/") {
+      return env.ASSETS.fetch(new Request(new URL("/review.html", url), request));
     }
 
     if (url.pathname === "/api" || url.pathname.startsWith("/api/")) {

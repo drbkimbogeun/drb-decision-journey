@@ -83,7 +83,8 @@ const server = http.createServer((req, res) => {
     });
     const flags = [];
     if (overflow.x > 2) flags.push(`가로 ${overflow.x}px 넘침`);
-    if (overflow.y > 2) flags.push(`세로 ${overflow.y}px 넘침`);
+    /* 간담회 자료는 스크롤해서 읽는 문서입니다 — 세로로 길어야 정상입니다 */
+    if (overflow.y > 2 && name !== "간담회자료") flags.push(`세로 ${overflow.y}px 넘침`);
     if (flags.length) problems.push(name + " — " + flags.join(" · "));
     console.log(`  ${String(shot).padStart(2, "0")}  ${name.padEnd(22)} 최소 글자 ${overflow.smallest}px  ${flags.join(" ") || "OK"}`);
   }
@@ -136,14 +137,12 @@ const server = http.createServer((req, res) => {
       await capture(page, "T" + turn + "-invest-정책까지");
       await page.click("#btnInvestGo");
     } else if (screen === "reflect") {
-      /* 마지막 회고 — 바꾸겠다고 두 개 고르고 코멘트를 남깁니다 */
+      /* 마지막 회고 — 국면 하나만 고르고 앞으로의 판단을 적습니다 */
       await page.evaluate(() => {
-        [...document.querySelectorAll("#rfList .rfitem__box")].slice(0, 2).forEach((box) => {
-          box.checked = true;
-          box.dispatchEvent(new Event("change", { bubbles: true }));
-        });
+        const box = [...document.querySelectorAll("#rfList .rfitem__box")][1];
+        if (box) { box.checked = true; box.dispatchEvent(new Event("change", { bubbles: true })); }
         const comment = document.getElementById("rfComment");
-        comment.value = "그때는 현금을 지키는 것이 먼저라고 봤는데, 시장이 열리는 시점을 놓쳤습니다.";
+        comment.value = "다음에 이런 갈림길이 오면 한쪽에 다 걸지 않고, 작게 두 갈래를 열어두고 시장이 어느 쪽으로 가는지 보고 키우겠습니다.";
         comment.dispatchEvent(new Event("input", { bubbles: true }));
       });
       await page.waitForTimeout(150);
@@ -202,6 +201,14 @@ const server = http.createServer((req, res) => {
     await fac.click("#btnNextStep");
     await fac.waitForTimeout(280);
   }
+  /* 간담회 자료 — 진행자 화면이 회고 챕터에서 이 PC 에 저장해둔 것을 읽습니다 */
+  const rv = await beamCtx.newPage();
+  rv.on("pageerror", (e) => problems.push("간담회 자료 오류: " + e.message));
+  await rv.goto(`http://127.0.0.1:${PORT}/review.html`);
+  await rv.waitForTimeout(900);
+  await capture(rv, "간담회자료");
+  await rv.close();
+
   await fac.click("#btnTools");
   await fac.waitForTimeout(250);
   await capture(fac, "진행자-도구");

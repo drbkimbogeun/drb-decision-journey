@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>회고 자료 · 80년의 여정</title>
+  <link rel="stylesheet" href="css/fonts.css">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/review.css">
+</head>
+<body class="rv-body">
+  <!-- ============================================================
+       간담회 자료 — 조들이 마지막에 남긴 회고
+
+       ★ 진행자 PC에서 엽니다. 교육 세션이 살아 있으면 서버에서 받아오고,
+         받아온 내용을 이 PC에 복사해 둡니다. 세션은 24시간 뒤 지워지지만
+         이 화면은 그 뒤에도 계속 열립니다.
+       ★ 서버에 자료를 더 오래 남기지 않습니다. 인사자료이기 때문입니다.
+       ============================================================ -->
+  <header class="rv-top no-print">
+    <span class="rv-top__brand">80년의 여정</span>
+    <span class="rv-top__title">회고 자료</span>
+    <span class="rv-top__meta" id="rvMeta"></span>
+    <span class="spacer"></span>
+    <button class="btn btn--sm btn--ghost" id="btnRvReload">새로 받기</button>
+    <button class="btn btn--sm btn--ghost" id="btnRvPrint">인쇄 · PDF</button>
+  </header>
+
+  <main class="rv-main">
+    <div class="rv-head">
+      <h1 class="rv-head__title">각 조는 무엇을 다시 이야기하고 싶어했는가</h1>
+      <p class="rv-head__lead">
+        여섯 번의 결정을 끝낸 뒤, 각 조가 <b>하나를 고르고</b>
+        앞으로 비슷한 상황이 오면 어떻게 하겠는지 적은 것입니다.
+      </p>
+      <p class="rv-head__where" id="rvWhen"></p>
+    </div>
+
+    <div class="rv-state" id="rvState"></div>
+    <div class="rv-list" id="rvList"></div>
+
+    <p class="rv-foot">
+      이 화면은 이 PC에만 저장되어 있습니다. 교육 세션은 24시간 뒤 서버에서 지워집니다.
+    </p>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="data/config.js"></script>
+  <script src="data/eras.js"></script>
+  <script src="data/investments.js"></script>
+  <script src="data/policies.js"></script>
+  <script src="data/events.js"></script>
+  <script src="data/rounds.js"></script>
+  <script src="data/global.js"></script>
+  <script src="data/rivals.js"></script>
+  <script src="js/live.js"></script>
+  <script src="js/reflectcard.js"></script>
+  <script src="js/review.js"></script>
+</body>
+</html>

@@ -398,63 +398,46 @@ body.fac-body {
   font-weight: 400;
   line-height: 1.7;
 }
-/* 그 시점에 알 수 있었던 것 — 국내 · 세계 · 리스크.
-   참가자 노트북에서 이 화면을 뺐으므로 여기가 유일한 자리입니다. */
+/* 그 시점에 알 수 있었던 것 — 국내 · 세계.
+   참가자 노트북에서 이 화면을 뺐으므로 여기가 유일한 자리입니다.
+   본문 아래 남는 높이를 두 칸이 나눠 채웁니다 (아래가 휑하면 안 읽힙니다). */
 .fac-brief__signals {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: var(--sp-4);
-  margin-top: clamp(20px, 2.2vw, 34px);
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(20px, 2.4vw, 44px);
+  flex: 1 1 auto;
+  min-height: 0;
+  margin-top: clamp(20px, 2.4vw, 36px);
 }
-.fac-signal { display: flex; flex-direction: column; gap: var(--sp-2); min-width: 0; }
+.fac-signal { display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; }
 .fac-signal__label {
+  flex: 0 0 auto;
   color: var(--text-3);
-  font-size: var(--fs-tiny);
+  font-size: var(--fs-small);
   font-weight: var(--fw-strong);
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
 }
-.fac-signal__list { display: flex; flex-direction: column; gap: 7px; }
+/* 항목이 4개든 6개든 남는 높이를 똑같이 나눠 갖습니다 */
+.fac-signal__list {
+  display: grid;
+  grid-auto-rows: minmax(0, 1fr);
+  gap: var(--sp-2);
+  flex: 1 1 auto;
+  min-height: 0;
+}
 .fac-signal__item {
   display: flex;
-  align-items: baseline;
-  gap: var(--sp-2);
-  padding: 7px 12px;
+  align-items: center;
+  padding: var(--sp-2) var(--sp-4);
   border-radius: var(--r-sm);
   background: var(--bg-1);
-  font-size: clamp(15px, 1.15vw, 20px);
-  line-height: 1.4;
+  color: var(--text-1);
+  font-size: clamp(17px, 1.35vw, 24px);
+  font-weight: var(--fw-mid);
+  line-height: 1.35;
 }
-.fac-signal__item b { font-weight: var(--fw-mid); }
-.fac-signal__mark {
-  flex: 0 0 auto;
-  width: 1.1em;
-  font-style: normal;
-  font-weight: var(--fw-strong);
-  text-align: center;
-}
-.fac-signal__item--up   .fac-signal__mark { color: var(--accent); }
-.fac-signal__item--down .fac-signal__mark { color: var(--coral); }
-.fac-signal__item--q    .fac-signal__mark { color: var(--accent-line); }
-.fac-signal__item--flat .fac-signal__mark { color: var(--text-3); }
-.fac-signal--risk .fac-signal__item { background: var(--coral-tint); }
-.fac-signal--risk .fac-signal__mark { color: var(--coral); }
 
-.fac-brief__facts {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--sp-3);
-  margin-top: auto;
-  padding-top: clamp(20px, 2.2vw, 32px);
-}
-.fac-brief__fact {
-  padding: var(--sp-4);
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
-  background: var(--bg-1);
-}
-.fac-brief__fact-label { color: var(--text-3); font-size: var(--fs-tiny); font-weight: var(--fw-strong); letter-spacing: 0.06em; }
-.fac-brief__fact-value { margin-top: 6px; color: var(--text-1); font-size: var(--fs-body); font-weight: var(--fw-strong); line-height: 1.4; }
-.fac-brief__source { margin-top: var(--sp-4); color: var(--text-3); font-size: var(--fs-tiny); line-height: 1.5; }
+.fac-brief__source { flex: 0 0 auto; margin-top: var(--sp-4); color: var(--text-3); font-size: var(--fs-tiny); line-height: 1.5; }
 
 
 /* ============================================================================
@@ -1085,16 +1068,37 @@ body.fac-body {
 .rfcard__state.is-in { border-color: var(--accent-line); color: var(--accent-line); }
 .rfcard__empty { color: rgba(255, 255, 255, 0.38); font-size: var(--fs-small); }
 
-.rfcard__picks { display: flex; flex-direction: column; gap: 7px; list-style: none; margin: 0; padding: 0; }
 .rfpick {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 7px 12px;
+  padding: 8px 12px;
   border-left: 3px solid var(--accent-line);
   border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* 그때 무슨 상황이었는지 — 간담회에서 맥락을 다시 세우는 줄입니다 */
+.rfcard__situation {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: var(--fs-tiny);
+  line-height: 1.55;
+}
+.rfcard__choice {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 12px;
+  border-radius: var(--r-sm);
   background: rgba(255, 255, 255, 0.06);
 }
+.rfcard__choice-label {
+  color: rgba(255, 255, 255, 0.45);
+  font-size: var(--fs-tiny);
+  font-weight: var(--fw-strong);
+  letter-spacing: 0.06em;
+}
+.rfcard__choice-value { font-size: var(--fs-small); font-weight: var(--fw-strong); line-height: 1.4; }
 .rfpick--event { border-left-color: var(--coral); }
 .rfpick__where { color: rgba(255, 255, 255, 0.45); font-size: var(--fs-tiny); font-weight: var(--fw-strong); letter-spacing: 0.06em; }
 .rfpick__title { font-size: var(--fs-small); font-weight: var(--fw-strong); line-height: 1.35; }

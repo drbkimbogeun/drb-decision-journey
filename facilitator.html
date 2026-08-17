@@ -122,7 +122,8 @@
           <p class="fac-brief__context" id="bBriefBody"></p>
 
           <!-- 그 시점의 경영진이 알 수 있었던 것. 참가자 노트북에는 없으므로
-               이 시대의 국내·세계 신호와 리스크는 여기서만 볼 수 있습니다. -->
+               이 시대의 국내·세계 신호는 여기서만 볼 수 있습니다.
+               부호 없이 문장만 둡니다 — 진행자가 그대로 읽어주는 자리입니다. -->
           <div class="fac-brief__signals">
             <div class="fac-signal">
               <span class="fac-signal__label">국내</span>
@@ -132,13 +133,7 @@
               <span class="fac-signal__label">세계</span>
               <div class="fac-signal__list" id="bBriefGlobal"></div>
             </div>
-            <div class="fac-signal fac-signal--risk">
-              <span class="fac-signal__label">리스크</span>
-              <div class="fac-signal__list" id="bBriefRisk"></div>
-            </div>
           </div>
-
-          <div class="fac-brief__facts" id="bBriefFacts"></div>
           <p class="fac-brief__source" id="bBriefSource"></p>
         </article>
       </section>
@@ -283,7 +278,7 @@
         <article class="fac-reflect">
           <div class="fac-reflect__head">
             <span class="fac-award__stamp">REVIEW</span>
-            <span class="fac-reflect__lead">각 조가 고른 결정과 그 이유</span>
+            <span class="fac-reflect__lead">각 조가 고른 결정 하나와 앞으로의 판단</span>
             <span class="spacer"></span>
             <span class="chip" id="bReflectCount">0 / 0조 제출</span>
           </div>
@@ -376,6 +371,7 @@
           <button class="btn btn--ghost" id="btnEraCompare">시대 비교</button>
           <button class="btn btn--ghost" id="btnRefresh">새로고침</button>
           <button class="btn btn--ghost" id="btnPrint">인쇄</button>
+          <a class="btn btn--ghost" href="review.html" target="_blank" rel="noopener">간담회 자료 ↗</a>
         </div>
       </div>
 
@@ -405,6 +401,7 @@
   <script src="data/global.js"></script>
   <script src="data/rivals.js"></script>
   <script src="js/engine.js"></script>
+  <script src="js/reflectcard.js"></script>
   <script src="js/live.js"></script>
   <script src="js/facilitator.js"></script>
 </body>

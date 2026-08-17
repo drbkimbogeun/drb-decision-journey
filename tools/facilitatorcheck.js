@@ -566,18 +566,17 @@ function checkLiveApi() {
   expect(/reflection:\s*reflectionView\(/.test(snapshotSource),
     "live snapshot 이 reflection 을 실어 보냄");
   expect(isNonEmptyString(reflectionView) &&
-    /picks:\s*picks/.test(reflectionView) && /comment:\s*comment/.test(reflectionView),
-    "reflectionView 가 picks / comment 를 담음");
-  expect(/cleanId\(raw,\s*48\)/.test(reflectionView) && /cleanText\(value\.comment,\s*200\)/.test(reflectionView),
+    /pick:\s*cleanId/.test(reflectionView) && /comment:\s*cleanText/.test(reflectionView),
+    "reflectionView 가 pick / comment 를 담음");
+  expect(/cleanId\(value\.pick,\s*48\)/.test(reflectionView) &&
+    /cleanText\(value\.comment,\s*300\)/.test(reflectionView),
     "참가자 쪽에서 회고 id 와 코멘트를 먼저 자름");
   expect(isNonEmptyString(workerReflection) &&
     /reflection:\s*sanitizeReflection\(/.test(worker),
     "Worker 가 reflection 을 검증해서 통과시킴");
-  expect(/cleanId\(raw,\s*48\)/.test(workerReflection) &&
-    /cleanText\(value\.comment,\s*200\)/.test(workerReflection),
+  expect(/cleanId\(value\.pick,\s*48\)/.test(workerReflection) &&
+    /cleanText\(value\.comment,\s*300\)/.test(workerReflection),
     "Worker 가 회고 id 와 코멘트 길이를 잘라냄 (진짜 관문)");
-  expect(/picks\.length\s*>=\s*12/.test(workerReflection),
-    "Worker 가 체크 개수에 상한을 둠");
   expect(/reflection:\s*snap\.reflection/.test(facSource),
     "진행자가 라이브 스냅샷에서 reflection 을 받음");
   expect(/reflection:\s*team\.finalReflection/.test(facSource),
@@ -603,19 +602,18 @@ function checkLiveApi() {
     if (src) vm.runInContext(src, reflectBox);
   });
   const sane = vm.runInContext(`sanitizeReflection({
-    picks: ["decision:r1s1", "event:r2s1:ev_oil", "decision:r1s1", "<script>", "  "],
-    comment: "  현금을\\u0007 지키는  것이 먼저라고 봤습니다.  "
+    pick: "decision:r1s1",
+    comment: "  다음엔\\u0007 두 갈래를  열어두겠습니다.  "
   })`, reflectBox);
-  expect(sane && sameList(sane.picks, ["decision:r1s1", "event:r2s1:ev_oil"]),
-    "Worker 가 중복과 이상한 id 를 걸러냄");
-  expect(sane && sane.comment === "현금을 지키는 것이 먼저라고 봤습니다.",
+  expect(sane && sane.pick === "decision:r1s1", "Worker 가 고른 국면 id 를 통과시킴");
+  expect(sane && sane.comment === "다음엔 두 갈래를 열어두겠습니다.",
     "Worker 가 코멘트의 제어문자와 겹공백을 정리함");
-  const trimmed = vm.runInContext(
-    `sanitizeReflection({ picks: Array.from({length: 30}, (_, i) => "decision:r" + i), comment: "가".repeat(400) })`,
-    reflectBox);
-  expect(trimmed && trimmed.picks.length === 12 && trimmed.comment.length === 200,
-    "Worker 가 체크 12개 · 코멘트 200자에서 끊음");
-  expect(vm.runInContext(`sanitizeReflection({ picks: [], comment: "   " })`, reflectBox) === null &&
+
+  const junk = vm.runInContext(`sanitizeReflection({ pick: "<script>", comment: "가".repeat(400) })`, reflectBox);
+  expect(junk && junk.pick === "", "Worker 가 이상한 국면 id 를 버림");
+  expect(junk && junk.comment.length === 300, "Worker 가 코멘트를 300자에서 끊음");
+
+  expect(vm.runInContext(`sanitizeReflection({ pick: "", comment: "   " })`, reflectBox) === null &&
     vm.runInContext(`sanitizeReflection(["decision:r1s1"])`, reflectBox) === null &&
     vm.runInContext(`sanitizeReflection(null)`, reflectBox) === null,
     "빈 회고와 엉뚱한 형식은 null 로 떨어짐");
@@ -630,8 +628,23 @@ function checkLiveApi() {
     /"decision:"\s*\+\s*h\.subroundId/.test(uiSource) &&
     /"event:"\s*\+\s*h\.subroundId/.test(uiSource),
     "체크 목록은 그 조 자신의 국면 결정과 돌발상황에서 만들어짐");
-  expect(/finalReflection\s*=\s*\{\s*picks:\s*picks,\s*comment:\s*comment\s*\}/.test(mainSource),
+  expect(/finalReflection\s*=\s*\{\s*pick:\s*reflectDraft\.pick,\s*comment:\s*comment\s*\}/.test(mainSource),
     "제출하면 finalReflection 에 저장됨");
+  expect(/box\.type\s*=\s*"radio"/.test(uiSource),
+    "회고는 하나만 고르게 되어 있음 (간담회에서 이야기할 것이 흐려지지 않게)");
+
+  /* 간담회 자료는 서버를 부르지 않습니다. 진행자 화면이 회고 챕터에서
+     이 PC 에 복사해둔 것만 읽습니다 — 세션이 지워져도 열려야 하기 때문입니다. */
+  const reviewSource = read("js/review.js");
+  expect(/function\s+saveReviewCopy\s*\(/.test(facSource) &&
+    /saveReviewCopy\(teams\)/.test(facSource),
+    "진행자 화면이 회고를 이 PC 에 복사해 둠");
+  expect(/_review/.test(facSource) && /_review/.test(reviewSource),
+    "진행자와 간담회 자료가 같은 저장 자리를 씀");
+  expect(!/DRBLive\.snapshot\(/.test(reviewSource) && !/fetch\(/.test(reviewSource),
+    "간담회 자료는 서버를 부르지 않음 (세션이 지워진 뒤에도 열려야 함)");
+  expect(/ASSETS\.fetch\(new Request\(new URL\("\/review\.html"/.test(worker),
+    "worker 가 /review 를 review.html 로 연결함");
   expect(/function\s+renderReflection\s*\(/.test(facSource) &&
     /bReflectCount/.test(facSource),
     "진행자 화면이 조별 제출 현황을 셈");

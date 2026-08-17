@@ -40,7 +40,7 @@
     debrief:   { title: "함께 이야기해봅시다",         tab: "이야기" },
     standings: { title: "여기까지의 순위",             tab: "순위" },
     award:     { title: "여섯 번의 선택이 끝났습니다", tab: "시상" },
-    reflect:   { title: "다시 한다면 어디를 바꾸겠습니까", tab: "회고" },
+    reflect:   { title: "앞으로는 이렇게 하겠습니다",     tab: "회고" },
     closing:   { title: "그리고 2026년부터는",         tab: "맺음말" }
   };
 
@@ -495,7 +495,7 @@
     if (currentStage === "standings") return ["이 화면은 진행자만 봅니다. 참가자에게는 순위가 없습니다."];
     if (currentStage === "award") return ["1등이 정답은 아니라는 말로 닫아주세요."];
     if (currentStage === "reflect") return ["조 노트북이 회고 화면으로 바뀌었습니다. 적을 시간을 주세요.",
-      "다 들어오면 한두 조만 골라 이유를 물어보세요."];
+      "다 들어오면 한두 조만 골라 읽게 하세요. 이 내용이 간담회 자료가 됩니다."];
     return ["글자가 다 찍힐 때까지 아무 말도 하지 마세요.", "다 나오면 마지막 두 줄만 소리 내어 읽어주세요."];
   }
 
@@ -702,10 +702,28 @@
     };
   }
 
+  /* 간담회는 대개 교육이 끝나고 며칠 뒤입니다. 세션은 24시간 뒤 서버에서
+     지워지므로, 회고 챕터를 열 때 이 PC 에 자료를 복사해 둡니다.
+     /review 는 서버를 부르지 않고 이것만 읽습니다. */
+  function saveReviewCopy(teams) {
+    var creds = window.DRBLive && window.DRBLive.facilitatorCredentials
+      ? window.DRBLive.facilitatorCredentials() : null;
+    var written = teams.filter(function (team) { return team.reflection; });
+    if (!written.length) return;
+    writeJson(CFG.storage.key + "_review", {
+      savedAt: new Date().toISOString(),
+      sessionId: creds ? creds.sessionId : "",
+      teams: teams.map(function (team) {
+        return { name: team.name, history: team.history || [], reflection: team.reflection || null };
+      })
+    });
+  }
+
   function renderReflection(teams) {
     var grid = el("bReflectGrid");
     var arrived = teams.filter(function (team) { return team.reflection; });
     el("bReflectCount").textContent = arrived.length + " / " + teams.length + "조 제출";
+    saveReviewCopy(teams);
     grid.setAttribute("style", cardColumns(Math.max(teams.length, 1)));
 
     grid.innerHTML = teams.map(function (team) {
@@ -725,21 +743,32 @@
           "<p class='rfcard__empty'>노트북에서 적고 있습니다</p></article>";
       }
 
-      var picks = (reflection.picks || []).map(function (id) {
-        var label = reflectLabel(team, id);
-        return "<li class='rfpick rfpick--" + label.kind + "'>" +
-          "<span class='rfpick__where'>" + esc(label.where) + "</span>" +
-          "<span class='rfpick__title'>" + esc(label.title) + "</span>" +
-        "</li>";
-      }).join("");
+      /* 조가 보낸 것은 국면 id 하나뿐입니다. 그때 무슨 상황이었고 이 조가
+         무엇을 골랐는지는 여기서 우리 데이터로 붙입니다. */
+      var card = window.DRBReflect ? window.DRBReflect.card(team, reflection.pick) : null;
+      var body = "";
 
-      return "<article class='rfcard'>" + head +
-        (picks
-          ? "<ul class='rfcard__picks'>" + picks + "</ul>"
-          : "<p class='rfcard__empty'>바꾸겠다고 고른 결정은 없습니다</p>") +
+      if (card) {
+        var choice = card.choice.top.length
+          ? card.choice.top.map(function (t) { return t.name + " " + t.amount; }).join(" · ")
+          : "투자 없음";
+        body =
+          "<div class='rfpick rfpick--" + card.kind + "'>" +
+            "<span class='rfpick__where'>" + esc(card.where) + "</span>" +
+            "<span class='rfpick__title'>" + esc(card.title) + "</span>" +
+          "</div>" +
+          (card.situation ? "<p class='rfcard__situation'>" + esc(card.situation) + "</p>" : "") +
+          "<div class='rfcard__choice'>" +
+            "<span class='rfcard__choice-label'>이 조의 선택</span>" +
+            "<span class='rfcard__choice-value'>" + esc(choice) +
+            (card.choice.policy ? " · " + esc(card.choice.policy) : "") + "</span>" +
+          "</div>";
+      }
+
+      return "<article class='rfcard'>" + head + body +
         (reflection.comment
           ? "<p class='rfcard__comment'>" + esc(reflection.comment) + "</p>"
-          : "") +
+          : "<p class='rfcard__empty'>앞으로의 판단은 적지 않았습니다</p>") +
       "</article>";
     }).join("");
   }
@@ -853,51 +882,38 @@
   function renderBrief() {
     var item = timeline[selectedTurn];
     var era = window.DRB_ERAS[item.round.era];
-    var totalInfo = era.briefing.domestic.length + era.briefing.global.length + era.briefing.risk.length;
-    var visibleInvest = (window.DRB_INVESTMENTS[era.investSet] || []).filter(function (invest) {
-      return invest.unlockSubround === undefined || item.subIndex >= invest.unlockSubround;
-    }).length;
 
     var node = el("bBrief");
     node.dataset.roundId = item.round.id;
     node.dataset.subroundId = item.sub.id;
-    el("bBriefYear").textContent = item.sub.year;
+    el("bBriefYear").textContent = spanOf(selectedTurn);
     el("bBriefTitle").textContent = item.sub.title.replace(/^.*?·\s*/, "");
     el("bBriefQ").textContent = "“" + era.question + "”";
     el("bBriefBody").textContent = item.sub.situation.body;
     el("bComplexity").textContent = "복잡도 " + (selectedTurn + 1) + " / " + timeline.length;
 
     /* 그 시점에 알 수 있었던 신호. 참가자 노트북에서 이 화면을 뺐으므로
-       국내·세계·리스크는 이제 여기서만 나옵니다 — 진행자가 읽어줘야 합니다. */
-    signalList(el("bBriefDomestic"), era.briefing.domestic, false);
-    signalList(el("bBriefGlobal"), era.briefing.global, false);
-    signalList(el("bBriefRisk"), era.briefing.risk, true);
+       국내·세계는 이제 여기서만 나옵니다 — 진행자가 그대로 읽어줍니다. */
+    signalList(el("bBriefDomestic"), era.briefing.domestic);
+    signalList(el("bBriefGlobal"), era.briefing.global);
 
-    el("bBriefFacts").innerHTML = [
-      ["이번에 새로 어려워진 점", complexityCue(item)],
-      ["쓸 수 있는 예산", item.sub.budget + " · 실물 토큰 " + (item.sub.budget / CFG.tokenUnit) + "개"],
-      ["고를 수 있는 칸", visibleInvest + "개 · 신호 " + totalInfo + "개"],
-      ["앞이 보이는 정도", era.visibility + "% · 권장 토론 " + Math.round(era.pace.discussSeconds / 60) + "분"]
-    ].map(function (fact) {
-      return "<div class='fac-brief__fact'>" +
-        "<div class='fac-brief__fact-label'>" + esc(fact[0]) + "</div>" +
-        "<div class='fac-brief__fact-value'>" + esc(fact[1]) + "</div>" +
-      "</div>";
-    }).join("");
     el("bBriefSource").textContent = "이 배경은 당시 산업환경을 재구성한 교육용 시뮬레이션입니다. DRB의 실제 기록은 시대가 끝난 뒤 따로 공개합니다.";
   }
 
-  /* 신호 한 줄씩. 리스크는 tone 없이 문자열 배열이라 따로 받습니다. */
-  var TONE_MARK = { up: "▲", down: "▼", q: "?", flat: "·" };
+  /* 한 국면은 한 해가 아니라 몇 년을 통째로 지나갑니다.
+     "1947" 만 띄우면 그 해 이야기로 읽혀서, 다음 국면까지의 구간을 보여줍니다. */
+  function spanOf(turn) {
+    var here = timeline[turn];
+    var next = timeline[turn + 1];
+    if (!next) return here.sub.year + " 이후";
+    return here.sub.year + " ~ " + (next.sub.year - 1);
+  }
 
-  function signalList(node, rows, plain) {
+  /* 신호 한 줄씩. 부호(▲▼?)는 붙이지 않습니다 — 진행자가 소리 내어 읽는
+     문장이라 기호가 앞에 있으면 읽는 리듬이 끊깁니다. */
+  function signalList(node, rows) {
     node.innerHTML = (rows || []).map(function (row) {
-      var tone = plain ? "risk" : (row.tone || "flat");
-      var text = plain ? row : row.text;
-      return "<span class='fac-signal__item fac-signal__item--" + esc(tone) + "'>" +
-        "<i class='fac-signal__mark'>" + (plain ? "!" : (TONE_MARK[tone] || "·")) + "</i>" +
-        "<b>" + esc(text) + "</b>" +
-      "</span>";
+      return "<span class='fac-signal__item'>" + esc(row && row.text ? row.text : row) + "</span>";
     }).join("");
   }
 

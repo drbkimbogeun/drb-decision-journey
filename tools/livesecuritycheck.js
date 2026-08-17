@@ -245,7 +245,7 @@ async function checkSnapshotIsIdempotent() {
         turnIndex: 6,
         state: { cash: 100 },
         history: [],
-        finalReflection: { picks: ["decision:r1s1", "event:r2s1:ev_x"], comment: "여기서 갈렸습니다" },
+        finalReflection: { pick: "decision:r1s1", comment: "다음엔 두 갈래를 열어두겠습니다" },
       },
     },
   };
@@ -256,7 +256,7 @@ async function checkSnapshotIsIdempotent() {
 
   const once = window.DRBLive.snapshotFromState(save, "1조");
   assert.deepStrictEqual(plain(once.reflection),
-    { picks: ["decision:r1s1", "event:r2s1:ev_x"], comment: "여기서 갈렸습니다" },
+    { pick: "decision:r1s1", comment: "다음엔 두 갈래를 열어두겠습니다" },
     "snapshot must carry the team reflection");
 
   const twice = window.DRBLive.snapshotFromState(JSON.parse(JSON.stringify(once)), "1조");

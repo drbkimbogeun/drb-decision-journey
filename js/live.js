@@ -223,18 +223,16 @@
     };
   }
 
-  /* 마지막에 조가 한 번 적는 회고. 진행자 빔에서 조별로 나란히 띄웁니다.
-     picks 는 "다시 한다면 바꾸겠다" 고 고른 결정 id 들이고 comment 만 자유 입력입니다.
+  /* 마지막에 조가 한 번 적는 회고. 진행자 빔과 간담회 자료에 그대로 실립니다.
+     pick 은 조가 고른 국면 id 하나, comment 는 "앞으로 어떻게 하겠는가" 입니다.
      여기서 자르지만 진짜 관문은 Worker 입니다 — 같은 규칙으로 다시 자릅니다. */
   function reflectionView(value) {
     if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-    var picks = [];
-    (Array.isArray(value.picks) ? value.picks.slice(0, 24) : []).forEach(function (raw) {
-      var id = cleanId(raw, 48);
-      if (id && picks.indexOf(id) < 0 && picks.length < 12) picks.push(id);
-    });
-    var comment = cleanText(value.comment, 200);
-    return (picks.length || comment) ? { picks: picks, comment: comment } : null;
+    var out = {
+      pick: cleanId(value.pick, 48),          // 조가 고른 국면 하나 (또는 돌발상황)
+      comment: cleanText(value.comment, 300), // 앞으로 이런 상황이면 어떻게 하겠는가
+    };
+    return (out.pick || out.comment) ? out : null;
   }
   function emit(name, detail) {
     try {
