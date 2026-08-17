@@ -65,6 +65,9 @@ function step(title) { console.log("\n" + "─".repeat(70) + "\n" + title); }
     await fac.waitForTimeout(600);
     /* 모달에서 조 수를 고르고 만듭니다 */
     const made = await fac.evaluate(async () => {
+      const rivals = document.getElementById("sessionRivalCount");
+      if (!rivals) return { error: "AI 경쟁사 수 항목이 없습니다" };
+      rivals.value = "2";                       // 교촌치킨 · 엽기떡볶이
       const go = document.querySelector("#modalBody button.btn--primary");
       if (!go) return { error: "세션 만들기 버튼을 찾지 못했습니다" };
       go.click();
@@ -125,6 +128,11 @@ function step(title) { console.log("\n" + "─".repeat(70) + "\n" + title); }
         const screen = await play.evaluate(() => document.getElementById("app").dataset.screen);
         expect(screen === "invest", "참가자 첫 화면이 자원 배분 (" + screen + ")");
 
+        /* 진행자가 고른 경쟁사 수가 조 노트북까지 왔는가 —
+           조마다 다르면 같은 결정에도 매출이 갈립니다 */
+        const rivals = await play.evaluate(() => window.DRBState.rivals().map((r) => r.name));
+        expect(rivals.length === 2, "경쟁사 2개가 조 노트북에 반영됨 (" + rivals.join(", ") + ")");
+
         step("4. 배분 + 정책 확정이 진행자 화면에 도착하는가");
         await play.evaluate(() => {
           for (let i = 0; i < 12; i += 1) {
@@ -167,6 +175,9 @@ function step(title) { console.log("\n" + "─".repeat(70) + "\n" + title); }
             c.value = "라이브 점검 코멘트";
             c.dispatchEvent(new Event("input", { bubbles: true }));
           });
+          const single = await play.evaluate(() =>
+            [...document.querySelectorAll("#rfList .rfitem__box")].filter((b) => b.checked).length);
+          expect(single === 1, "회고는 하나만 골라짐 (" + single + "개)");
           await play.click("#btnReflectSend");
 
           /* "1 / 4조 제출" 의 앞 숫자만 봅니다.
@@ -189,6 +200,23 @@ function step(title) { console.log("\n" + "─".repeat(70) + "\n" + title); }
           });
           expect(shown.indexOf("라이브 점검 코멘트") >= 0,
             "회고 코멘트가 빔에 그대로 보임 — " + (shown.slice(0, 60) || "카드 없음"));
+          expect(shown.indexOf("이 조의 선택") >= 0,
+            "고른 국면의 상황과 그 조의 선택이 같이 붙음");
+
+          step("6. 간담회 자료 — 서버 없이 이 PC 에서 열리는가");
+          const rvRes = await fac.goto(BASE + "/review", { waitUntil: "domcontentloaded" });
+          expect(rvRes && rvRes.status() === 200, "GET /review → " + (rvRes ? rvRes.status() : "응답 없음"));
+          await fac.waitForTimeout(1200);
+          const review = await fac.evaluate(() => ({
+            isReview: !!document.querySelector(".rv-body"),
+            cards: document.querySelectorAll(".rvcard:not(.rvcard--empty)").length,
+            text: document.body.textContent.replace(/\s+/g, " "),
+          }));
+          expect(review.isReview, "/review 가 간담회 자료 화면을 줌");
+          expect(review.cards >= 1, "회고를 남긴 조가 자료에 실림 (" + review.cards + "개)");
+          expect(review.text.indexOf("라이브 점검 코멘트") >= 0, "간담회 자료에 그 조의 문장이 있음");
+          await fac.goBack().catch(() => {});
+          await fac.waitForTimeout(800);
         }
 
         expect(playErrors.length === 0, "참가자 화면 오류 없음" + (playErrors.length ? " — " + playErrors[0] : ""));
@@ -202,7 +230,7 @@ function step(title) { console.log("\n" + "─".repeat(70) + "\n" + title); }
   } finally {
     /* 만든 세션은 반드시 지웁니다 — 안 지우면 24시간 떠 있습니다 */
     if (sessionId) {
-      step("6. 뒷정리");
+      step("7. 뒷정리");
       const gone = await fac.evaluate(async () => {
         try {
           const raw = sessionStorage.getItem("drb.live.facilitator.v1");
