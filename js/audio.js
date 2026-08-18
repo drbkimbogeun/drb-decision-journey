@@ -230,7 +230,17 @@ window.DRBAudio = (function () {
      screen 을 주면 config 의 musicByScreen 표에서 곡을 찾고,
      곡 이름(normal / lapse / ending)을 바로 줘도 됩니다.
      ============================================================ */
+  /* ★ 배경음악은 교육장에서 한 곳에서만 나와야 합니다 — 진행자 빔입니다.
+       조마다 노트북에서 같은 곡이 같이 흘러나오면 시작 시각이 조금씩 달라
+       방 전체가 울리고, 조별 토론 목소리를 덮습니다.
+       그래서 음악을 틀 화면만 <html data-music="on"> 을 답니다.
+       효과음(버튼 소리)은 그 화면에서 눌린 사람에게만 필요하므로 계속 납니다. */
+  function musicAllowed() {
+    return document.documentElement.getAttribute("data-music") === "on";
+  }
+
   function scene(screen) {
+    if (!musicAllowed()) return;
     var map = cfg.musicByScreen || {};
     var name = tracks[screen] ? screen : (map[screen] || "normal");
 
@@ -259,6 +269,7 @@ window.DRBAudio = (function () {
 
   /* 돌발상황이 뜨는 순간 한 번 — 배경음악 위로 겹칩니다 */
   function alarm() {
+    if (!musicAllowed()) return;
     ensureTracks();
     if (muted || !shockTrack || shockTrack.dataset.missing) return;
     try {

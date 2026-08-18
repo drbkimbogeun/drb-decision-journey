@@ -70,16 +70,25 @@ const server = http.createServer((req, res) => {
   });
   expect(fs.existsSync(path.join(ROOT, CFG.audio.shock)), `shock → ${CFG.audio.shock}`);
 
-  console.log("\n2. 화면과 곡의 짝");
+  console.log("\n2. 챕터와 곡의 짝");
   expect(Object.keys(music).length === 3, "배경음악이 정확히 세 곡임 (" + Object.keys(music).join(" · ") + ")");
   const unknown = Object.keys(byScreen).filter(s => !music[byScreen[s]]);
   expect(unknown.length === 0, "musicByScreen 이 없는 곡을 가리키지 않음" + (unknown.length ? " — " + unknown.join(", ") : ""));
-  /* 노트북에 남은 화면은 배분과 대기뿐입니다.
-     배분하는 동안은 평상시, 확정한 뒤 대기는 시대흐름으로 넘어갑니다. */
-  expect(byScreen.invest === "normal", "자원 배분은 평상시 곡 (" + byScreen.invest + ")");
-  expect(byScreen.timelapse === "lapse", "확정 뒤 대기는 시대흐름 곡 (" + byScreen.timelapse + ")");
-  expect(byScreen.ending === "ending" && byScreen.reflect === "ending",
-    "엔딩과 회고는 엔딩 곡");
+  /* ★ 음악은 진행자 빔에서만 납니다. 그래서 짝을 맞춰야 하는 것은 진행자 챕터입니다.
+     설명하는 동안은 평상시, 결과가 흐르는 동안은 시대흐름, 시상부터는 엔딩. */
+  expect(byScreen.briefing === "normal" && byScreen.decisions === "normal",
+    "시대 설명 · 조별 결정은 평상시 곡");
+  expect(byScreen.event === "lapse" && byScreen.phase === "lapse",
+    "돌발상황 · 국면 결과는 시대흐름 곡");
+  expect(byScreen.award === "ending" && byScreen.closing === "ending",
+    "시상과 맺음말은 엔딩 곡");
+
+  console.log("\n2-2. 음악이 나는 화면은 한 곳뿐인가");
+  const facHtml = fs.readFileSync(path.join(ROOT, "facilitator.html"), "utf8");
+  const teamHtml = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
+  expect(/<html[^>]*data-music\s*=\s*"on"/.test(facHtml), "진행자 화면에 data-music=\"on\" 이 있음");
+  expect(!/<html[^>]*data-music\s*=/.test(teamHtml), "참가자 화면에는 data-music 이 없음 (노트북에서 음악이 나오면 안 됩니다)");
+  expect(/js\/audio\.js/.test(facHtml), "진행자 화면이 audio.js 를 불러옴");
 
   await new Promise(r => server.listen(PORT, "127.0.0.1", r));
 
@@ -133,56 +142,64 @@ const server = http.createServer((req, res) => {
       `${name} 재생 가능 — ${d.type} · ${d.seconds ? Math.round(d.seconds) + "초" : "디코딩 실패"}`);
   });
 
-  console.log("\n4. 화면을 넘기면 곡이 따라오는가");
+  console.log("\n4. 참가자 노트북은 조용한가");
   await page.click("#btnPractice");
   await page.waitForTimeout(200);
   await page.click("#btnStart");
-  await page.waitForTimeout(600);
+  await page.waitForTimeout(900);
+  const quiet = await page.evaluate(() => ({
+    now: window.DRBAudio.nowPlaying(),
+    tags: document.querySelectorAll("audio").length
+  }));
+  expect(!quiet.now.playing, "확정 화면에서 배경음악이 걸리지 않음 (" + (quiet.now.name || "없음") + ")");
+  expect(quiet.tags === 0, "음악 파일을 아예 받아오지도 않음 (오디오 태그 " + quiet.tags + "개)");
+  await ctx.close();
+
+  console.log("\n5. 진행자 챕터를 넘기면 곡이 따라오는가");
+  /* 브라우저 자동재생 정책 — 사람이 한 번 클릭한 뒤에야 소리가 납니다.
+     교육장에서는 진행자가 화면을 넘기는 것이 그 클릭입니다. */
+  const facCtx = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
+  const fac = await facCtx.newPage();
+  fac.on("pageerror", e => errors.push("진행자: " + e.message));
+  await fac.goto(`http://127.0.0.1:${PORT}/facilitator.html`);
+  await fac.waitForTimeout(900);
+  await fac.mouse.click(960, 540);
+  await fac.waitForTimeout(1200);
 
   const seen = {};
-  for (let i = 0; i < 90; i++) {
-    const screen = await page.evaluate(() => {
-      const n = document.querySelector(".screen.is-active");
-      return n ? n.id.replace("sc-", "") : null;
+  for (let i = 0; i < 60; i++) {
+    const stage = await fac.evaluate(() => {
+      const n = document.querySelector("[data-stage-panel]:not(.hidden)");
+      return n ? n.dataset.stagePanel : null;
     });
-    if (!screen) break;
-    if (!seen[screen]) {
-      seen[screen] = await page.evaluate(() => window.DRBAudio.nowPlaying());
+    if (stage && !seen[stage]) {
+      seen[stage] = await fac.evaluate(() => window.DRBAudio.nowPlaying());
     }
-    if (screen === "final") break;
-
-    const next = {
-      timelapse: "#btnSkipLapse", ending: "#btnEndNext",
-    }[screen];
-
-    if (screen === "invest") {
-      /* 예산을 다 쓰고 정책을 고른 뒤에야 확정이 열립니다 */
-      for (let k = 0; k < 12; k++) {
-        const done = await page.evaluate(() => {
-          if (parseInt(document.getElementById("inRemain").textContent, 10) <= 0) return true;
-          const btn = document.querySelector("#inList .alloc .btn--plus:not([disabled])");
-          if (!btn) return true;
-          btn.click(); return false;
-        });
-        if (done) break;
-      }
-      await page.evaluate(() => document.querySelector("#poList .policy").click());
-      await page.waitForTimeout(120);
-      await page.click("#btnInvestGo");
-    } else if (next) {
-      await page.click(next).catch(() => {});
-    } else break;
-    await page.waitForTimeout(320);
+    const stuck = await fac.evaluate(() => document.getElementById("btnNextStep").disabled);
+    if (stuck) {
+      const forced = await fac.evaluate(() => {
+        const lock = document.getElementById("bLock");
+        if (lock.classList.contains("hidden")) return false;
+        document.getElementById("btnForce").click();
+        return true;
+      });
+      if (!forced) break;
+      await fac.waitForTimeout(240);
+      continue;
+    }
+    await fac.click("#btnNextStep");
+    await fac.waitForTimeout(320);
   }
 
-  Object.keys(seen).forEach(screen => {
-    const want = byScreen[screen] || "normal";
-    const got = seen[screen] || {};
-    expect(got.name === want, `${screen.padEnd(10)} → ${got.name || "없음"} (기대 ${want})`);
+  Object.keys(seen).forEach(stage => {
+    const want = byScreen[stage] || "normal";
+    const got = seen[stage] || {};
+    expect(got.name === want, `${stage.padEnd(10)} → ${got.name || "없음"} (기대 ${want})`);
   });
+  expect(Object.keys(seen).length >= 6, "챕터를 " + Object.keys(seen).length + "개 지나감");
 
-  console.log("\n5. 무한 반복 — 곡보다 국면이 깁니다");
-  const loops = await page.evaluate(() => window.DRBAudio.nowPlaying());
+  console.log("\n6. 무한 반복 — 곡보다 국면이 깁니다");
+  const loops = await fac.evaluate(() => window.DRBAudio.nowPlaying());
   expect(loops.loop === true, "지금 걸린 곡이 loop 로 걸려 있음");
   const shortest = Math.min.apply(null, Object.keys(decoded).map(n => decoded[n].seconds || 999));
   const phaseSeconds = (CFG.phasePlan || []).reduce((s, x) => s + x.minutes, 0) * 60;
@@ -193,6 +210,7 @@ const server = http.createServer((req, res) => {
 
   expect(errors.length === 0, "브라우저 오류 없음" + (errors.length ? " — " + errors[0] : ""));
 
+  await facCtx.close();
   await browser.close();
   server.close();
 

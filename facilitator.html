@@ -2,7 +2,8 @@
 <!-- data-fit = 이 화면의 설계 크기. 진행자 화면은 빔프로젝터에 올라갑니다.
      data-safe = 위아래로 비워둘 띠. 빔은 화면 맨 위·맨 아래를 먹습니다.
                  1080 중 위 60 · 아래 60 을 띠로 두고 내용은 가운데 960 안에 그립니다. -->
-<html lang="ko" data-fit="1920x1080" data-safe="60">
+<!-- data-music = 이 화면에서 배경음악을 틉니다. 교육장에서 음악은 빔 한 곳에서만 나옵니다. -->
+<html lang="ko" data-fit="1920x1080" data-safe="60" data-music="on">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -43,6 +44,7 @@
       <span class="chip" id="bProgress">국면 1 / 6</span>
       <span class="fac-top__warn hidden no-print" id="bNoSession" title="누르면 도구가 열립니다"></span>
       <span class="fac-top__sync chip no-print" id="bSync">로컬 모드</span>
+      <button class="btn btn--sm btn--ghost no-print" id="btnSound" title="배경음악 끄기/켜기" aria-pressed="false">🔊</button>
       <button class="btn btn--sm btn--ghost no-print" id="btnTools">도구 ⋯</button>
       <button class="fac-drive__back no-print" id="btnBack" aria-label="이전 챕터">←</button>
       <button class="fac-drive__next no-print" id="btnNextStep">
@@ -396,6 +398,7 @@
   <script src="data/actual_drb.js"></script>
   <script src="data/global.js"></script>
   <script src="data/rivals.js"></script>
+  <script src="js/audio.js"></script>
   <script src="js/engine.js"></script>
   <script src="js/reflectcard.js"></script>
   <script src="js/live.js"></script>

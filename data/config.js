@@ -91,11 +91,21 @@ window.DRB_CONFIG = {
     },
 
     /* 어느 화면에서 어느 곡을 트는가. 여기 적히지 않은 화면은 normal 입니다.
-       화면 하나를 다른 곡으로 옮기고 싶으면 이 표에서만 바꾸세요. */
+       화면 하나를 다른 곡으로 옮기고 싶으면 이 표에서만 바꾸세요.
+
+       ★ 음악은 진행자 빔에서만 납니다. 그래서 실제로 쓰이는 것은 아래 챕터 이름들입니다.
+         (참가자 노트북에는 <html data-music> 이 없어 음악이 나오지 않습니다) */
     musicByScreen: {
+      /* 진행자 화면의 챕터 */
+      intro:     "normal",  howto:     "normal",  briefing:  "normal",  decisions: "normal",
+      event:     "lapse",   phase:     "lapse",   actual:    "lapse",
+      map:       "lapse",   standings: "lapse",
+      award:     "ending",  reflect:   "ending",  closing:   "ending",
+
+      /* 참가자 화면 (연습 모드에서 소리를 켜고 볼 때만 쓰입니다) */
       roundOpen: "normal",  situation: "normal",  invest: "normal",  policy: "normal",
-      timelapse: "lapse",   event:     "lapse",   result: "lapse",   actual: "lapse",
-      ending:    "ending",  final:     "ending",  reflect: "ending"
+      timelapse: "lapse",   result:    "lapse",
+      ending:    "ending",  final:     "ending"
     },
 
     shock: "assets/audio/shock.m4a",   // 돌발상황이 뜨는 순간 한 번

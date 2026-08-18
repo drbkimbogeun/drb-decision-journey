@@ -1463,9 +1463,23 @@
         window.DRBLive && window.DRBLive.hasFacilitatorSession && window.DRBLive.hasFacilitatorSession()) {
       window.DRBLive.control({ currentTurn: selectedTurn, stage: stage }).catch(function () {});
     }
+    /* ★ 배경음악은 이 화면에서만 납니다 (교육장에 스피커는 하나여야 합니다).
+         곡은 챕터를 따라갑니다 — 어느 챕터가 어느 곡인지는 config 의 musicByScreen. */
+    if (window.DRBAudio) {
+      window.DRBAudio.scene(stage);
+      window.DRBAudio.duck(stage === "event");
+      if (stage === "event" && lastAlarmStage !== stage + selectedTurn) {
+        lastAlarmStage = stage + selectedTurn;
+        window.DRBAudio.alarm();
+      }
+    }
+
     /* 맺음말 화면에 들어온 순간 글자가 찍히기 시작합니다 */
     if (stage === "closing") startClosing();
   }
+
+  /* 돌발상황 알람은 한 국면에 한 번만 — 챕터를 되돌아왔다고 다시 울리지 않습니다 */
+  var lastAlarmStage = "";
 
   function jumpTo(stage) {
     currentStage = stage;
@@ -1706,6 +1720,15 @@
       if (closing.running) finishClosing(false);
     };
     el("btnClosingReplay").onclick = replayClosing;
+
+    /* 배경음악 끄기·켜기. 스피커가 이 화면 하나뿐이라 여기 둡니다. */
+    el("btnSound").onclick = function () {
+      if (!window.DRBAudio) return;
+      var off = window.DRBAudio.toggle();
+      el("btnSound").textContent = off ? "🔇" : "🔊";
+      el("btnSound").setAttribute("aria-pressed", off ? "true" : "false");
+      if (!off) window.DRBAudio.scene(currentStage);
+    };
 
     el("btnTools").onclick = openTools;
     /* ⚠ 칩을 누르면 도구가 열리면서 세션 만드는 자리까지 데려갑니다 */
