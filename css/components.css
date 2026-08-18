@@ -890,7 +890,7 @@
 
 .modal__panel {
   width: min(720px, 100%);
-  max-height: 86vh;
+  max-height: calc(86 * var(--vh));
   overflow-y: auto;
   background: var(--bg-1);
   border: 1px solid var(--line-strong);

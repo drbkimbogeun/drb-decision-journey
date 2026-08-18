@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="ko">
+<!-- data-fit = 이 화면의 설계 크기. 진행자 화면은 빔프로젝터에 올라갑니다. -->
+<html lang="ko" data-fit="1920x960">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -13,6 +14,9 @@
   <link rel="stylesheet" href="css/screens.css">
   <link rel="stylesheet" href="css/facilitator.css">
   <link rel="stylesheet" href="css/console.css">
+
+  <!-- 화면이 그려지기 전에 배율을 정합니다. 늦게 실행하면 크기가 한 번 튑니다. -->
+  <script src="js/fit.js"></script>
 </head>
 <body class="fac-body">
   <!-- ============================================================

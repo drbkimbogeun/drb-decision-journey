@@ -453,7 +453,7 @@
    2026 엔딩 — 이 게임의 마지막 장면
    ------------------------------------------------------------ */
 .ending {
-  min-height: calc(100vh - var(--topbar-h) - var(--sp-7));
+  min-height: calc(100 * var(--vh) - var(--topbar-h) - var(--sp-7));
   display: flex;
   flex-direction: column;
   align-items: center;

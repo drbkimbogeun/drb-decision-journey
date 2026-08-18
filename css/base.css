@@ -22,6 +22,12 @@ body {
   line-height: var(--lh-body);
   -webkit-font-smoothing: antialiased;
   overflow: hidden;               /* 화면 단위 전환 게임이라 body 스크롤은 막는다 */
+
+  /* 화면 전체를 해상도에 맞춰 확대·축소한다 (배율은 js/fit.js 가 정한다).
+     zoom 은 transform 과 달리 글자가 다시 배치되므로 줄바꿈이 깨지지 않는다.
+     ★ 높이는 100% 가 아니라 배율로 나눈 값이다. 100% 로 두면 배율만큼 넘친다. */
+  zoom: var(--ui-scale);
+  height: calc(100 * var(--vh));
 }
 
 h1, h2, h3, h4, p, figure {
