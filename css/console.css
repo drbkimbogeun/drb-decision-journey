@@ -61,7 +61,8 @@ body.fac-body {
 .fac-console {
   display: flex;
   flex-direction: column;
-  height: calc(100 * var(--vh));
+  /* 화면 전체에서 위아래 안전 띠를 뺀 만큼. 띠는 body 의 padding 이 만듭니다. */
+  height: calc(100 * var(--vh) - 2 * var(--safe-y));
   overflow: hidden;
   background: var(--bg-0);
 }
@@ -1213,24 +1214,21 @@ body.fac-body {
 
 
 /* ============================================================================
-   18. 좁은 화면 · 인쇄
+   18. 인쇄
+
+   ★ '좁은 화면' 대비책은 여기 없습니다. 없는 것이 맞습니다.
+
+     @media 는 창의 실제 크기를 봅니다. 그런데 이 화면은 js/fit.js 가 배율로
+     맞추므로, 창이 작아도 설계 공간은 좁아지지 않습니다 — 진행자 화면의 설계
+     너비는 항상 1920 이상입니다 (배율 = 가로·세로 중 빡빡한 쪽).
+
+     그래서 1500px·1180px 같은 대비책은 '좁을 때'가 아니라 '빔일 때' 켜졌습니다.
+     1280×720 빔에서 순위 판(.fac-standings__grid)이 두 칸에서 한 칸으로 접혀
+     아래쪽이 화면 밖으로 171px 잘려 나갔습니다. 1920×1080 에서는 멀쩡했으므로
+     오래 못 찾았습니다.
+
+     화면이 작으면 배율이 대신 줄여 줍니다. 판을 다시 짜지 마세요.
    ============================================================================ */
-@media (max-width: 1500px) {
-  .fac-brief__facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  /* 순서도는 줄바꿈하면 흐름이 끊깁니다 — 한 줄을 유지하고 글자만 줄입니다 */
-  .flowstep { padding: 34px var(--sp-2); }
-  .flowstep__name { font-size: 26px; }
-  .fac-standings__grid { grid-template-columns: 1fr; }
-  .fac-phase__cards { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .podium { grid-template-columns: 1fr; }
-  .awards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .drbcards { grid-template-columns: 1fr; }
-}
-@media (max-width: 1180px) {
-  body.fac-body { min-width: 0; }
-  .fac-drive__next { min-width: 180px; }
-  .fac-steps { display: none; }
-}
 
 @media print {
   .fac-console { height: auto; overflow: visible; }

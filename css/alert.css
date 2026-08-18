@@ -4,7 +4,8 @@
 
 .newsflash {
   position: fixed;
-  top: 84px;
+  /* 빔에서는 화면 맨 위가 가려집니다 — 안전 띠 아래로 내려 띄웁니다 */
+  top: calc(84px + var(--safe-y));
   right: 24px;
   width: min(400px, calc(100 * var(--vw) - 48px));
   z-index: 80;

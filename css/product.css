@@ -419,7 +419,10 @@ button, .btn, .policy, .alloc, .teampick__btn { touch-action: manipulation; }
 .tradeoff--later::before { content: "↻"; color: var(--accent-line); }
 
 .alloc__stepper { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-2); margin-top: auto; padding-top: var(--sp-4); }
-.alloc__stepper .btn--icon { width: auto; height: 52px; border-radius: var(--r-md); font-size: 19px; font-weight: var(--fw-strong); }
+/* ★ min-height 를 풀어야 아래 data-rows 별 height 가 실제로 먹습니다.
+     .btn 의 min-height:46px 이 그걸 이겨서, 3줄에서 30px 로 줄인 버튼이
+     46px 그대로 그려지고 있었습니다. */
+.alloc__stepper .btn--icon { width: auto; height: 52px; min-height: 0; border-radius: var(--r-md); font-size: 19px; font-weight: var(--fw-strong); }
 .alloc__stepper .btn--minus { background: var(--bg-2); border-color: var(--line); color: var(--text-1); }
 .alloc__stepper .btn--plus { background: var(--accent); border-color: var(--accent); color: var(--text-on-accent); }
 .alloc__stepper .btn--plus:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
@@ -1057,15 +1060,17 @@ button, .btn, .policy, .alloc, .teampick__btn { touch-action: manipulation; }
   white-space: nowrap;
 }
 
-/* 2줄 — 카드 높이가 절반이 됩니다 */
-.alloc-list[data-rows="2"] .alloc { padding: var(--sp-3) var(--sp-4); }
+/* 2줄 — 카드 높이가 절반이 됩니다.
+   ★ 줄 사이 간격(gap)을 끕니다. 아래 .alloc 의 설명을 보세요 — 이걸 안 끄면
+     보이지 않는 60px 이 얹혀 내용이 카드 밖으로 잘려 나갑니다. */
+.alloc-list[data-rows="2"] .alloc { padding: var(--sp-3) var(--sp-4); gap: 0; }
 .alloc-list[data-rows="2"] .alloc__name { font-size: 16px; }
 .alloc-list[data-rows="2"] .alloc__amount { margin-top: var(--sp-2); font-size: 34px; }
 .alloc-list[data-rows="2"] .alloc__stepper { padding-top: var(--sp-3); }
 .alloc-list[data-rows="2"] .alloc__stepper .btn--icon { height: 42px; }
 
 /* 3줄 — 아래 정책 띠까지 얹히므로 여기서부터는 꽤 줄여야 +/- 가 카드 안에 들어옵니다 */
-.alloc-list[data-rows="3"] .alloc { padding: 5px var(--sp-3); }
+.alloc-list[data-rows="3"] .alloc { padding: 5px var(--sp-3); gap: 0; }
 /* 3줄이 되면 전략군 딱지는 뺍니다 — 이 20px 때문에 +/- 가 카드 밖으로 밀립니다 */
 .alloc-list[data-rows="3"] .alloc__group { display: none; }
 .alloc-list[data-rows="3"] .alloc__stepper { margin-top: auto; padding-top: 2px; gap: 6px; }
@@ -1085,6 +1090,13 @@ button, .btn, .policy, .alloc, .teampick__btn { touch-action: manipulation; }
   /* 카드가 커진 만큼 내용을 가운데로 — 위에만 붙어 있으면 빈 카드처럼 보이고
      +/- 버튼도 손이 멀어집니다. 설명(note)만 아래에 남습니다. */
   justify-content: center;
+  /* ★ 줄 사이 간격을 여기 적어 둡니다. 값은 지금과 같지만, 물려받은 것이
+       아니라 정한 것이라는 뜻입니다.
+       components.css 의 .alloc 은 2단 grid 라 row-gap 12px 을 갖고 있고,
+       여기서 세로 flex 로 바꿔도 그 12px 이 그대로 따라옵니다. 칸이 여섯이라
+       보이지 않는 60px 이 얹혀, 카드가 작아지는 2·3줄에서 내용이 카드 위아래로
+       24px 씩 삐져나가 잘렸습니다. 그래서 2·3줄은 이 값을 0 으로 끕니다. */
+  row-gap: var(--sp-3);
 }
 
 /* ★ '새 분야' 뱃지가 이름 아래에 끼어들면 그 카드만 내용이 밀려

@@ -9,6 +9,9 @@
 body.fac-body {
   overflow: hidden;
   background: var(--bg-0);
+  /* 빔이 먹는 위아래 끝을 비워둡니다 (값은 facilitator.html 의 data-safe).
+     화면 배경은 여기까지 깔리고, 읽을 것은 전부 이 안쪽에 들어갑니다. */
+  padding: var(--safe-y) 0;
 }
 
 .board {
@@ -544,7 +547,7 @@ body.fac-body {
 
 @media (max-width:1023px) {
   body.fac-body { min-width:0; }
-  .fac-console { height:calc(100 * var(--vh)); }
+  .fac-console { height:calc(100 * var(--vh) - 2 * var(--safe-y)); }
 
   .fac-console__top {
     flex-wrap:wrap;

@@ -852,7 +852,8 @@
 .toast {
   position: fixed;
   left: 50%;
-  bottom: 28px;
+  /* 빔에서는 화면 맨 아래가 가려집니다 — 안전 띠 위로 올려 띄웁니다 */
+  bottom: calc(28px + var(--safe-y));
   transform: translateX(-50%);
   padding: 10px 20px;
   border-radius: var(--r-pill);
