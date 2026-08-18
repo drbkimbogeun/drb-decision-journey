@@ -182,6 +182,15 @@
 
       <!-- ······ 돌발상황 ······ -->
       <section class="fac-stage hidden" id="stageEvent" data-stage-panel="event">
+
+        <!-- 돌발상황은 '방금 무슨 일이 났다' 는 것부터 알려야 합니다.
+             내용을 먼저 띄우면 진행자가 읽기 시작할 때 조들은 아직 화면을
+             찾고 있습니다. 한 박자 경고를 띄우고 그 다음에 내용을 엽니다. -->
+        <div class="fac-alert" id="bEventAlert" aria-hidden="true">
+          <span class="fac-alert__mark">!</span>
+          <span class="fac-alert__text">돌발상황 발생</span>
+        </div>
+
         <article class="fac-event" id="bEvent" data-testid="fac-event" data-event-id="" data-scope="common">
           <div class="fac-event__head">
             <span class="fac-event__eyebrow">모든 조에게 동시에</span>

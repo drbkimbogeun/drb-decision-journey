@@ -1535,26 +1535,64 @@
 
   function closingLines() { return (CFG.closing && CFG.closing.lines) || []; }
 
+  /* ★ 스무 줄을 한 화면에 다 쌓으면 글자가 34px 을 넘을 수 없습니다.
+       마지막 화면인데 본문보다 조금 큰 정도로는 아무 일도 일어나지 않습니다.
+
+       그래서 쌓지 않고 '연(聯)' 단위로 한 덩어리씩 크게 띄웁니다.
+       config 의 closing.lines 에서 빈 줄("")이 연을 나누는 자리입니다 —
+       이미 그렇게 적혀 있던 것을 그대로 씁니다.
+       마지막 연은 화면에 단둘이 남습니다. 그게 이 교육의 마지막 문장입니다. */
+  function closingStanzas() {
+    var out = [], cur = [];
+    closingLines().forEach(function (line) {
+      if (line) { cur.push(line); return; }
+      if (cur.length) { out.push(cur); cur = []; }
+    });
+    if (cur.length) out.push(cur);
+    return out;
+  }
+
   function startClosing() {
     if (closing.running || closing.done) return;
-    var lines = closingLines();
+    var stanzas = closingStanzas();
     var box = el("bClosing");
-    if (!box || !lines.length) return;
+    if (!box || !stanzas.length) return;
 
     closing.running = true;
     box.innerHTML = "";
+    box.classList.remove("is-all");
     el("bClosingHint").textContent = "화면을 누르면 한 번에 다 보입니다";
 
     var charMs = (CFG.closing && CFG.closing.charMs) || 55;
     var lineMs = (CFG.closing && CFG.closing.lineMs) || 700;
-    var li = 0, ci = 0, node = null;
+    /* 연과 연 사이는 한 줄 사이보다 깁니다 — 읽고 나서 숨 쉴 자리입니다 */
+    var stanzaMs = lineMs * 2.4;
+
+    var si = 0, li = 0, ci = 0, node = null;
 
     function step() {
-      if (li >= lines.length) { finishClosing(true); return; }
+      if (si >= stanzas.length) { finishClosing(true); return; }
+      var lines = stanzas[si];
+
+      if (li >= lines.length) {
+        /* 이 연을 다 읽었습니다. 마지막 연이면 그대로 두고 끝냅니다. */
+        si++; li = 0; node = null;
+        if (si >= stanzas.length) { closing.timer = setTimeout(step, stanzaMs); return; }
+        closing.timer = setTimeout(function () {
+          box.classList.add("is-out");
+          closing.timer = setTimeout(function () {
+            box.innerHTML = "";
+            box.classList.remove("is-out");
+            step();
+          }, 320);
+        }, stanzaMs);
+        return;
+      }
+
       var text = lines[li];
       if (!node) {
         node = document.createElement("p");
-        node.className = "closing__line" + (text ? "" : " is-gap");
+        node.className = "closing__line";
         box.appendChild(node);
       }
       if (ci < text.length) {
@@ -1568,14 +1606,18 @@
     step();
   }
 
-  /* 클릭하면 남은 줄을 한 번에 — 시간이 없을 때 씁니다 */
+  /* 클릭하면 남은 것을 한 번에 — 시간이 없을 때 씁니다.
+     이때는 스무 줄이 다 나오므로 글자를 작게 돌립니다 (is-all). */
   function finishClosing(natural) {
     clearTimeout(closing.timer);
     closing.timer = null;
     closing.running = false;
     closing.done = true;
+    var box = el("bClosing");
     if (!natural) {
-      el("bClosing").innerHTML = closingLines().map(function (line) {
+      box.classList.add("is-all");
+      box.classList.remove("is-out");
+      box.innerHTML = closingLines().map(function (line) {
         return "<p class='closing__line" + (line ? "" : " is-gap") + "'>" + esc(line) + "</p>";
       }).join("");
     }
@@ -1696,10 +1738,14 @@
     if (window.DRBAudio) {
       window.DRBAudio.scene(stage);
       window.DRBAudio.duck(stage === "event");
-      if (stage === "event" && lastAlarmStage !== stage + selectedTurn) {
-        lastAlarmStage = stage + selectedTurn;
-        window.DRBAudio.alarm();
-      }
+    }
+
+    /* ★ 돌발상황은 경고를 한 박자 띄우고 내용을 엽니다.
+         내용부터 띄우면 진행자가 읽기 시작할 때 조들은 아직 화면을 찾고 있습니다.
+         알람도 이때 한 번 울립니다 — 고개를 드는 순간을 만드는 것이 목적입니다. */
+    if (stage === "event" && lastAlarmStage !== stage + selectedTurn) {
+      lastAlarmStage = stage + selectedTurn;
+      flashShock();
     }
 
     /* 맺음말 화면에 들어온 순간 글자가 찍히기 시작합니다 */
@@ -1723,6 +1769,24 @@
 
   /* 돌발상황 알람은 한 국면에 한 번만 — 챕터를 되돌아왔다고 다시 울리지 않습니다 */
   var lastAlarmStage = "";
+  var shockTimer = null;
+
+  /* 경고를 1초 띄우고 내용을 엽니다. 그 1초 동안 알람이 울립니다. */
+  function flashShock() {
+    var alert = el("bEventAlert");
+    var card = el("bEvent");
+    if (!alert || !card) return;
+    clearTimeout(shockTimer);
+
+    alert.classList.add("is-on");
+    card.classList.add("is-hushed");
+    if (window.DRBAudio) window.DRBAudio.alarm();
+
+    shockTimer = setTimeout(function () {
+      alert.classList.remove("is-on");
+      card.classList.remove("is-hushed");
+    }, 1000);
+  }
 
   function jumpTo(stage) {
     currentStage = stage;

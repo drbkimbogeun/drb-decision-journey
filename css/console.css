@@ -72,7 +72,55 @@ body.fac-body {
   padding: 30px 44px;
   overflow: hidden;
 }
-.fac-stage { height: 100%; }
+.fac-stage { height: 100%; position: relative; }
+
+/* ---------- 돌발상황 경고 ----------
+   내용을 열기 전 1초. 방 전체가 고개를 드는 시간입니다.
+   판 위에 통째로 덮어서, 이 순간에는 읽을 것이 이 한 줄뿐이게 만듭니다. */
+.fac-alert {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-5);
+  border-radius: var(--r-lg);
+  background: var(--coral-tint);
+  border: 3px solid var(--coral);
+}
+.fac-alert.is-on { display: flex; animation: fac-alert-in 180ms ease-out; }
+.fac-alert__mark {
+  display: flex; align-items: center; justify-content: center;
+  width: 132px; height: 132px;
+  border-radius: 50%;
+  background: var(--coral);
+  color: #FFFFFF;
+  font-family: var(--font-num);
+  font-size: 86px; font-weight: var(--fw-strong); line-height: 1;
+  animation: fac-alert-pulse 500ms ease-in-out infinite alternate;
+}
+.fac-alert__text {
+  color: #8A3A25;
+  font-size: 96px; font-weight: var(--fw-strong);
+  letter-spacing: -0.05em; line-height: 1;
+}
+/* 경고가 떠 있는 동안 뒤 내용은 잠깐 가라앉힙니다 */
+.fac-event.is-hushed { opacity: 0.15; }
+
+@keyframes fac-alert-in {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes fac-alert-pulse {
+  from { transform: scale(1); }
+  to   { transform: scale(1.07); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fac-alert.is-on { animation: none; }
+  .fac-alert__mark { animation: none; }
+}
 .fac-stage > article {
   display: flex;
   flex-direction: column;
@@ -1160,17 +1208,39 @@ body.fac-body {
   min-height: 0;
   text-align: center;
 }
-/* ★ 스무 줄이 한 화면에 다 들어와야 합니다. 가로 폭만 보고 크기를 정하면
-     빔 높이에서 마지막 줄이 잘립니다 — 높이(vh)도 같이 봅니다. */
+/* ★ 한 번에 한 연(두 줄)만 띄웁니다. 스무 줄을 다 쌓으면 34px 이 한계지만,
+     두 줄만 있으면 화면을 가득 채울 수 있습니다. 마지막 화면이니까요. */
 .closing__line {
+  min-height: 1.28em;
+  font-size: 84px;
+  font-weight: var(--fw-strong);
+  line-height: 1.28;
+  letter-spacing: -0.055em;
+}
+/* 연이 바뀔 때 — 앞 연이 물러나고 다음 연이 올라옵니다 */
+.fac-closing__lines { transition: opacity 300ms ease, transform 300ms ease; }
+.fac-closing__lines.is-out { opacity: 0; transform: translateY(-14px); }
+.fac-closing__lines .closing__line { animation: closing-rise 420ms ease-out; }
+
+/* 진행자가 화면을 눌러 '한 번에 다' 를 골랐을 때만 스무 줄이 함께 뜹니다.
+   그때는 다 들어가야 하므로 크기를 되돌립니다. */
+.fac-closing__lines.is-all .closing__line {
   min-height: 1.4em;
   font-size: 34px;
-  font-weight: var(--fw-strong);
   line-height: 1.4;
   letter-spacing: -0.04em;
+  animation: none;
 }
-/* 빈 줄은 한 박자 쉬는 자리입니다 — 높이만 차지합니다 */
-.closing__line.is-gap { min-height: 0.55em; }
+.fac-closing__lines.is-all .closing__line.is-gap { min-height: 0.55em; }
+
+@keyframes closing-rise {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fac-closing__lines,
+  .fac-closing__lines .closing__line { transition: none; animation: none; }
+}
 /* 지금 찍히는 줄 끝의 커서 */
 .fac-closing__lines .closing__line:last-child::after {
   content: "";

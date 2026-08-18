@@ -561,6 +561,9 @@
   }
 
   function skipLapse() {
+    /* ★ 연출이 저절로 끝난 직후에 [건너뛰기] 가 눌리면 국면이 한 번 더 넘어갑니다.
+         (자연 종료 쪽은 이 검사를 하고 있었는데 여기만 빠져 있었습니다) */
+    if (S.phase() !== "timelapse") return;
     if (stopLapse) { stopLapse(); stopLapse = null; }
     lapseTurn = -1;
     afterLapse();

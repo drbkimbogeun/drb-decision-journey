@@ -442,6 +442,8 @@ window.DRBUI = (function () {
 
       var card = document.createElement("div");
       card.className = "alloc" + (amt > 0 ? " is-invested" : "") + (isCash ? " is-inactive" : "");
+      /* 어떤 항목인지 화면에 적어둡니다 — 점검 도구가 카드를 이름이 아니라 id 로 집습니다 */
+      card.setAttribute("data-id", item.id);
       card.setAttribute("data-strategy", item.strategyGroup || "resilience");
 
       /* ---------- 이름 ---------- */
@@ -673,6 +675,7 @@ window.DRBUI = (function () {
     S.policies().forEach(function (p) {
       var btn = document.createElement("button");
       btn.className = "policy" + (selectedId === p.id ? " is-selected" : "");
+      btn.setAttribute("data-id", p.id);
       btn.setAttribute("aria-pressed", selectedId === p.id ? "true" : "false");
       btn.onclick = function () { onPick(p.id); };
 
