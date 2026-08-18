@@ -277,6 +277,23 @@ window.DRBState = (function () {
     return window.DRB_ROUNDS.reduce(function (a, r) { return a + r.subrounds.length; }, 0);
   }
 
+  /* 국면 하나가 담당하는 기간 — '이 국면 연도 ~ 다음 국면 연도'.
+     결정은 그 해에 내리고, 결과는 다음 국면 직전까지 흐릅니다.
+     기간을 따로 적어두지 않고 여기서 뺍니다. 두 군데 적으면 반드시 어긋납니다.
+     (마지막 국면 2026은 뒤가 없습니다 — to 가 null 입니다) */
+  function subroundSpan(subroundId) {
+    var flat = [];
+    window.DRB_ROUNDS.forEach(function (r) {
+      r.subrounds.forEach(function (s) { flat.push(s); });
+    });
+    for (var i = 0; i < flat.length; i++) {
+      if (flat[i].id !== subroundId) continue;
+      var to = flat[i + 1] ? flat[i + 1].year : null;
+      return { from: flat[i].year, to: to, years: to === null ? 0 : to - flat[i].year };
+    }
+    return null;
+  }
+
   function isLastSubround() {
     return team().subIndex >= round().subrounds.length - 1;
   }
@@ -285,11 +302,34 @@ window.DRBState = (function () {
     return team().roundIndex >= window.DRB_ROUNDS.length - 1;
   }
 
+  /* 이번 국면에 배정되는 예산 — 고정 예산 + 지난 국면 성과.
+     회사를 잘 굴려 이익을 냈으면 다음 국면에 더 쓸 수 있어야 합니다.
+     계수는 config.js 의 budget 에 있습니다. 첫 국면은 지난 실적이 없어 고정 그대로입니다. */
+  function plannedBudget() {
+    var fixed = subround().budget;
+    var st = team().state;
+    var revenue = st.lastRevenue || 0;
+    if (revenue <= 0) return fixed;
+
+    var B = CFG.budget || {};
+    var perPoint = B.perPoint === undefined ? 1.5 : B.perPoint;
+    var maxUp    = B.maxUp    === undefined ? 0.40 : B.maxUp;
+    var maxDown  = B.maxDown  === undefined ? 0.10 : B.maxDown;
+    var base     = B.baseMargin === undefined ? 0.10 : B.baseMargin;
+
+    var adjust = ((st.lastProfit || 0) / revenue - base) * perPoint;
+    if (adjust >  maxUp)   adjust =  maxUp;
+    if (adjust < -maxDown) adjust = -maxDown;
+
+    var unit = CFG.tokenUnit;
+    return Math.max(unit, Math.round(fixed * (1 + adjust) / unit) * unit);
+  }
+
   /* 이번 턴에 실제로 쓸 수 있는 예산
      현금이 모자라면 예산도 줄어듭니다. 다만 아무것도 못 하는 상황은
      교육상 의미가 없으므로 최소 1토큰(비상 운영자금)은 남겨 둡니다. */
   function budget() {
-    var b = subround().budget;
+    var b = plannedBudget();
     var cash = team().state.cash;
     if (cash >= b) return b;
     var unit = CFG.tokenUnit;
@@ -298,7 +338,24 @@ window.DRBState = (function () {
 
   /* 예산이 현금 부족으로 깎였는지 (화면 안내용) */
   function budgetIsTight() {
-    return budget() < subround().budget;
+    return budget() < plannedBudget();
+  }
+
+  /* 예산이 어떻게 나온 숫자인지 — 화면에서 그대로 보여줍니다.
+     "왜 이번엔 80이지?" 에 답할 수 있어야 합니다. */
+  function budgetBreakdown() {
+    var st = team().state;
+    var revenue = st.lastRevenue || 0;
+    var planned = plannedBudget();
+    var fixed = subround().budget;
+    return {
+      fixed:   fixed,
+      planned: planned,
+      final:   budget(),
+      bonus:   planned - fixed,
+      margin:  revenue > 0 ? (st.lastProfit || 0) / revenue : null,
+      tight:   budgetIsTight()
+    };
   }
 
   /* ============================================================
@@ -502,10 +559,11 @@ window.DRBState = (function () {
     investments: investments, availableInvestments: availableInvestments,
     investmentDecisionContext: investmentDecisionContext,
     policies: policies, actual: actual,
-    turnIndex: turnIndex, totalTurns: totalTurns,
+    turnIndex: turnIndex, totalTurns: totalTurns, subroundSpan: subroundSpan,
     activeRivalDefs: activeRivalDefs,
     isLastSubround: isLastSubround, isLastRound: isLastRound,
     budget: budget, budgetIsTight: budgetIsTight,
+    plannedBudget: plannedBudget, budgetBreakdown: budgetBreakdown,
     setPhase: setPhase, switchTeam: switchTeam,
     commitSubround: commitSubround, advance: advance, lastHistory: lastHistory,
     rivals: rivals, relativeStanding: relativeStanding, advanceRivals: advanceRivals,

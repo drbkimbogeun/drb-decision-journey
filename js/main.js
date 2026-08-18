@@ -199,7 +199,7 @@
     (window.DRB_ROUNDS || []).forEach(function (r) {
       r.subrounds.forEach(function (sr) { years.push(sr.year); });
     });
-    years = years.slice().reverse();          // 2026 에서 1947 로 거슬러 갑니다
+    years = years.slice().reverse();          // 2026 에서 창업연도로 거슬러 갑니다
     if (!years.length) { done(); return; }
 
     var warp = el("warp");
@@ -523,6 +523,18 @@
   function runTimelapse() {
     var hist = S.lastHistory();
     if (!hist) { afterLapse(); return; }
+
+    /* ★ 라이브 세션에서는 연도가 흐르는 연출을 노트북에서 돌리지 않습니다.
+         그건 진행자 빔에서 다 같이 봅니다 — 조마다 따로 돌면 방이 흩어지고,
+         앞을 봐야 할 때 각자 화면을 들여다보게 됩니다.
+         노트북은 확정하는 순간부터 다음 국면이 열릴 때까지 기다리기만 합니다. */
+    if (liveControl()) {
+      if (stopLapse) { stopLapse(); stopLapse = null; }
+      lapseTurn = S.turnIndex();
+      afterLapse();
+      return;
+    }
+
     var turn = S.turnIndex();
     if (lapseTurn === turn && stopLapse) return;
     if (stopLapse) { stopLapse(); stopLapse = null; }

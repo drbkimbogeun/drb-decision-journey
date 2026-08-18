@@ -9,10 +9,14 @@
      게임 로직은 연도를 계산에 쓰지 않습니다. 마음 놓고 바꾸셔도 됩니다.
 
    ★ "시대가 갈수록 빨라진다"는 아래 값들로 표현됩니다.
-       pace.yearsPerSubround  한 번의 결정이 담당하는 기간 (15년 → 7년)
        pace.discussSeconds    조별 토론 권장 시간 (5분 → 3분)
        visibility             전망 선명도 (85 → 30)
        briefing 항목 수       정보량 (10개 → 16개)
+
+   ★ 한 번의 결정이 담당하는 기간은 여기 적지 않습니다.
+     rounds.js 의 국면 연도에서 그때그때 빼서 씁니다 (다음 국면 연도 − 이 국면 연도).
+     따로 적어두면 반드시 어긋납니다 — 실제로 어긋나 있었습니다.
+     (1국면 20년 · 2국면 21년 · 3국면 11년 · 4국면 15년 · 5국면 14년)
 
    ⚠ 아래 산업환경은 '그 시기 고무산업이 놓여 있던 일반적인 상황'입니다.
      DRB의 실제 연혁·실적이 아닙니다. 실제 DRB 자료는 actual_drb.js 에만.
@@ -25,12 +29,12 @@ window.DRB_ERAS = {
      ========================================================== */
   era1: {
     id: "era1",
-    yearLabel: "1940~60년대",
-    span: "1945 ~ 1978",
+    yearLabel: "1945~1985",
+    span: "1945 ~ 1985",   /* 1국면 1945 · 2국면 1965 */
     name: "창업기 · 무엇을 만들 것인가",
     question: "고무라는 기술 기반을 가지고 있다면, 어디에 투자할 것인가?",
 
-    pace: { yearsPerSubround: 18, discussSeconds: 300 },
+    pace: { discussSeconds: 300 },
     visibility: 85,
     visibilityNote: "산업의 방향이 단순합니다. 멀리 보고 크게 결정할 수 있습니다.",
 
@@ -41,7 +45,7 @@ window.DRB_ERAS = {
       "나라가 공장을 짓기 시작하면 이야기가 달라지겠지만, 그것은 아직 아무도 모릅니다.",
 
     briefing: {
-      title: "1940s–60s INDUSTRY OUTLOOK",
+      title: "1945–1985 INDUSTRY OUTLOOK",
       domestic: [
         { tone: "up",   text: "전후 복구 수요 — 생활 필수품 부족" },
         { tone: "up",   text: "정부의 제조업 육성 의지" },
@@ -85,12 +89,12 @@ window.DRB_ERAS = {
      ========================================================== */
   era2: {
     id: "era2",
-    yearLabel: "1970~90년대",
-    span: "1966 ~ 2004",
+    yearLabel: "1986~2011",
+    span: "1986 ~ 2011",   /* 3국면 1986 · 4국면 1997 */
     name: "확장기 · 어디까지 넓힐 것인가",
     question: "확실한 오늘의 시장인가, 불확실한 내일의 시장인가?",
 
-    pace: { yearsPerSubround: 15, discussSeconds: 240 },
+    pace: { discussSeconds: 240 },
     visibility: 58,
     visibilityNote: "선택지가 늘어난 만큼, 무엇을 포기할지가 더 어려워집니다.",
 
@@ -101,7 +105,7 @@ window.DRB_ERAS = {
       "다만 금융환경은 언제 뒤집힐지 모릅니다. 넓히는 만큼 지킬 것도 늘어납니다.",
 
     briefing: {
-      title: "1970s–90s INDUSTRY OUTLOOK",
+      title: "1986–2011 INDUSTRY OUTLOOK",
       domestic: [
         { tone: "up",   text: "제조업 설비투자 급증 — 산업용 벨트 수요 확대" },
         { tone: "up",   text: "자동차산업 성장 — 고무부품 수요 증가" },
@@ -147,12 +151,12 @@ window.DRB_ERAS = {
      ========================================================== */
   era3: {
     id: "era3",
-    yearLabel: "2000~20년대",
-    span: "2005 ~ 2026",
+    yearLabel: "2012~2026",
+    span: "2012 ~ 2026",   /* 5국면 2012 · 6국면 2026 */
     name: "전환기 · 얼마나 빨리 변화할 것인가",
     question: "미래를 알 수 없는 상황에서 어디까지 투자하고, 무엇을 남겨둘 것인가?",
 
-    pace: { yearsPerSubround: 8, discussSeconds: 180 },
+    pace: { discussSeconds: 180 },
     visibility: 30,
     visibilityNote: "전망이 서로 엇갈립니다. 하나를 맞히려 하기보다 여러 경우에 대비해야 합니다.",
 
@@ -164,7 +168,7 @@ window.DRB_ERAS = {
       "크게 걸면 크게 잃을 수 있고, 아무것도 안 하면 조용히 뒤처집니다.",
 
     briefing: {
-      title: "2000s–20s INDUSTRY OUTLOOK",
+      title: "2012–2026 INDUSTRY OUTLOOK",
       domestic: [
         { tone: "up",   text: "스마트팩토리·자동화 투자 확대" },
         { tone: "q",    text: "전기차 전환 속도 — 전망 엇갈림" },

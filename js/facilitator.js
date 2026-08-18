@@ -436,7 +436,7 @@
       el("bChapWhere").textContent = "시작하기 전";
       el("bChapNo").textContent = "준비";
     } else if (currentStage === "award" || currentStage === "reflect" || currentStage === "closing") {
-      el("bChapWhere").textContent = "1947 → 2026";
+      el("bChapWhere").textContent = firstYear() + " → " + lastYear();
       el("bChapNo").textContent = "끝";
     } else {
       el("bChapWhere").textContent = (selectedTurn + 1) + "국면 · " + item.sub.year + " · " +
@@ -899,13 +899,18 @@
   }
 
   /* 한 국면은 한 해가 아니라 몇 년을 통째로 지나갑니다.
-     "1947" 만 띄우면 그 해 이야기로 읽혀서, 다음 국면까지의 구간을 보여줍니다. */
+     "1945" 만 띄우면 그 해 이야기로 읽혀서, 다음 국면까지의 구간을 보여줍니다. */
   function spanOf(turn) {
     var here = timeline[turn];
     var next = timeline[turn + 1];
     if (!next) return here.sub.year + " 이후";
     return here.sub.year + " ~ " + (next.sub.year - 1);
   }
+
+  /* 전체 여정의 처음과 끝 — 창업연도(1945)와 마지막 국면(2026).
+     rounds.js 만 고치면 화면이 따라오도록 여기서 뽑아 씁니다. */
+  function firstYear() { return timeline.length ? timeline[0].sub.year : ""; }
+  function lastYear()  { return timeline.length ? timeline[timeline.length - 1].sub.year : ""; }
 
   /* 신호 한 줄씩. 부호(▲▼?)는 붙이지 않습니다 — 진행자가 소리 내어 읽는
      문장이라 기호가 앞에 있으면 읽는 리듬이 끊깁니다. */

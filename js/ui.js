@@ -67,7 +67,7 @@ window.DRBUI = (function () {
      상단바
 
      노트북에 남은 화면이 몇 개 없습니다.
-       배분   → "ERA 1 · 자원 배분 · 1947" · 남은 예산 · 타이머
+       배분   → "ERA 1 · 자원 배분 · 1945" · 남은 예산 · 타이머
        대기   → 진행자가 다음 국면을 열 때까지
        최종   → GAME OVER 도장
      ============================================================ */
@@ -402,13 +402,28 @@ window.DRBUI = (function () {
     delete list.dataset.rows;
     renderDecisionScope(decisionContext);
 
-    var planned = S.subround().budget;
-    el("inSub").textContent = S.budgetIsTight()
-      ? "현금이 부족해 예산이 " + planned + "에서 " + budget + "으로 줄었습니다"
-      : "";
-    el("inSub").classList.toggle("is-warn", S.budgetIsTight());
+    /* 예산이 왜 이 숫자인지 화면에서 바로 읽히게 합니다.
+       고정 예산은 국면마다 정해져 있고, 지난 국면 영업이익률이 거기에 얹힙니다. */
+    var bd = S.budgetBreakdown();
+    var sub = "";
+    var warn = false;
+    if (bd.tight) {
+      sub = "현금이 부족해 예산이 " + bd.planned + "에서 " + bd.final + "으로 줄었습니다";
+      warn = true;
+    } else if (bd.bonus > 0) {
+      sub = "지난 국면 영업이익률 " + Math.round(bd.margin * 100) + "% → 고정 예산 "
+          + bd.fixed + "에 " + bd.bonus + " 더해졌습니다";
+    } else if (bd.bonus < 0) {
+      sub = "지난 국면 영업이익률 " + Math.round(bd.margin * 100) + "% → 고정 예산 "
+          + bd.fixed + "에서 " + (-bd.bonus) + " 줄었습니다";
+      warn = true;
+    }
+    el("inSub").textContent = sub;
+    el("inSub").classList.toggle("hidden", !sub);
+    /* 예산이 늘어난 것은 좋은 소식입니다 — 코랄(경고)로 쓰면 안 됩니다 */
+    el("inSub").classList.toggle("is-good", !!sub && !warn);
 
-    el("inGuide").innerHTML = S.budgetIsTight()
+    el("inGuide").innerHTML = bd.tight
       ? "현금이 바닥났습니다. 지금은 <b>버티는 것</b>도 전략입니다."
       : "남긴 예산은 자동으로 <b>현금</b>으로 넘어갑니다. 아끼는 것도 하나의 전략입니다.";
 
@@ -708,10 +723,20 @@ window.DRBUI = (function () {
      결정을 확정하면 바로 숫자 화면으로 가지 않고,
      그 기간 동안 우리와 경쟁사와 시장이 움직이는 것을 보여줍니다.
      ============================================================ */
+  /* 이 결정이 담당하는 기간. 결정은 그 해에 내리고 결과는 앞으로 흐릅니다.
+     ★ 예전에는 '이 국면 연도 − 시대별 고정 기간' 으로 거꾸로 셌습니다.
+       그래서 1국면(1945)이 1927년부터 시작했습니다 — 회사가 없던 해입니다.
+       이제 다음 국면 연도까지 앞으로 흐릅니다 (1945 → 1965). */
+  function lapseSpan(hist) {
+    var sp = S.subroundSpan(hist.subroundId);
+    var from = sp && sp.from !== undefined ? sp.from : (hist.year || 0);
+    var to   = sp && sp.to !== null && sp.to !== undefined ? sp.to : from;
+    return { from: from, to: to, years: Math.max(0, to - from) };
+  }
+
   function buildLapseLines(hist) {
     var lines = [];
-    var era = S.era();
-    var startYear = (hist.year || 0) - (era.pace ? era.pace.yearsPerSubround : 8);
+    var startYear = lapseSpan(hist).from;
 
     /* 우리가 한 일 */
     var items = S.investments();
@@ -753,9 +778,10 @@ window.DRBUI = (function () {
 
     /* 연도를 고르게 뿌린다 */
     lines.sort(function (a, b) { return a.order - b.order; });
-    var step = Math.max(1, Math.round(((hist.year || 0) - startYear) / Math.max(1, lines.length)));
+    var endYear = lapseSpan(hist).to;
+    var step = Math.max(1, Math.round((endYear - startYear) / Math.max(1, lines.length)));
     lines.forEach(function (l, i) {
-      l.year = Math.min(hist.year, startYear + step * (i + 1));
+      l.year = Math.min(endYear, startYear + step * (i + 1));
     });
     return lines;
   }
@@ -794,7 +820,23 @@ window.DRBUI = (function () {
     var feed = el("tlFeed");
     clearNode(feed);
     el("btnSkipLapse").classList.add("hidden");
-    el("tlYear").textContent = "LIVE";
+
+    /* ★ 연도가 흐르는 연출은 진행자 빔에서 다 같이 봅니다. 여기서는 돌리지 않습니다.
+         노트북마다 따로 돌면 방이 흩어지고, 앞을 봐야 할 때 화면을 봅니다.
+         대신 우리 결정이 담당하는 기간을 가만히 띄워둡니다.
+         (예전에는 진행이 멈춘 자리에 직전 연출의 마지막 숫자가 그대로 남아
+          1929 같은, 회사가 없던 해가 떠 있었습니다) */
+    el("tlBox").classList.add("lapse--wait");
+    var hist = S.lastHistory();
+    var sp = hist ? lapseSpan(hist) : null;
+    if (sp && sp.years > 0) {
+      el("tlFrom").textContent = sp.from;
+      el("tlYear").textContent = sp.to;
+    } else {
+      el("tlFrom").textContent = sp ? sp.from : "";
+      el("tlYear").textContent = "";
+    }
+    el("tlFill").style.width = "100%";
 
     var who = "결정 잠금 완료";
     var copy = "결정은 전송됐습니다. 앞을 보세요 — 결과는 진행자 화면에서 함께 봅니다.";
@@ -819,17 +861,18 @@ window.DRBUI = (function () {
   }
   function renderTimelapse(hist, onDone) {
     el("btnSkipLapse").classList.remove("hidden");
+    el("tlBox").classList.remove("lapse--wait");
     var feed = el("tlFeed");
     var yearBox = el("tlYear");
     clearNode(feed);
     clearNewsFlash();
 
-    var era = S.era();
-    var span = era.pace ? era.pace.yearsPerSubround : 8;
-    var startYear = (hist.year || 0) - span;
+    var sp = lapseSpan(hist);
+    var startYear = sp.from;
+    var span = sp.years;
     var lines = buildLapseLines(hist);
 
-    el("tlCaption").textContent = span + "년이 흐릅니다";
+    el("tlCaption").textContent = span > 0 ? span + "년이 흐릅니다" : "결정을 정리합니다";
     el("tlFrom").textContent = startYear;
     el("tlNote").textContent = "결정의 결과를 계산하는 중";
     el("tlFill").style.width = "0%";
@@ -841,7 +884,7 @@ window.DRBUI = (function () {
     function step() {
       if (i >= lines.length) {
         clearInterval(timer);
-        yearBox.textContent = hist.year;
+        yearBox.textContent = sp.to;
         el("tlFill").style.width = "100%";
         setTimeout(onDone, 700);
         return;
@@ -860,9 +903,8 @@ window.DRBUI = (function () {
       if (l.event) showNewsFlash(l.event, l.year, l.isOurs);
     }
 
-    /* 뒤로 갈수록 화면도 빨라집니다 */
-    var speed = era.pace && era.pace.yearsPerSubround >= 10 ? 900
-              : era.pace && era.pace.yearsPerSubround >= 7 ? 700 : 520;
+    /* 담당 기간이 짧아질수록 화면도 빨라집니다 (뒤로 갈수록 세상이 빨라진다) */
+    var speed = span >= 18 ? 900 : span >= 13 ? 700 : 520;
     step();
     timer = setInterval(step, speed);
 

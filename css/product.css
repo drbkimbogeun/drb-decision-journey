@@ -137,6 +137,9 @@ button, .btn, .policy, .alloc, .teampick__btn { touch-action: manipulation; }
 .page__meta { color: var(--text-3); font-size: var(--fs-small); }
 .page__hint { color: var(--text-3); font-size: var(--fs-small); }
 .page__warn { color: var(--coral); font-size: var(--fs-small); font-weight: var(--fw-mid); margin-bottom: var(--sp-3); }
+/* 같은 자리에 좋은 소식도 옵니다 (실적으로 예산이 늘었을 때).
+   코랄은 '지금 나쁘다'는 신호라 여기 쓰면 뜻이 뒤집힙니다. */
+.page__warn.is-good { color: var(--accent); }
 .page__q {
   margin-bottom: 34px;
   font-size: var(--fs-display);
@@ -512,6 +515,14 @@ button, .btn, .policy, .alloc, .teampick__btn { touch-action: manipulation; }
 .lapse__note { margin-top: var(--sp-5); color: rgba(255, 255, 255, 0.42); font-size: var(--fs-small); }
 .lapse__feed { display: flex; flex-direction: column; gap: var(--sp-2); width: min(660px, calc(72 * var(--vw))); margin-top: var(--sp-5); }
 .lapse__skip { position: absolute; right: 44px; bottom: 44px; background: transparent; border-color: rgba(255,255,255,.2); color: rgba(255,255,255,.6); }
+
+/* 라이브 세션에서 확정을 마치고 기다리는 화면.
+   연도가 흐르는 연출은 진행자 빔에서 다 같이 봅니다 — 여기서는 돌지 않습니다.
+   그래서 진행 막대를 없애고, 우리 결정이 담당하는 기간만 가만히 띄웁니다. */
+.lapse--wait .lapse__bar { display: none; }
+.lapse--wait .lapse__from,
+.lapse--wait .lapse__to { color: rgba(255, 255, 255, 0.55); }
+.lapse--wait .lapse__years { margin-top: 28px; }
 .timelapse__line { border: 0; border-left: 2px solid rgba(255, 255, 255, 0.2); border-radius: 0; background: rgba(255, 255, 255, 0.05); color: rgba(255, 255, 255, 0.8); text-align: left; }
 .timelapse__line--ours { border-left-color: var(--accent-line); }
 .timelapse__line--market { border-left-color: var(--coral); }
