@@ -157,6 +157,61 @@ Object.keys(W.DRB_INVESTMENTS).forEach(set => {
 });
 ok("투자 효과가 가리키는 지표 정상");
 
+/* ---------- 3-2. 한 곳만 딸 수 있는 기회 ---------- */
+console.log("\n" + "=".repeat(80));
+console.log("3-2. 한 곳만 딸 수 있는 기회 (limited)");
+console.log("=".repeat(80));
+
+const limitedFound = [];
+Object.keys(W.DRB_EVENTS).forEach(id => {
+  (W.DRB_EVENTS[id].reactions || []).forEach(r => {
+    if (!r.limited) return;
+    const L = r.limited;
+    limitedFound.push(L.id);
+    if (!L.id || !L.title) bad(`'${id}' 의 한정 기회에 id 나 title 이 없습니다`);
+    if (!L.slots || L.slots < 1) bad(`'${L.id}': slots 는 1 이상이어야 합니다`);
+    if (!Array.isArray(L.score) || !L.score.length) bad(`'${L.id}': 누가 따는지 정하는 score 가 없습니다`);
+    (L.score || []).forEach(part => {
+      /* 투자 항목을 가리키면 실재하는 항목이어야 합니다 */
+      if (String(part.field).startsWith("invest.")) {
+        const key = String(part.field).slice(7);
+        if (!allInvestIds.has(key)) bad(`'${L.id}': 없는 투자 항목 '${key}' 로 점수를 냅니다`);
+      }
+      if (!part.max) bad(`'${L.id}': ${part.field} 에 max 가 없으면 단위가 큰 값이 나머지를 잡아먹습니다`);
+    });
+    /* 못 딴 조에게 붙는 것은 없어도 되지만, 있으면 모양이 맞아야 합니다 */
+    if (L.lost && !L.lost.text) bad(`'${L.id}': lost 에 설명 문장이 없습니다`);
+  });
+});
+if (limitedFound.length) ok(`한정 기회 ${limitedFound.length}개 정상 (${limitedFound.join(", ")})`);
+else console.log("참고 한정 기회가 아직 없습니다");
+
+/* 판정이 실제로 한 곳만 고르는지 — 같은 돈을 걸어도 회사 상태가 갈라야 합니다 */
+if (limitedFound.length) {
+  const subs = [];
+  W.DRB_ROUNDS.forEach(r => r.subrounds.forEach(s => subs.push(s)));
+  const entry = subs.map(s => W.DRBEngine.limitedOffers(s)).filter(list => list.length)[0][0];
+  const base = W.DRBEngine.createState();
+  const bid = (auto, tech, trust, people) => ({
+    state: { ...base, tech, trust, people, investTotals: {} },
+    allocation: { [String(entry.when.field).slice(7)]: auto }, policyId: "grow"
+  });
+  const verdict = W.DRBEngine.awardLimited(entry, [
+    { team: "1조", ...bid(60, 30, 30, 40) },   // 돈은 제일 많이 걸었지만 회사가 약함
+    { team: "2조", ...bid(20, 80, 75, 80) },   // 돈은 적게 걸었지만 만들 수 있는 회사
+    { team: "3조", ...bid(0, 90, 90, 90) },    // 아예 응찰하지 않음
+  ]);
+  if (verdict.winners.length !== entry.offer.slots) {
+    bad(`낙찰 수가 정원과 다릅니다 (정원 ${entry.offer.slots} · 낙찰 ${verdict.winners.length})`);
+  } else ok(`정원(${entry.offer.slots})만큼만 낙찰 — ${verdict.winners.join(", ")}`);
+  if (verdict.ranking.filter(r => r.team === "3조")[0].qualified) {
+    bad("문턱을 못 넘은 조가 후보에 들어갔습니다");
+  } else ok("문턱을 못 넘은 조는 후보에서 빠짐");
+  if (verdict.winners.indexOf("2조") < 0) {
+    bad("투자액만 보고 뽑았습니다 — 회사 상태를 함께 봐야 합니다");
+  } else ok("돈만 많이 건 조가 아니라 감당할 수 있는 조가 가져감");
+}
+
 /* ---------- 4. 전체 흐름 (state.js) ---------- */
 console.log("\n" + "=".repeat(80));
 console.log("4. 게임 흐름 — 처음부터 끝까지");

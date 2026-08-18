@@ -49,6 +49,19 @@
       (control.currentTurn === target && control.stage !== 'lobby');
   }
 
+  /* 진행자가 내려보낸 낙찰 결과를 우리 조에 반영합니다.
+     아직 그 국면에 서 있을 때만 다시 셉니다 — 이미 넘어갔으면 그 뒤 기록이
+     전부 어긋나므로 손대지 않습니다. */
+  function applyLiveAwards(control) {
+    if (!control || !control.awards) return;
+    var turn = S.turnIndex();
+    var verdict = control.awards[String(turn)];
+    if (!verdict) return;
+    if (!S.applyAwards(turn, verdict)) return;
+    publishLiveState();
+    if (waitingBriefing) UI.renderLiveWait(lastControlStage === "event" ? "event" : "briefing");
+  }
+
   function publishLiveState() {
     if (!window.DRBLive || !window.DRBLive.publishHook || !S.g()) return Promise.resolve();
     if (!liveUrl) return Promise.resolve();
@@ -790,6 +803,12 @@
         }
       }
       lastControlStage = stage;
+
+      /* ★ 한 곳만 딸 수 있는 기회의 판정이 내려왔습니다.
+           확정할 때는 아직 다른 조가 결정 중이라 이 기회를 비워둔 채 넘어갔습니다.
+           이제 결과를 알았으니 그 국면을 다시 계산합니다 — 계약을 딴 조는 물량이
+           붙고, 못 딴 조는 개발비만 나갑니다. 다음 국면 예산이 여기서 갈립니다. */
+      applyLiveAwards(control);
 
       if (waitingBriefing && liveNextBriefingOpen()) {
         waitingBriefing = false;

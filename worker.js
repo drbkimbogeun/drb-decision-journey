@@ -334,13 +334,48 @@ function sanitizeReflection(value) {
 }
 
 function defaultControl() {
-  return { currentTurn: 0, stage: "lobby", deadline: null, revealedActual: null };
+  return { currentTurn: 0, stage: "lobby", deadline: null, revealedActual: null, awards: {} };
+}
+
+/* 한 곳만 딸 수 있는 기회의 판정 결과.
+   { "0": { "autoPartner": ["2조"] } }  ← 국면 번호 → 기회 이름 → 딴 조들
+
+   ★ 진행자 화면이 정하고 조별 노트북이 받아 갑니다. 노트북은 자기 조밖에 모르므로
+     스스로는 판정할 수 없습니다. 서버는 모양만 확인하고 그대로 전달합니다. */
+function sanitizeAwards(value) {
+  if (value === null || value === undefined) return {};
+  if (typeof value !== "object" || Array.isArray(value)) {
+    throw new ApiError(400, "awards는 국면별 판정 결과여야 합니다.", "INVALID_CONTROL");
+  }
+  const out = {};
+  const turns = Object.keys(value).slice(0, 8);
+  for (const turn of turns) {
+    if (!/^[0-5]$/.test(turn)) {
+      throw new ApiError(400, "awards의 국면 번호는 0~5여야 합니다.", "INVALID_CONTROL");
+    }
+    const offers = value[turn];
+    if (!offers || typeof offers !== "object" || Array.isArray(offers)) {
+      throw new ApiError(400, "awards의 국면 값은 기회별 목록이어야 합니다.", "INVALID_CONTROL");
+    }
+    const bucket = {};
+    for (const offerId of Object.keys(offers).slice(0, 8)) {
+      const id = cleanId(offerId, 32);
+      if (!id) continue;
+      const winners = Array.isArray(offers[offerId]) ? offers[offerId] : [];
+      bucket[id] = winners
+        .slice(0, 6)
+        .map((name) => cleanText(name, 8))
+        .filter((name) => /^[1-6]조$/u.test(name));
+    }
+    out[turn] = bucket;
+  }
+  return out;
 }
 
 function sanitizeControlPatch(value, current) {
   const next = { ...current };
   const keys = Object.keys(value);
-  if (!keys.length || keys.some((key) => !["currentTurn", "stage", "deadline", "revealedActual"].includes(key))) {
+  if (!keys.length || keys.some((key) => !["currentTurn", "stage", "deadline", "revealedActual", "awards"].includes(key))) {
     throw new ApiError(400, "허용된 진행 제어 항목만 보내주세요.", "INVALID_CONTROL");
   }
   if (Object.hasOwn(value, "currentTurn")) {
@@ -366,6 +401,9 @@ function sanitizeControlPatch(value, current) {
       throw new ApiError(400, "revealedActual은 r1~r3 또는 null이어야 합니다.", "INVALID_CONTROL");
     }
     next.revealedActual = value.revealedActual;
+  }
+  if (Object.hasOwn(value, "awards")) {
+    next.awards = sanitizeAwards(value.awards);
   }
   return next;
 }

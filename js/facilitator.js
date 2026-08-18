@@ -344,6 +344,59 @@
     return !allDecided(teams, selectedTurn);
   }
 
+  /* ============================================================
+     한 곳만 딸 수 있는 기회 — 판정은 여기서 합니다
+
+     ★ 조별 노트북은 자기 조밖에 모릅니다. 모든 조의 결정을 한자리에서
+       보는 화면은 여기뿐이라, 낙찰은 여기서 정해 각 조에 내려보냅니다.
+       계산은 engine.awardLimited() — 노트북과 같은 코드입니다.
+     ============================================================ */
+  var awardsSent = {};
+
+  function awardsFor(teams, turn) {
+    var offers = window.DRBEngine.limitedOffers(timeline[turn].sub);
+    if (!offers.length) return null;
+
+    var bidders = [];
+    for (var i = 0; i < teams.length; i++) {
+      var h = historyAt(teams[i], turn);
+      if (!h || !h.before) return null;          // 아직 다 확정하지 않았습니다
+      bidders.push({
+        team: teams[i].name, state: h.before,
+        allocation: h.allocation, policyId: h.policyId
+      });
+    }
+    if (bidders.length < 2) return null;         // 혼자면 경쟁이 아닙니다
+
+    var out = { verdict: {}, detail: [] };
+    offers.forEach(function (entry) {
+      var result = window.DRBEngine.awardLimited(entry, bidders);
+      out.verdict[result.id] = result.winners;
+      out.detail.push(result);
+    });
+    return out;
+  }
+
+  /* 판정이 나면 그 자리에서 각 조에 알려줍니다.
+     같은 국면에 두 번 보내지 않습니다 — 받은 조가 계산을 다시 하게 됩니다. */
+  function publishAwards(teams) {
+    var live = window.DRBLive && window.DRBLive.hasFacilitatorSession && window.DRBLive.hasFacilitatorSession();
+    if (!live) return;
+    var got = awardsFor(teams, selectedTurn);
+    if (!got) return;
+    var key = selectedTurn + ":" + JSON.stringify(got.verdict);
+    if (awardsSent[key]) return;
+    awardsSent[key] = true;
+    var patch = {};
+    patch[String(selectedTurn)] = got.verdict;
+    var merged = Object.assign({}, (liveControlState() || {}).awards || {}, patch);
+    window.DRBLive.control({ awards: merged }).catch(function () {});
+  }
+
+  function liveControlState() {
+    return (liveSnapshot && liveSnapshot.control) || null;
+  }
+
   function goStep(delta) {
     var list = book();
     var at = bookIndex(list);
@@ -1053,6 +1106,38 @@
         esc(team.name) + " · " + (delivered ? "적용 확인" : "결정 대기") + "</span>";
     }).join("") || "<span class='hint'>연결된 조 없음</span>";
 
+    /* 한 곳만 딸 수 있는 기회 — 누가 가져갔는지 이 자리에서 선언합니다.
+       진행자가 소리 내어 읽는 줄입니다. */
+    var award = awardsFor(teams, selectedTurn);
+    var awardBox = el("bEventAward");
+    if (!award) {
+      awardBox.classList.add("hidden");
+      awardBox.innerHTML = "";
+    } else {
+      awardBox.classList.remove("hidden");
+      awardBox.innerHTML = award.detail.map(function (result) {
+        var rows = result.ranking.map(function (r) {
+          var won = result.winners.indexOf(r.team) >= 0;
+          return "<div class='fac-award-row" + (won ? " is-won" : r.qualified ? " is-lost" : "") + "'>" +
+            "<b style='color:" + teamColor(r.team) + "'>" + esc(r.team) + "</b>" +
+            "<span class='fac-award-row__state'>" +
+            (won ? "계약" : r.qualified ? "탈락" : "응찰 안 함") + "</span>" +
+            "<span class='fac-award-row__score num'>" + (r.qualified ? r.score.toFixed(2) : "—") + "</span>" +
+            "</div>";
+        }).join("");
+        return "<div class='fac-award'>" +
+          "<div class='fac-award__head'>" +
+          "<span class='fac-award__label'>한 곳만 가져갑니다</span>" +
+          "<b class='fac-award__title'>" + esc(result.title) + "</b>" +
+          "<span class='spacer'></span>" +
+          "<span class='fac-award__winner'>" +
+          (result.winners.length ? esc(result.winners.join(" · ")) : "가져간 조 없음") + "</span>" +
+          "</div><div class='fac-award__rows'>" + rows + "</div>" +
+          "<p class='fac-award__note'>투자액만 보지 않습니다. 기술력 · 고객신뢰 · 인력을 함께 봅니다.</p>" +
+          "</div>";
+      }).join("");
+    }
+
     el("bEventImpact").innerHTML = teams.map(function (team) {
       var history = historyAt(team, selectedTurn);
       var reactions = event ? eventReactionText(history, event.id) : [];
@@ -1585,6 +1670,7 @@
     renderAward(teams);
     renderReflection(teams);
     renderDrive(teams);
+    publishAwards(teams);
     if (clock.turn !== selectedTurn) resetClock();
     paintClock();
     showStage(currentStage, false);

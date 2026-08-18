@@ -358,7 +358,9 @@ body.fac-body {
 .fac-brief {
   display: flex;
   flex-direction: column;
-  padding: 44px;
+  min-height: 0;
+  overflow: hidden;
+  padding: 26px 44px;
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
   background: var(--bg-2);
@@ -384,7 +386,7 @@ body.fac-body {
      글자를 키우고 단 폭을 좁혀 눈이 줄을 따라가게 합니다. */
 .fac-brief__q {
   max-width: 34em;
-  margin-top: 30px;
+  margin-top: 16px;
   color: var(--accent);
   font-size: 40px;
   font-weight: var(--fw-strong);
@@ -393,11 +395,11 @@ body.fac-body {
 }
 .fac-brief__context {
   max-width: 50em;
-  margin: var(--sp-4) 0 0;
+  margin: var(--sp-3) 0 0;
   color: var(--text-1);
-  font-size: 34px;
+  font-size: 32px;
   font-weight: 400;
-  line-height: 1.7;
+  line-height: 1.55;
 }
 /* 그 시점에 알 수 있었던 것 — 국내 · 세계.
    참가자 노트북에서 이 화면을 뺐으므로 여기가 유일한 자리입니다.
@@ -408,9 +410,12 @@ body.fac-body {
   gap: 44px;
   flex: 1 1 auto;
   min-height: 0;
-  margin-top: 36px;
+  margin-top: 18px;
+  /* ★ ERA3 는 신호가 11개입니다. 자리가 모자라면 여기가 스크롤됩니다 —
+     행을 짓눌러 글자를 겹치게 하느니 스크롤이 낫습니다. 빔에서는 다 들어갑니다. */
+  overflow-y: auto;
 }
-.fac-signal { display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; }
+.fac-signal { display: flex; flex-direction: column; gap: var(--sp-2); min-width: 0; }
 .fac-signal__label {
   flex: 0 0 auto;
   color: var(--text-3);
@@ -418,10 +423,13 @@ body.fac-body {
   font-weight: var(--fw-strong);
   letter-spacing: 0.14em;
 }
-/* 항목이 4개든 6개든 남는 높이를 똑같이 나눠 갖습니다 */
+/* 항목이 4개든 6개든 남는 높이를 나눠 갖습니다.
+   ★ 다만 내용보다 작아지지는 않습니다. minmax(0, 1fr) 로 두면 자리가 빠듯할 때
+     행이 글자보다 작아져, 마지막 항목이 아래 안내문 위로 올라타 겹쳤습니다.
+     (참가자 화면 투자 카드가 잘렸던 것과 같은 원인입니다) */
 .fac-signal__list {
   display: grid;
-  grid-auto-rows: minmax(0, 1fr);
+  grid-auto-rows: minmax(min-content, 1fr);
   gap: var(--sp-2);
   flex: 1 1 auto;
   min-height: 0;
@@ -429,16 +437,24 @@ body.fac-body {
 .fac-signal__item {
   display: flex;
   align-items: center;
-  padding: var(--sp-2) var(--sp-4);
+  padding: 6px var(--sp-4);
   border-radius: var(--r-sm);
   background: var(--bg-1);
   color: var(--text-1);
-  font-size: 24px;
+  font-size: 20px;
   font-weight: var(--fw-mid);
   line-height: 1.35;
 }
 
-.fac-brief__source { flex: 0 0 auto; margin-top: var(--sp-4); color: var(--text-3); font-size: var(--fs-tiny); line-height: 1.5; }
+/* 신호 목록과 안내문 사이에 실선을 둡니다. 둘이 맞닿아도 어디까지가 신호인지
+   보이고, 자리가 빠듯할 때 겹쳤는지 아닌지가 화면에서 바로 드러납니다. */
+.fac-brief__source {
+  flex: 0 0 auto;
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--line);
+  color: var(--text-3); font-size: var(--fs-tiny); line-height: 1.5;
+}
 
 
 /* ============================================================================
@@ -726,6 +742,47 @@ body.fac-body {
   font-size: 34px;
   line-height: 1.6;
 }
+/* ---------- 한 곳만 딸 수 있는 기회 ----------
+   조건을 넘긴 조가 여럿이어도 계약은 한 곳입니다.
+   누가 왜 가져갔는지 이 자리에서 선언합니다 — 진행자가 소리 내어 읽습니다. */
+.fac-event__awards { margin-top: var(--sp-5); }
+.fac-award {
+  padding: var(--sp-4) var(--sp-5);
+  border: 1px solid var(--accent);
+  border-left: 5px solid var(--accent);
+  border-radius: var(--r-lg);
+  background: var(--accent-soft);
+}
+.fac-award__head { display: flex; align-items: baseline; gap: var(--sp-3); }
+.fac-award__label {
+  color: var(--accent-deep); font-size: var(--fs-tiny);
+  font-weight: var(--fw-strong); letter-spacing: 0.1em;
+}
+.fac-award__title { font-size: 23px; font-weight: var(--fw-strong); letter-spacing: -0.03em; }
+.fac-award__winner {
+  padding: 4px 14px; border-radius: var(--r-pill);
+  background: var(--accent); color: var(--text-on-accent);
+  font-size: 19px; font-weight: var(--fw-strong);
+}
+.fac-award__rows {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--sp-2); margin-top: var(--sp-4);
+}
+.fac-award-row {
+  display: flex; align-items: baseline; gap: var(--sp-3);
+  padding: 9px var(--sp-4);
+  border: 1px solid var(--line); border-radius: var(--r-md);
+  background: var(--bg-2);
+  font-size: 17px;
+}
+.fac-award-row.is-won  { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.fac-award-row.is-lost { border-style: dashed; color: var(--text-3); }
+.fac-award-row__state { margin-left: auto; font-size: var(--fs-small); font-weight: var(--fw-mid); }
+.fac-award-row.is-won  .fac-award-row__state { color: var(--accent-deep); }
+.fac-award-row.is-lost .fac-award-row__state { color: var(--coral); }
+.fac-award-row__score { min-width: 44px; text-align: right; color: var(--text-3); font-size: var(--fs-small); }
+.fac-award__note { margin-top: var(--sp-3); color: var(--text-2); font-size: var(--fs-small); }
+
 .fac-event__delivery { display: block; margin-top: auto; padding-top: 30px; }
 .fac-event__impact {
   padding: var(--sp-4) var(--sp-5);

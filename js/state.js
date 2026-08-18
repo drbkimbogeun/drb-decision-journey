@@ -102,7 +102,8 @@ window.DRBState = (function () {
       adminMode: false,
       rivals: rivals,
       rivalTurn: 0,        // 경쟁사가 어디까지 진행했는가
-      turnRoles: {}        // { turnIndex: [role, ...] } — 어느 분야에 몰렸는지
+      turnRoles: {},       // { turnIndex: [role, ...] } — 어느 분야에 몰렸는지
+      awards: {}           // { turnIndex: { 기회id: [딴 조 이름] } } — 한 곳만 딸 수 있는 기회
     };
     data.teams = teams;
     save();
@@ -397,7 +398,11 @@ window.DRBState = (function () {
       choices:      choices || {},
       subround:     subround(),
       turnIndex:    turn,
-      crowding:     crowding
+      crowding:     crowding,
+      /* 한 곳만 딸 수 있는 기회 — 판정이 났으면 그대로 쓰고,
+         아직이면 아무 효과도 주지 않은 채 넘어갑니다 (뒤에서 다시 계산합니다) */
+      teamName:     data.activeTeam,
+      awards:       (data.awards || {})[turn] || null
     });
 
     /* 우리 선택도 이제 '공개된 움직임'이 된다 */
@@ -421,11 +426,125 @@ window.DRBState = (function () {
       before:     before,
       after:      JSON.parse(JSON.stringify(result.state)),
       rivalMoves: rivalMovesAt(turn),
-      year:       subround().year
+      year:       subround().year,
+      crowding:   crowding
     });
+
+    /* 한 대로 여러 조를 돌리는 연습 모드에서는 여기서 판정합니다 —
+       모든 조가 이 국면을 확정한 그 순간입니다. 라이브 세션에서는 이 브라우저가
+       우리 조밖에 모르므로, 진행자 화면이 판정해서 applyAwards() 로 알려줍니다. */
+    awardLocally(turn);
 
     save();
     return result;
+  }
+
+  /* ============================================================
+     한 곳만 딸 수 있는 기회 — 판정과 재계산
+
+     확정하는 순간에는 아직 다른 조가 결정 중입니다. 그래서 이 기회는
+     효과 없이 넘어가 두었다가, 모든 조가 잠긴 뒤에 판정하고
+     그 국면을 통째로 다시 계산합니다. 먼저 낸 조가 유리하면 안 됩니다.
+     ============================================================ */
+
+  /* 이 국면에 한정 기회가 걸려 있는데 아직 판정이 안 났는가 */
+  function awaitingAward(turn) {
+    var t = typeof turn === "number" ? turn : turnIndex();
+    var subs = allSubroundList();
+    if (!subs[t]) return false;
+    if (!window.DRBEngine.limitedOffers(subs[t]).length) return false;
+    return !((data.awards || {})[t]);
+  }
+
+  function allSubroundList() {
+    var out = [];
+    window.DRB_ROUNDS.forEach(function (r) { r.subrounds.forEach(function (s) { out.push(s); }); });
+    return out;
+  }
+
+  /* 이 브라우저가 아는 모든 조로 판정합니다 (연습 모드) */
+  function awardLocally(turn) {
+    var subs = allSubroundList();
+    var offers = window.DRBEngine.limitedOffers(subs[turn]);
+    if (!offers.length || (data.awards || {})[turn]) return;
+
+    var names = Object.keys(data.teams);
+    var bidders = [];
+    for (var i = 0; i < names.length; i++) {
+      var h = data.teams[names[i]].history[turn];
+      if (!h) return;                     // 아직 다 확정하지 않았습니다
+      bidders.push({ team: names[i], state: h.before, allocation: h.allocation, policyId: h.policyId });
+    }
+    if (bidders.length < 2) return;       // 혼자면 경쟁이 아닙니다
+
+    var verdict = {};
+    offers.forEach(function (entry) {
+      verdict[entry.offer.id] = window.DRBEngine.awardLimited(entry, bidders).winners;
+    });
+    applyAwards(turn, verdict, true);
+  }
+
+  /* 판정 결과를 받아 그 국면을 다시 계산합니다.
+     allTeams=true 면 이 브라우저가 아는 모든 조를, 아니면 지금 조만 다시 셉니다. */
+  function applyAwards(turn, verdict, allTeams) {
+    if (!verdict) return false;
+    data.awards = data.awards || {};
+    if (data.awards[turn] && JSON.stringify(data.awards[turn]) === JSON.stringify(verdict)) return false;
+    data.awards[turn] = verdict;
+
+    var names = allTeams ? Object.keys(data.teams) : [data.activeTeam];
+    var changed = false;
+    names.forEach(function (name) {
+      if (recomputeTurn(name, turn, verdict)) changed = true;
+    });
+    save();
+    return changed;
+  }
+
+  /* 저장해둔 '결정 직전 상태 + 그때 넣은 배분' 으로 그 국면을 다시 계산합니다.
+     ⚠ 이미 다음 국면으로 넘어간 뒤에는 다시 세지 않습니다 — 그 뒤 기록까지
+       전부 어긋나기 때문입니다. 판정은 그 국면 안에서 끝나야 합니다. */
+  function recomputeTurn(name, turn, verdict) {
+    var t = data.teams[name];
+    if (!t || t.history.length !== turn + 1) return false;
+    var h = t.history[turn];
+    if (!h) return false;
+
+    var subs = allSubroundList();
+    var sub = subs[turn];
+    var roundOf = null, eraOf = null;
+    var n = 0;
+    window.DRB_ROUNDS.forEach(function (r) {
+      r.subrounds.forEach(function (s) {
+        if (n === turn) { roundOf = r; eraOf = window.DRB_ERAS[r.era]; }
+        n++;
+      });
+    });
+    if (!eraOf) return false;
+
+    var invSet = window.DRB_INVESTMENTS[eraOf.investSet] || [];
+    var polSet = window.DRB_POLICIES[eraOf.policySet] || [];
+    var result = window.DRBEngine.runSubround({
+      state:        h.before,
+      era:          eraOf,
+      investments:  invSet,
+      policy:       polSet.filter(function (p) { return p.id === h.policyId; })[0],
+      policyId:     h.policyId,
+      prevPolicyId: turn > 0 ? t.history[turn - 1].policyId : null,
+      allocation:   h.allocation,
+      choices:      h.choices || {},
+      subround:     sub,
+      turnIndex:    turn,
+      crowding:     h.crowding || 0,
+      teamName:     name,
+      awards:       verdict
+    });
+
+    t.state       = result.state;
+    h.report      = result.report;
+    h.after       = JSON.parse(JSON.stringify(result.state));
+    h.policyName  = result.report.policyName;
+    return true;
   }
 
   /* 그 턴에 경쟁사들이 무엇을 했는지 (타임랩스·진행자 화면용) */
@@ -564,6 +683,7 @@ window.DRBState = (function () {
     isLastSubround: isLastSubround, isLastRound: isLastRound,
     budget: budget, budgetIsTight: budgetIsTight,
     plannedBudget: plannedBudget, budgetBreakdown: budgetBreakdown,
+    applyAwards: applyAwards, awaitingAward: awaitingAward,
     setPhase: setPhase, switchTeam: switchTeam,
     commitSubround: commitSubround, advance: advance, lastHistory: lastHistory,
     rivals: rivals, relativeStanding: relativeStanding, advanceRivals: advanceRivals,

@@ -171,6 +171,8 @@ window.DRBEngine = (function () {
       revenueBreakdown: [],
       profitBreakdown: [],
       notes: [],
+      /* 한 곳만 딸 수 있는 기회 중, 조건은 넘겼는데 아직 판정이 안 난 것 */
+      pendingAwards: [],
       kpi: {}
     };
 
@@ -439,10 +441,34 @@ window.DRBEngine = (function () {
       applyMod(ev.base, "사건: " + ev.title);
 
       (ev.reactions || []).forEach(function (r) {
-        if (testCondition(r.when, s, ctx)) {
-          entry.reactions.push({ text: r.text, positive: isPositiveMod(r.mod) });
-          applyMod(r.mod, "→ " + r.text);
+        if (!testCondition(r.when, s, ctx)) return;
+
+        /* ---------- 한 곳만 딸 수 있는 기회 ----------
+           조건을 넘겼다고 바로 주지 않습니다. 모든 조가 확정한 뒤에 판정합니다.
+           판정 전에 주면 먼저 확정한 조가 유리해집니다. */
+        if (r.limited) {
+          var winners = (ctx.awards || {})[r.limited.id];
+          if (winners === undefined || winners === null) {
+            entry.reactions.push({
+              text: r.limited.title + " — 모든 조가 확정하면 판정합니다",
+              positive: true, pending: true
+            });
+            report.pendingAwards.push(r.limited.id);
+            return;
+          }
+          var won = [].concat(winners).indexOf(ctx.teamName) >= 0;
+          if (won) {
+            entry.reactions.push({ text: r.text, positive: isPositiveMod(r.mod), won: true });
+            applyMod(r.mod, "→ " + r.text);
+          } else if (r.limited.lost) {
+            entry.reactions.push({ text: r.limited.lost.text, positive: false, lost: true });
+            applyMod(r.limited.lost.mod, "→ " + r.limited.lost.text);
+          }
+          return;
         }
+
+        entry.reactions.push({ text: r.text, positive: isPositiveMod(r.mod) });
+        applyMod(r.mod, "→ " + r.text);
       });
 
       report.events.push(entry);
@@ -868,6 +894,67 @@ window.DRBEngine = (function () {
   }
 
   /* 어느 분야에 몇 곳이 몰렸는지 (0~1) — 경쟁강도 계산에 씁니다 */
+  /* ============================================================
+     한 곳만 딸 수 있는 기회 — 누가 가져가는가
+
+     ★ 진행자 화면과 참가자 노트북이 **같은 이 코드**를 씁니다.
+       두 곳에서 따로 계산하면 반드시 다른 답이 나옵니다.
+     ============================================================ */
+
+  /* 이 국면의 사건에 한정 기회가 들어 있는가 */
+  function limitedOffers(subround) {
+    var out = [];
+    if (!subround || !subround.event) return out;
+    var ev = (window.DRB_EVENTS || {})[subround.event];
+    if (!ev) return out;
+    (ev.reactions || []).forEach(function (r) {
+      if (r.limited) out.push({ offer: r.limited, when: r.when, eventId: ev.id });
+    });
+    return out;
+  }
+
+  /* 한 조의 입찰 점수. 돈만 보지 않고 회사 상태를 함께 봅니다.
+     각 항목을 0~1 로 눌러서 가중치를 곱합니다 — 단위가 다른 값을 그냥 더하면
+     투자액(0~80)이 지표(0~100)를 잡아먹습니다. */
+  function bidScore(offer, state, allocation, policyId) {
+    var ctx = { allocation: allocation || {}, policyId: policyId };
+    var total = 0;
+    (offer.score || []).forEach(function (part) {
+      var raw = readField(part.field, state, ctx);
+      if (typeof raw !== "number" || !isFinite(raw)) return;
+      var max = part.max || 100;
+      total += clamp(raw / max, 0, 1) * (part.weight === undefined ? 1 : part.weight);
+    });
+    return Math.round(total * 1000) / 1000;
+  }
+
+  /* bidders = [{ team, state, allocation, policyId }]
+     반환   = { winners: [조 이름], ranking: [{team, score, qualified}] }
+
+     조건(when)을 넘긴 조만 후보입니다. 동점이면 조 이름 순으로 끊습니다 —
+     어느 화면에서 계산해도 같은 답이 나와야 하므로 무작위를 쓰지 않습니다. */
+  function awardLimited(entry, bidders) {
+    var offer = entry.offer;
+    var ranking = (bidders || []).map(function (b) {
+      var ctx = { allocation: b.allocation || {}, policyId: b.policyId };
+      return {
+        team: b.team,
+        qualified: testCondition(entry.when, b.state, ctx),
+        score: bidScore(offer, b.state, b.allocation, b.policyId),
+        bet: (b.allocation || {})[String(entry.when && entry.when.field || "").replace("invest.", "")] || 0
+      };
+    });
+    ranking.sort(function (a, b) {
+      if (b.score !== a.score) return b.score - a.score;
+      return String(a.team).localeCompare(String(b.team), "ko");
+    });
+    var winners = ranking
+      .filter(function (r) { return r.qualified; })
+      .slice(0, offer.slots || 1)
+      .map(function (r) { return r.team; });
+    return { id: offer.id, title: offer.title, winners: winners, ranking: ranking };
+  }
+
   function computeCrowding(pickedRoles) {
     var counts = {};
     var total = pickedRoles.length || 1;
@@ -903,6 +990,7 @@ window.DRBEngine = (function () {
     stars: stars,
     decideRival: decideRival,
     computeCrowding: computeCrowding,
+    limitedOffers: limitedOffers, awardLimited: awardLimited, bidScore: bidScore,
     testCondition: testCondition,
     clamp: clamp
   };
