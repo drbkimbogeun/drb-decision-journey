@@ -198,7 +198,6 @@ button, .btn, .policy, .alloc, .teampick__btn { touch-action: manipulation; }
 #app[data-screen="timelapse"] .topbar { display: none; }
 #app[data-screen="invest"] .dots,
 #app[data-screen="final"] .dots,
-#app[data-screen="whatif"] .dots,
 #app[data-screen="reflect"] .dots { display: none; }
 
 
@@ -706,14 +705,6 @@ button, .btn, .policy, .alloc, .teampick__btn { touch-action: manipulation; }
 .replay__row::before { background: var(--accent); }
 .replay__year { color: var(--accent); }
 
-.whatif__table-wrap { border: 1px solid var(--line); border-radius: var(--r-lg); }
-.whatif-table th { background: var(--bg-1); color: var(--text-3); }
-.whatif-table tr.is-ours td { background: var(--accent-tint); }
-.whatif-table tr.is-ours td:first-child { border-left: 3px solid var(--accent); }
-.level--high { background: var(--accent); color: var(--text-on-accent); }
-.level--mid { background: var(--accent-track); color: var(--text-2); }
-.level--low { background: var(--coral-tint); color: var(--coral); }
-.whatif__note { margin-top: var(--sp-4); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--bg-1); color: var(--text-2); }
 
 
 /* ============================================================

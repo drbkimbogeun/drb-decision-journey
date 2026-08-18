@@ -118,7 +118,7 @@ const server = http.createServer((req, res) => {
 
     const next = {
       timelapse: "#btnSkipLapse", ending: "#btnEndNext",
-      final: "#btnFinalGo", whatif: "#btnWhatifGo",
+      final: "#btnFinalGo",
     }[screen];
 
     if (screen === "invest") {

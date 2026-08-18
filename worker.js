@@ -16,7 +16,6 @@ const CONTROL_STAGES = new Set([
   "decisions",
   "event",
   "actual",
-  "debrief",
   "map",
   /* 시상이 끝난 뒤 조별 노트북을 회고 화면으로 돌립니다 */
   "reflect",

@@ -403,13 +403,13 @@ body.fac-body {
 .fac-console__main { min-width:0; overflow:auto; padding:18px; }
 .fac-console__rail { min-width:0; overflow:auto; padding:18px; border-left:1px solid var(--fac-line); background:color-mix(in srgb,var(--bg-1) 91%,transparent); }
 .fac-console__stack { display:grid; gap:14px; }
-.fac-console__panel,.fac-brief,.fac-decision-grid,.fac-event,.fac-drb,.fac-prompts,.fac-session {
+.fac-console__panel,.fac-brief,.fac-decision-grid,.fac-event,.fac-drb,.fac-session {
   position:relative; min-width:0; padding:18px; border:1px solid var(--fac-line); border-radius:12px;
   background:linear-gradient(145deg,var(--fac-raised),var(--fac-panel)); box-shadow:0 10px 28px rgba(0,0,0,.15);
 }
-.fac-console__head,.fac-brief__head,.fac-decision-grid__head,.fac-event__head,.fac-drb__head,.fac-prompts__head,.fac-session__head { display:flex; align-items:center; gap:10px; min-height:30px; margin-bottom:13px; }
-.fac-console__title,.fac-brief__title,.fac-decision-grid__title,.fac-event__title,.fac-drb__title,.fac-prompts__title,.fac-session__title { margin:0; color:var(--text-1); font-size:16px; font-weight:850; letter-spacing:-.02em; line-height:1.3; }
-.fac-console__eyebrow,.fac-brief__eyebrow,.fac-event__eyebrow,.fac-drb__eyebrow,.fac-prompts__eyebrow { color:var(--text-3); font-size:10px; font-weight:850; letter-spacing:.14em; text-transform:uppercase; }
+.fac-console__head,.fac-brief__head,.fac-decision-grid__head,.fac-event__head,.fac-drb__head,.fac-session__head { display:flex; align-items:center; gap:10px; min-height:30px; margin-bottom:13px; }
+.fac-console__title,.fac-brief__title,.fac-decision-grid__title,.fac-event__title,.fac-drb__title,.fac-session__title { margin:0; color:var(--text-1); font-size:16px; font-weight:850; letter-spacing:-.02em; line-height:1.3; }
+.fac-console__eyebrow,.fac-brief__eyebrow,.fac-event__eyebrow,.fac-drb__eyebrow { color:var(--text-3); font-size:10px; font-weight:850; letter-spacing:.14em; text-transform:uppercase; }
 
 .fac-stage-tabs { display:flex; align-items:center; gap:4px; min-height:48px; padding:6px 18px; border-bottom:1px solid var(--line); background:var(--bg-1); overflow-x:auto; }
 .fac-stage-tabs__tab { display:inline-flex; align-items:center; gap:7px; min-height:34px; padding:6px 12px; border:1px solid transparent; border-radius:8px; color:var(--text-3); background:transparent; font-size:12px; font-weight:750; white-space:nowrap; }
@@ -493,14 +493,6 @@ body.fac-body {
 .fac-drb__milestone::before { content:""; position:absolute; top:-4px; left:10px; width:7px; height:7px; border-radius:50%; background:var(--drb-red); }
 .fac-drb__year { color:var(--text-1); font-family:var(--font-num); font-weight:850; }
 
-/* Debrief questions */
-.fac-prompts { border-color:color-mix(in srgb,var(--info) 32%,var(--fac-line)); }
-.fac-prompts__list { display:grid; gap:9px; counter-reset:fac-prompt; }
-.fac-prompts__item { position:relative; min-height:48px; padding:11px 12px 11px 45px; border:1px solid var(--line); border-radius:8px; color:var(--text-1); background:rgba(0,0,0,.12); font-size:13px; font-weight:650; line-height:1.5; counter-increment:fac-prompt; }
-.fac-prompts__item::before { content:counter(fac-prompt,decimal-leading-zero); position:absolute; top:11px; left:12px; color:var(--info); font-family:var(--font-num); font-size:10px; font-weight:900; }
-.fac-prompts__item--key { border-color:color-mix(in srgb,var(--info) 46%,var(--line)); background:color-mix(in srgb,var(--info) 7%,rgba(0,0,0,.12)); }
-.fac-prompts__note { margin-top:10px; padding:10px 12px; border-radius:7px; color:var(--text-3); background:var(--bg-inset); font-size:11px; line-height:1.5; }
-
 /* Facilitator-only reveal gate */
 .fac-spoiler-lock { position:relative; display:grid; place-items:center; min-height:150px; padding:22px; overflow:hidden; border:1px dashed color-mix(in srgb,var(--warn) 48%,var(--line)); border-radius:11px; background:repeating-linear-gradient(135deg,rgba(255,255,255,.018) 0 8px,transparent 8px 16px),var(--bg-inset); text-align:center; }
 .fac-spoiler-lock__content { width:100%; transition:filter .2s ease,opacity .2s ease; }
@@ -536,7 +528,7 @@ body.fac-body {
   .bigmap { min-height:280px; }
   .news-item { padding:9px 10px; margin-bottom:7px; }
   .fac-console__body { grid-template-columns:minmax(0,1fr) minmax(290px,22vw); }
-  .fac-console__panel,.fac-brief,.fac-decision-grid,.fac-event,.fac-drb,.fac-prompts,.fac-session { padding:14px; }
+  .fac-console__panel,.fac-brief,.fac-decision-grid,.fac-event,.fac-drb,.fac-session { padding:14px; }
   .fac-decision-table-wrap { margin-inline:-14px; padding-inline:14px; }
   .fac-brief__facts { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
@@ -599,6 +591,6 @@ body.fac-body {
   .fac-console__top,.fac-stage-tabs,.fac-console__rail,.no-print { display:none!important; }
   .fac-console__body { display:block; }
   .fac-console__main { overflow:visible; padding:0; }
-  .fac-console__panel,.fac-brief,.fac-decision-grid,.fac-event,.fac-drb,.fac-prompts,.fac-session { break-inside:avoid; color:#111; background:#fff; box-shadow:none; }
+  .fac-console__panel,.fac-brief,.fac-decision-grid,.fac-event,.fac-drb,.fac-session { break-inside:avoid; color:#111; background:#fff; box-shadow:none; }
   .fac-spoiler-lock:not(.is-unlocked) { display:none; }
 }

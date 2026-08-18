@@ -794,35 +794,6 @@ body.fac-body {
 
 
 /* ============================================================================
-   12. 함께 이야기하기
-   ============================================================================ */
-.fac-prompts {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: var(--sp-4);
-  height: 100%;
-  padding: clamp(24px, 2.6vw, 44px);
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  background: var(--bg-2);
-  box-shadow: none;
-}
-.fac-prompts__list { display: flex; flex-direction: column; gap: var(--sp-3); }
-.fac-prompts__item {
-  padding: var(--sp-4) var(--sp-5);
-  border-left: 4px solid var(--line-strong);
-  border-radius: 0 var(--r-md) var(--r-md) 0;
-  background: var(--bg-1);
-  color: var(--text-2);
-  font-size: var(--fs-lead);
-  line-height: 1.55;
-}
-.fac-prompts__item--key { border-left-color: var(--accent); background: var(--accent-tint); color: var(--text-1); font-weight: var(--fw-strong); }
-.fac-prompts__note { color: var(--text-3); font-size: var(--fs-small); line-height: 1.6; }
-
-
-/* ============================================================================
    13. 산업 지도
    ============================================================================ */
 .fac-map-panel { display: flex; flex-direction: column; height: 100%; min-height: 0; padding: 0; border: 0; background: none; box-shadow: none; }

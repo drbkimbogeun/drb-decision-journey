@@ -19,7 +19,7 @@ sandbox.window.window = sandbox.window;
 vm.createContext(sandbox);
 
 ["data/config.js", "data/eras.js", "data/investments.js", "data/policies.js",
- "data/events.js", "data/rounds.js", "data/actual_drb.js", "data/whatif.js", "js/engine.js"
+ "data/events.js", "data/rounds.js", "data/actual_drb.js", "js/engine.js"
 ].forEach(f => {
   vm.runInContext(fs.readFileSync(path.join(ROOT, f), "utf8"), sandbox, { filename: f });
 });

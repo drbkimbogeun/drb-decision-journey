@@ -26,8 +26,7 @@ console.log("1. JS 문법");
 console.log("=".repeat(80));
 
 ["data/config.js", "data/eras.js", "data/investments.js", "data/policies.js",
- "data/events.js", "data/rounds.js", "data/actual_drb.js",
- "data/whatif.js", "data/global.js", "data/rivals.js",
+ "data/events.js", "data/rounds.js", "data/actual_drb.js", "data/global.js", "data/rivals.js",
  "js/engine.js", "js/state.js", "js/ui.js", "js/main.js"].forEach(f => {
   try {
     new vm.Script(read(f), { filename: f });
@@ -49,7 +48,7 @@ const jsSrc = read("js/ui.js") + read("js/main.js");
 const usedIds = new Set([...jsSrc.matchAll(/\bel\("([^"]+)"\)/g)].map(m => m[1]));
 
 /* 화면 전환용 sc-* 는 코드에서 조합해 만든다 */
-const SCREENS = ["invest", "timelapse", "ending", "whatif", "final", "reflect"];
+const SCREENS = ["invest", "timelapse", "ending", "final", "reflect"];
 SCREENS.forEach(s => usedIds.add("sc-" + s));
 
 let missing = [];
@@ -92,7 +91,7 @@ const sandbox = { window: {}, console };
 sandbox.window.window = sandbox.window;
 vm.createContext(sandbox);
 ["data/config.js", "data/eras.js", "data/investments.js", "data/policies.js",
- "data/events.js", "data/rounds.js", "data/actual_drb.js", "data/whatif.js", "data/global.js", "data/rivals.js", "js/engine.js"
+ "data/events.js", "data/rounds.js", "data/actual_drb.js", "data/global.js", "data/rivals.js", "js/engine.js"
 ].forEach(f => vm.runInContext(read(f), sandbox, { filename: f }));
 const W = sandbox.window;
 
@@ -179,8 +178,7 @@ const box = {
 box.window.window = box.window;
 vm.createContext(box);
 ["data/config.js", "data/eras.js", "data/investments.js", "data/policies.js",
- "data/events.js", "data/rounds.js", "data/actual_drb.js",
- "data/whatif.js", "data/global.js", "data/rivals.js",
+ "data/events.js", "data/rounds.js", "data/actual_drb.js", "data/global.js", "data/rivals.js",
  "js/engine.js", "js/state.js"].forEach(f => vm.runInContext(read(f), box, { filename: f }));
 
 const S = box.window.DRBState;
@@ -210,8 +208,7 @@ while (S.phase() !== "final" && guard++ < 120) {
   else if (p === "timelapse") {
     if (S.isLastRound() && S.isLastSubround()) S.setPhase("ending"); else S.advance();
   }
-  else if (p === "ending")    { S.setPhase("whatif"); }
-  else if (p === "whatif")    { S.advance(); }
+  else if (p === "ending")    { S.advance(); }
   else { bad("모르는 단계: " + p); break; }
 }
 

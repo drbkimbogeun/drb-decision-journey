@@ -95,9 +95,6 @@ window.DRBUI = (function () {
       stamp = "결과";
       title = g.activeTeam;
       sub   = subs[0].year + " → " + subs[subs.length - 1].year;
-    } else if (phase === "whatif") {
-      title = "What If";
-      sub   = "다른 선택을 했다면";
     }
 
     el("tbStamp").textContent = stamp;
@@ -932,67 +929,6 @@ window.DRBUI = (function () {
     }
   }
 
-  /* ============================================================
-     What If — 다른 선택을 했다면
-     (AI가 상상하는 것이 아니라 엔진으로 실제 재계산합니다)
-     ============================================================ */
-  function renderWhatIf() {
-    var axes = window.DRB_WHATIF_AXES || [];
-    var t = S.team();
-
-    var headRow = el("wiHead");
-    clearNode(headRow);
-    var th0 = document.createElement("th");
-    th0.textContent = "전략";
-    headRow.appendChild(th0);
-    axes.forEach(function (ax) {
-      var th = document.createElement("th");
-      th.textContent = ax.name;
-      headRow.appendChild(th);
-    });
-
-    var body = el("wiBody");
-    clearNode(body);
-
-    function addRow(name, desc, state, isOurs) {
-      var tr = document.createElement("tr");
-      if (isOurs) tr.className = "is-ours";
-
-      var td0 = document.createElement("td");
-      td0.innerHTML = "<div>" + escapeHtml(name) + "</div>" +
-                      "<div style='font-size:var(--fs-tiny);color:var(--text-3);font-weight:400'>" +
-                      escapeHtml(desc) + "</div>";
-      tr.appendChild(td0);
-
-      window.DRBEngine.scoreAxes(state).forEach(function (sc) {
-        var td = document.createElement("td");
-        var cls = sc.level === "높음" ? "high" : (sc.level === "보통" ? "mid" : "low");
-        td.innerHTML = "<span class='level level--" + cls + "'>" + sc.level + "</span>";
-        tr.appendChild(td);
-      });
-      body.appendChild(tr);
-    }
-
-    /* 우리가 실제로 걸어온 길 */
-    addRow("우리 조가 걸어온 길", S.g().activeTeam + " · 실제 플레이 결과", t.state, true);
-
-    /* 대안 전략들 — 같은 엔진으로 6국면 재계산 */
-    (window.DRB_WHATIF || []).forEach(function (sc) {
-      try {
-        var finalState = window.DRBEngine.runScenario(sc);
-        addRow(sc.name, sc.desc, finalState, false);
-      } catch (e) {
-        console.error("What If 계산 실패:", sc.id, e);
-      }
-    });
-
-    el("wiNote").innerHTML =
-      "이 표에는 <b>총점도 순위도 없습니다.</b> 어느 줄이 정답인지 정해져 있지 않습니다.<br>" +
-      "성장을 택하면 안정성을 내주고, 현금을 지키면 선택권을 잃습니다.<br><br>" +
-      "각 값은 <b>규칙 기반 시뮬레이션 엔진</b>이 같은 조건에서 6국면을 다시 돌려 계산한 것입니다. " +
-      "AI가 지어낸 값이 아닙니다.";
-  }
-
   function factBox(title, body) {
     var box = document.createElement("div");
     box.className = "factbox";
@@ -1368,7 +1304,7 @@ window.DRBUI = (function () {
     renderTopbar: renderTopbar, renderSide: renderSide, showDetail: showDetail,
     renderInvest: renderInvest, updateBudgetBar: updateBudgetBar, allocSum: allocSum,
     renderPolicy: renderPolicy,
-    renderWhatIf: renderWhatIf, renderFinal: renderFinal,
+    renderFinal: renderFinal,
     renderDecisionCard: renderDecisionCard,
     renderTimeline: renderTimeline, renderLiveWait: renderLiveWait, renderTimelapse: renderTimelapse,
     showEndingStep: showEndingStep, renderWorldMap: renderWorldMap,

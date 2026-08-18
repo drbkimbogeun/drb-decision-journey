@@ -21,11 +21,11 @@
   var TEAM_COLORS = ["#e31d38", "#f2c14e", "#4dd4c0", "#7aa2f7", "#f78fb3", "#7fd18a"];
   /* 참가자에게 공개되는 7단계 — Worker 가 검증하는 목록과 같아야 합니다.
      reflect 는 시상이 끝난 뒤 조별 노트북을 회고 화면으로 돌립니다. */
-  var CONTROL_STAGES = ["briefing", "decisions", "event", "actual", "debrief", "map", "reflect"];
+  var CONTROL_STAGES = ["briefing", "decisions", "event", "actual", "map", "reflect"];
   /* 진행자 화면에만 있는 화면. 순위·시상이 들어 있어 절대 공개하지 않습니다. */
   var LOCAL_STAGES = ["intro", "howto", "phase", "standings", "award", "closing"];
   var STAGES = ["intro", "howto", "briefing", "decisions", "event", "phase",
-                "actual", "debrief", "map", "standings", "award", "reflect", "closing"];
+                "actual", "map", "standings", "award", "reflect", "closing"];
 
   /* 챕터마다 진행자가 할 말 한 줄. 화면 제목이 곧 대본입니다. */
   var CHAPTER = {
@@ -37,7 +37,6 @@
     phase:     { title: "각 조는 이렇게 되었습니다",   tab: "국면 결과" },
     map:       { title: "지금 누가 어디에 있습니까",   tab: "산업 지도" },
     actual:    { title: "그때 DRB는 이렇게 했습니다",  tab: "DRB 실제" },
-    debrief:   { title: "함께 이야기해봅시다",         tab: "이야기" },
     standings: { title: "여기까지의 순위",             tab: "순위" },
     award:     { title: "여섯 번의 선택이 끝났습니다", tab: "시상" },
     reflect:   { title: "앞으로는 이렇게 하겠습니다",     tab: "회고" },
@@ -306,7 +305,7 @@
     list.push("phase");
     if (item.subIndex === item.round.subrounds.length - 1) {
       if (item.round.no >= 2) list.push("map");   // 해외 거점은 ERA 2부터
-      list.push("actual", "debrief", "standings");
+      list.push("actual", "standings");
     }
     return list;
   }
@@ -491,7 +490,6 @@
       allCompletedRound(teams, item.round) || !teams.length
         ? "DRB를 정답으로 말하지 마세요."
         : "아직 진행 중인 조가 있습니다 — 그래도 열립니다."];
-    if (currentStage === "debrief") return ["판단할 때의 합리성과 결과를 구분해서 물으세요.", item.sub.guide || ""];
     if (currentStage === "standings") return ["이 화면은 진행자만 봅니다. 참가자에게는 순위가 없습니다."];
     if (currentStage === "award") return ["1등이 정답은 아니라는 말로 닫아주세요."];
     if (currentStage === "reflect") return ["조 노트북이 회고 화면으로 바뀌었습니다. 적을 시간을 주세요.",
@@ -863,7 +861,7 @@
     el("bHowtoPace").textContent = "한 국면 " + per + "분 · " + timeline.length + "번 반복";
     el("bHowtoTotal").textContent = "전체 " + (CFG.totalMinutes || per * timeline.length) + "분";
 
-    var nowIndex = { briefing: 0, decisions: 1, event: 2, phase: 3, actual: 4, debrief: 4, map: 3 }[currentStage];
+    var nowIndex = { briefing: 0, decisions: 1, event: 2, phase: 3, actual: 4, map: 3 }[currentStage];
 
     /* 카드 다섯 장이 아니라 화살표로 이어진 순서도입니다.
        빔에서는 "다섯 개가 있다" 보다 "이 순서로 흐른다" 가 먼저 읽혀야 합니다.
@@ -939,7 +937,7 @@
     var box = el("bDecisionRows");
     var subId = timeline[selectedTurn].sub.id;
     var budget = timeline[selectedTurn].sub.budget || 0;
-    var resultOpen = ["event", "phase", "actual", "debrief", "map", "standings"].indexOf(currentStage) >= 0;
+    var resultOpen = ["event", "phase", "actual", "map", "standings"].indexOf(currentStage) >= 0;
     var open = allDecided(teams, selectedTurn) || forcedTurn >= selectedTurn;
 
     if (!teams.length) {
@@ -1261,32 +1259,6 @@
     el("bDrbChips").innerHTML = chips;
   }
 
-  function promptsFor(item) {
-    var common = [
-      "모든 조가 같은 정보를 받았는데도 선택이 달라진 가장 큰 이유는 무엇입니까?",
-      "결정 당시에는 합리적이었지만 결과 뒤에 다르게 보이는 판단은 무엇입니까?",
-      "DRB의 선택을 정답으로 보지 말고, 당시 어떤 가정과 대가를 감수했는지 비교해 보세요."
-    ];
-    var turnSpecific = [
-      "내일부터 팔리는 것과 아직 시장이 없는 것 사이에서 무엇을 근거로 시간을 선택했습니까?",
-      "원료 충격을 맞기 전에 쌓아둔 현금·품질·신뢰 중 무엇이 실제 방어막이 됐습니까?",
-      "자동차·본업·해외를 동시에 할 수 없을 때 무엇을 포기했고, 지역·방식의 대가는 무엇입니까?",
-      "위기 전에 키운 규모가 자산이었습니까, 부담이었습니까? 현금은 얼마만큼이 충분했습니까?",
-      "16개 신호 중 무엇을 의도적으로 보지 않았습니까? 공급망을 몇 갈래로 준비했습니까?",
-      "결과를 알 수 없는 2026년 판단에서, 크게 걸 것과 되돌릴 수 있게 남길 것을 어떻게 나눴습니까?"
-    ];
-    return [turnSpecific[item.turn]].concat(common);
-  }
-
-  function renderPrompts() {
-    var item = timeline[selectedTurn];
-    el("bPrompts").innerHTML = promptsFor(item).map(function (prompt, idx) {
-      return "<div class='fac-prompts__item" + (idx === 0 ? " fac-prompts__item--key" : "") + "'>" +
-        esc(prompt) + "</div>";
-    }).join("");
-    el("bGuide").textContent = item.sub.guide;
-  }
-
   function renderMap(teams) {
     /* 지도는 이미지 한 장입니다 (assets/img/worldmap.webp).
        핀 위치는 data/global.js 의 map.x / map.y 백분율이고, 그 값은 이 이미지
@@ -1455,7 +1427,6 @@
     renderDecisions(teams);
     renderEvent(teams);
     renderActual(teams);
-    renderPrompts();
     renderStatus(teams);
     renderMap(teams);
     renderCover(teams);

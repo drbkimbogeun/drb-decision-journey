@@ -57,7 +57,7 @@ window.DRB_CONFIG = {
      배경음악은 딱 세 곡입니다. 시대가 아니라 '무엇을 하는 중인가' 로 갈립니다.
        music-normal.m4a  평상시   국면 시작부터 선택이 끝날 때까지 (6개 국면 모두 같은 곡)
        music-lapse.m4a   시대흐름 선택이 끝나고 연도가 넘어가는 구간
-       music-ending.m4a  엔딩     2026 이후 엔딩 · 최종 · What If
+       music-ending.m4a  엔딩     2026 이후 엔딩 · 최종 · 회고
        shock.m4a         Alarm Clock (돌발상황 효과음, 한 번만)
 
      곡을 바꾸려면 파일만 같은 이름으로 덮어쓰면 됩니다.
@@ -74,7 +74,7 @@ window.DRB_CONFIG = {
     musicByScreen: {
       roundOpen: "normal",  situation: "normal",  invest: "normal",  policy: "normal",
       timelapse: "lapse",   event:     "lapse",   result: "lapse",   actual: "lapse",
-      ending:    "ending",  final:     "ending",  whatif: "ending",  reflect: "ending"
+      ending:    "ending",  final:     "ending",  reflect: "ending"
     },
 
     shock: "assets/audio/shock.m4a",   // 돌발상황이 뜨는 순간 한 번

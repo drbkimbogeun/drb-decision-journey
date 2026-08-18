@@ -318,17 +318,12 @@ const server = http.createServer((req, res) => {
   if ($("modal").classList.contains("is-open")) bad("모달이 닫히지 않았습니다");
   else ok("모달 닫힘");
 
-  /* ---------- 최종 → What If ---------- */
+  /* ---------- 최종 → 회고 ----------
+     혼자 연습할 때는 최종 화면 다음에 회고가 바로 열립니다.
+     (라이브 세션이면 진행자가 열어줄 때까지 안내만 뜹니다) */
   click("btnFinalGo");
-  if (activeScreen() !== "whatif") bad("최종 화면에서 What If 로 넘어가지 않았습니다");
-  else {
-    const rows = $("wiBody").children;
-    const expected = 1 + (win.DRB_WHATIF || []).length;
-    if (rows.length !== expected) bad(`What If 표가 ${rows.length}줄 (예상 ${expected}줄)`);
-    else if (!rows[0] || !rows[0].classList.contains("is-ours")) bad("What If 첫 줄이 '우리 조'가 아닙니다");
-    else if ($("wiHead").children.length !== 1 + (win.DRB_WHATIF_AXES || []).length) bad("What If 표 머리글 개수가 맞지 않습니다");
-    else ok(`What If 비교 — ${rows.length}개 전략 × ${win.DRB_WHATIF_AXES.length}개 축`);
-  }
+  if (activeScreen() !== "reflect") bad("최종 화면에서 회고로 넘어가지 않았습니다 (현재: " + activeScreen() + ")");
+  else ok("최종 → 회고 전환");
 
   /* ---------- 진행자 화면 ---------- */
   const facDom = await JSDOM.fromURL(`http://127.0.0.1:${PORT}/facilitator.html`, {

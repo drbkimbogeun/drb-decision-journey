@@ -893,78 +893,12 @@ window.DRBEngine = (function () {
       .sort(function (a, b) { return b.amount - a.amount; });
   }
 
-  /* ============================================================
-     What If — 다른 전략을 골랐다면 어떤 회사가 되었을까
-
-     AI가 상상해서 쓰는 것이 아니라, 같은 엔진으로 6국면을 실제로
-     다시 돌려서 나온 결과입니다. 데이터를 바꾸면 이 값도 함께 바뀝니다.
-     ============================================================ */
-  function runScenario(scenario) {
-    var state = createState();
-    var prevPolicy = null;
-    var turn = 0;
-
-    window.DRB_ROUNDS.forEach(function (round) {
-      var era = window.DRB_ERAS[round.era];
-      var investments = window.DRB_INVESTMENTS[era.investSet];
-      var policies = window.DRB_POLICIES[era.policySet];
-      var weights = (scenario.plan || {})[era.id] || {};
-      var policyId = (scenario.policy || {})[era.id];
-      var policy = policies.filter(function (p) { return p.id === policyId; })[0] || policies[0];
-
-      round.subrounds.forEach(function (sub) {
-        /* 예산은 실제 게임과 같은 규칙으로 정한다 */
-        var unit = CFG.tokenUnit;
-        var budget = state.cash >= sub.budget
-          ? sub.budget
-          : Math.max(unit, Math.floor(Math.max(0, state.cash) / unit) * unit);
-
-        /* 비중대로 토큰 단위에 맞춰 나눈다 */
-        var alloc = {};
-        var spent = 0;
-        var keys = Object.keys(weights);
-        var totalWeight = keys.reduce(function (a, k) { return a + weights[k]; }, 0) || 1;
-        keys.forEach(function (k) {
-          var want = Math.floor((budget * weights[k] / totalWeight) / unit) * unit;
-          if (spent + want > budget) want = Math.max(0, Math.floor((budget - spent) / unit) * unit);
-          if (want > 0) { alloc[k] = want; spent += want; }
-        });
-        var cashItem = investments.filter(function (i) { return i.keepCash; })[0];
-        if (budget - spent > 0 && cashItem) {
-          alloc[cashItem.id] = (alloc[cashItem.id] || 0) + (budget - spent);
-        }
-
-        var out = runSubround({
-          state: state, era: era, investments: investments,
-          policy: policy, policyId: policy.id, prevPolicyId: prevPolicy,
-          allocation: alloc, subround: sub, turnIndex: turn
-        });
-        state = out.state;
-        prevPolicy = policy.id;
-        turn++;
-      });
-    });
-
-    return state;
-  }
-
-  /* 상태를 What If 비교축(성장·안정성·기술축적·현금·선택권)으로 환산 */
-  function scoreAxes(state) {
-    return (window.DRB_WHATIF_AXES || []).map(function (ax) {
-      var v = ax.calc(state);
-      var level = v >= ax.high ? "높음" : (v >= ax.mid ? "보통" : "낮음");
-      return { key: ax.key, name: ax.name, value: Math.round(v), level: level };
-    });
-  }
-
   return {
     createState: createState,
     runSubround: runSubround,
     judgeStyle: judgeStyle,
     styleScores: styleScores,
     summarizeInvestments: summarizeInvestments,
-    runScenario: runScenario,
-    scoreAxes: scoreAxes,
     adaptiveCapacity: adaptiveCapacity,
     stars: stars,
     decideRival: decideRival,

@@ -92,7 +92,6 @@ function loadData() {
     "data/events.js",
     "data/rounds.js",
     "data/actual_drb.js",
-        "data/whatif.js",
     "data/global.js",
     "data/rivals.js",
     "js/engine.js"
@@ -473,13 +472,13 @@ function checkFacilitatorStages() {
 
   /* 참가자에게 공개되는 단계. Worker 가 검증하는 목록과 정확히 같아야 합니다.
      reflect 는 시상이 끝난 뒤 조 노트북을 회고 화면으로 돌리는 단계입니다. */
-  const expectedStages = ["briefing", "decisions", "event", "actual", "debrief", "map", "reflect"];
+  const expectedStages = ["briefing", "decisions", "event", "actual", "map", "reflect"];
   /* 시상·순위는 진행자 화면에만 있습니다. 참가자에게 절대 내보내지 않으므로
      Worker 목록에는 없어야 합니다. */
   const facilitatorOnlyStages = ["intro", "howto", "phase", "standings", "award", "closing"];
   /* 탭 순서는 실제 진행 순서입니다 (진행자 전용 화면이 사이사이 끼어 있습니다) */
   const allTabStages = ["intro", "howto", "briefing", "decisions", "event", "phase",
-                        "actual", "debrief", "map", "standings", "award", "reflect", "closing"];
+                        "actual", "map", "standings", "award", "reflect", "closing"];
   const html = read("facilitator.html");
   const worker = read("worker.js");
   const tabStages = Array.from(html.matchAll(/\bdata-stage=[\"']([^\"']+)[\"']/g), function (match) {
@@ -736,8 +735,8 @@ function checkParticipantScreenIsAllocationOnly() {
   const screens = Array.from(html.matchAll(/<section class="screen" id="sc-([^"]+)"/g),
     function (match) { return match[1]; });
   expect(sameList(screens.slice().sort(),
-    ["ending", "final", "invest", "reflect", "timelapse", "whatif"]),
-    "노트북에 남은 화면은 배분 · 대기 · 엔딩 · 최종 · WhatIf · 회고 뿐");
+    ["ending", "final", "invest", "reflect", "timelapse"]),
+    "노트북에 남은 화면은 배분 · 대기 · 엔딩 · 최종 · 회고 뿐");
 
   /* SCREENS 는 순서가 아니라 목록입니다 — HTML 과 한 글자라도 어긋나면
      그 화면은 영영 안 열리거나 영영 안 닫힙니다. */

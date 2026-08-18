@@ -21,7 +21,7 @@
   → ACTUAL DRB (실제 DRB / 같은 산업 다른 회사)
   → …3개 시대 반복…
   → 2026 · 결과가 없는 시대
-  → What If → 최종 결과 · 변화 대응력 공개
+  → 최종 결과 · 변화 대응력 공개 → 회고
 ```
 
 **최종 메시지는 이것입니다.**
@@ -229,7 +229,6 @@ AI가 운영하는 **경쟁사 3곳**이 같은 시대를 함께 삽니다.
 | `events.js` | 돌발상황 |
 | `global.js` | **해외 국가 · 진출 방식** |
 | `rivals.js` | **AI 경쟁사 성향** |
-| `whatif.js` | What If 대안 전략 |
 | `actual_drb.js` | ⭐ **실제 DRB 사례** + 경영스타일 |
 | `competitors.js` | ⭐ **실제 경쟁기업의 선택** |
 
@@ -369,7 +368,7 @@ node tools/playtest.js    ← 실제 화면을 처음부터 끝까지 눌러보�
 | 5~19분 | **ERA 1** (1947 · 1965) + ACTUAL DRB |
 | 19~33분 | **ERA 2** (1986 · 1997) + ACTUAL DRB |
 | 33~44분 | **ERA 3** (2012 · 2026) + **2026 엔딩** |
-| 44~50분 | What If · 최종 결과 · **변화 대응력 공개** · 결정 카드 작성 |
+| 44~50분 | 최종 결과 · **변화 대응력 공개** · 결정 카드 작성 · 회고 |
 | 이후 | 조별 결정 카드 발표 → 대표이사 세션 |
 
 ### 당일 체크리스트
@@ -438,12 +437,11 @@ node tools/playtest.js    ← 실제 화면을 처음부터 끝까지 눌러보�
 │   ├─ config.js  eras.js  rounds.js  investments.js  policies.js  events.js
 │   ├─ global.js            해외 국가·진출 방식
 │   ├─ rivals.js            AI 경쟁사 성향
-│   ├─ whatif.js            대안 전략
 │   ├─ actual_drb.js        ⭐ 실제 DRB 사례
 │   └─ competitors.js       ⭐ 실제 경쟁기업
 │
 ├─ js\                      ← 게임 로직 (건드릴 필요 없음)
-│   ├─ engine.js            계산 · 경쟁사 AI · 변화 대응력 · What If
+│   ├─ engine.js            계산 · 경쟁사 AI · 변화 대응력
 │   ├─ state.js             진행 상태 · 저장 · 경쟁사 진행
 │   ├─ ui.js                화면 그리기
 │   └─ main.js              흐름 제어

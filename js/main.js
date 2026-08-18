@@ -322,7 +322,7 @@
      화면 전환
      ============================================================ */
   /* 노트북에 남은 화면. 국면이 도는 동안은 invest 와 timelapse(대기) 둘뿐입니다. */
-  var SCREENS = ["invest", "timelapse", "ending", "whatif", "final", "reflect"];
+  var SCREENS = ["invest", "timelapse", "ending", "final", "reflect"];
 
   function showScreen(name) {
     el("app").setAttribute("data-screen", name);
@@ -334,7 +334,7 @@
       if (node) node.classList.toggle("is-active", s === name);
     });
     el("stage").classList.toggle("stage--full",
-      name === "final" || name === "whatif" || name === "ending" || name === "timelapse");
+      name === "final" || name === "ending" || name === "timelapse");
     el("stage").querySelector(".stage__main").scrollTop = 0;
     var current = el("sc-" + name);
     var heading = current && current.querySelector("h2");
@@ -388,11 +388,6 @@
         endingStep = 0;
         UI.showEndingStep(0);
         showScreen("ending");
-        break;
-
-      case "whatif":
-        UI.renderWhatIf();
-        showScreen("whatif");
         break;
 
       case "final":
@@ -583,9 +578,9 @@
     UI.showEndingStep(endingStep);
   }
 
-  /* 라이브 세션에서는 진행자가 시상을 마친 뒤 이 화면을 엽니다.
-     혼자 연습할 때는 What If 다음에 바로 열어줍니다. */
-  function afterWhatIf() {
+  /* 라이브 세션에서는 진행자가 시상을 마친 뒤 회고 화면을 엽니다.
+     혼자 연습할 때는 최종 화면 다음에 바로 열어줍니다. */
+  function afterFinal() {
     if (liveControl()) {
       UI.toast("회고는 진행자 화면에서 열어줍니다. 잠시 기다려주세요.");
       return;
@@ -726,8 +721,8 @@
     el("btnStart").onclick    = startNewGame;
     el("btnContinue").onclick = continueGame;
 
-    /* 최종 → What If */
-    el("btnFinalGo").onclick  = function () { S.setPhase("whatif"); render(); };
+    /* 최종 → 회고 */
+    el("btnFinalGo").onclick  = afterFinal;
 
     /* 배분과 정책을 한 화면에서 정하고 여기서 바로 확정합니다 */
     el("btnInvestGo").onclick = function () {
@@ -736,7 +731,6 @@
       commit();
     };
     el("btnAllocReset").onclick = resetAlloc;
-    el("btnWhatifGo").onclick = afterWhatIf;
     el("btnReflectSend").onclick = sendReflection;
     el("rfComment").addEventListener("input", function () {
       reflectDraft.comment = this.value;
@@ -834,7 +828,7 @@
      ["DRB_INVESTMENTS", "data/investments.js"], ["DRB_POLICIES", "data/policies.js"],
      ["DRB_EVENTS", "data/events.js"], ["DRB_ROUNDS", "data/rounds.js"],
      ["DRB_ACTUAL", "data/actual_drb.js"],
-     ["DRB_WHATIF", "data/whatif.js"], ["DRB_GLOBAL", "data/global.js"],
+     ["DRB_GLOBAL", "data/global.js"],
      ["DRB_RIVALS", "data/rivals.js"]].forEach(function (p) {
       if (!window[p[0]]) missing.push(p[1]);
     });
