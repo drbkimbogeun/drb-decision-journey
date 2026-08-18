@@ -22,9 +22,11 @@
   /* 참가자에게 공개되는 7단계 — Worker 가 검증하는 목록과 같아야 합니다.
      reflect 는 시상이 끝난 뒤 조별 노트북을 회고 화면으로 돌립니다. */
   var CONTROL_STAGES = ["briefing", "decisions", "event", "actual", "map", "reflect"];
-  /* 진행자 화면에만 있는 화면. 순위·시상이 들어 있어 절대 공개하지 않습니다. */
-  var LOCAL_STAGES = ["intro", "howto", "phase", "standings", "award", "closing"];
-  var STAGES = ["intro", "howto", "briefing", "decisions", "event", "phase",
+  /* 진행자 화면에만 있는 화면. 순위·시상이 들어 있어 절대 공개하지 않습니다.
+     lapse(연도 흐름)도 여기 둡니다 — 참가자 노트북은 그동안 대기 화면 그대로입니다.
+     연출을 조별로 또 돌리면 방이 흩어집니다. 이건 빔에서 한 번만 돕니다. */
+  var LOCAL_STAGES = ["intro", "howto", "lapse", "phase", "standings", "award", "closing"];
+  var STAGES = ["intro", "howto", "briefing", "decisions", "lapse", "event", "phase",
                 "actual", "map", "standings", "award", "reflect", "closing"];
 
   /* 챕터마다 진행자가 할 말 한 줄. 화면 제목이 곧 대본입니다. */
@@ -33,6 +35,7 @@
     howto:     { title: "오늘은 이렇게 진행합니다",    tab: "진행 방법" },
     briefing:  { title: "이 시대를 설명합니다",        tab: "시대 설명" },
     decisions: { title: "각 조가 결정합니다",          tab: "조별 결정" },
+    lapse:     { title: "그리고 시간이 흘렀습니다",     tab: "시간 흐름" },
     event:     { title: "이런 일이 벌어졌습니다",      tab: "돌발상황" },
     phase:     { title: "각 조는 이렇게 되었습니다",   tab: "국면 결과" },
     map:       { title: "지금 누가 어디에 있습니까",   tab: "산업 지도" },
@@ -301,6 +304,8 @@
   function chaptersFor(turn) {
     var item = timeline[turn];
     var list = ["briefing", "decisions"];
+    /* 결정을 잠근 뒤 연도가 흐릅니다. 마지막 국면(2026)에는 뒤가 없어 흐르지 않습니다. */
+    if (timeline[turn + 1]) list.push("lapse");
     if (item.sub.event) list.push("event");
     list.push("phase");
     if (item.subIndex === item.round.subrounds.length - 1) {
@@ -1062,6 +1067,143 @@
     }).join("") || "<p class='hint'>결정이 들어오면 조별 적용 이유가 표시됩니다.</p>";
   }
 
+  /* ============================================================
+     연도가 흐릅니다 — 결정을 잠근 뒤, 빔에서 한 번만 도는 연출
+
+     ★ 조별 노트북에서 각자 돌리지 않습니다. 여기가 유일한 자리입니다.
+       한 줄씩 올라오는 동안 진행자는 아무 말도 하지 않습니다.
+     ============================================================ */
+  var lapseTimer = null;
+  var lapseShownFor = -1;
+
+  /* 이 국면에서 흐를 것들 — 조가 한 일, 경쟁사가 한 일, 시장에서 벌어진 일 */
+  function lapseLines(teams, turn) {
+    var lines = [];
+
+    teams.forEach(function (team, i) {
+      var history = historyAt(team, turn);
+      if (!history) return;
+      var top = Object.keys(history.allocation || {})
+        .filter(function (k) { return history.allocation[k] > 0; })
+        .sort(function (a, b) { return history.allocation[b] - history.allocation[a]; })[0];
+      if (!top) return;
+      var era = window.DRB_ERAS[timeline[turn].round.era];
+      var item = (window.DRB_INVESTMENTS[era.investSet] || []).filter(function (x) { return x.id === top; })[0];
+      if (!item) return;
+      lines.push({
+        kind: "team", order: i,
+        who: team.name, color: teamColor(team.name),
+        text: item.name + "에 " + history.allocation[top]
+      });
+    });
+
+    /* 경쟁사는 어느 조 기록에서든 같습니다 — 하나만 가져옵니다 */
+    var withMoves = teams.filter(function (t) {
+      var h = historyAt(t, turn);
+      return h && h.rivalMoves && h.rivalMoves.length;
+    })[0];
+    if (withMoves) {
+      historyAt(withMoves, turn).rivalMoves.forEach(function (move, i) {
+        lines.push({ kind: "rival", order: 10 + i, who: move.name, text: move.text });
+      });
+    }
+
+    /* 시장에서 벌어진 일 — 모든 조에게 온 사건만 (조건부 사건은 그 조 것이라 뺍니다) */
+    var sub = timeline[turn].sub;
+    if (sub.event && window.DRB_EVENTS[sub.event]) {
+      var ev = window.DRB_EVENTS[sub.event];
+      lines.push({ kind: "market", order: 20, who: "시장", text: ev.headline || ev.title });
+    }
+
+    lines.sort(function (a, b) { return a.order - b.order; });
+    return lines;
+  }
+
+  function stopLapse() {
+    if (lapseTimer) { clearInterval(lapseTimer); lapseTimer = null; }
+  }
+
+  function renderLapse(teams) {
+    var here = timeline[selectedTurn];
+    var next = timeline[selectedTurn + 1];
+    if (!next) return null;
+
+    var from = here.sub.year;
+    var to = next.sub.year;
+    var years = Math.max(1, to - from);
+    var lines = lapseLines(teams, selectedTurn);
+
+    /* 줄마다 '몇 년쯤에 벌어진 일인지' 를 붙입니다. 기간에 고르게 뿌립니다.
+       숫자가 그 해를 지날 때 그 줄이 올라옵니다. */
+    lines.forEach(function (line, i) {
+      line.year = from + Math.max(1, Math.round((i + 1) * years / (lines.length + 1)));
+    });
+
+    el("bLapseSpan").textContent = years + "년이 흐릅니다";
+    el("bLapseYear").textContent = from;
+    el("bLapseFrom").textContent = from;
+    el("bLapseTo").textContent = to;
+    el("bLapseFill").style.width = "0%";
+    el("bLapseFeed").innerHTML = "";
+    el("bLapseNote").textContent = lines.length
+      ? "결정의 결과가 흐르고 있습니다"
+      : "아직 들어온 결정이 없습니다";
+
+    return { from: from, to: to, years: years, lines: lines };
+  }
+
+  /* 챕터에 들어온 순간 한 번 돕니다. 되돌아왔다 다시 오면 다시 돕니다. */
+  function startLapse() {
+    stopLapse();
+    var plan = renderLapse(collectTeams());
+    if (!plan) return;
+
+    var box = el("bLapseYear");
+    var feed = el("bLapseFeed");
+    var year = plan.from;
+
+    /* ★ 한 해에 한 칸입니다. 기간이 길수록 그만큼 오래 걸립니다 —
+         20년과 11년이 같은 시간에 지나가면 '뒤로 갈수록 빨라진다' 가 사라집니다.
+         다만 20년 × 340ms = 7초 라 진행자가 기다릴 만한 길이입니다. */
+    var TICK = 340;
+
+    function put(line) {
+      var row = document.createElement("div");
+      row.className = "fac-lapse__line fac-lapse__line--" + line.kind;
+      row.innerHTML =
+        "<span class='fac-lapse__year'>" + line.year + "</span>" +
+        "<span class='fac-lapse__who'" + (line.color ? " style='color:" + line.color + "'" : "") + ">" +
+        esc(line.who) + "</span>" +
+        "<span class='fac-lapse__what'>" + esc(line.text) + "</span>";
+      feed.appendChild(row);
+    }
+
+    lapseTimer = setInterval(function () {
+      year += 1;
+      box.textContent = year;
+      /* 애니메이션을 다시 태우려면 한 번 껐다 켜야 합니다 */
+      box.classList.remove("is-tick");
+      void box.offsetWidth;
+      box.classList.add("is-tick");
+
+      el("bLapseFill").style.width =
+        Math.round((year - plan.from) / plan.years * 100) + "%";
+
+      plan.lines.forEach(function (line) {
+        if (line.year === year) put(line);
+      });
+
+      if (year >= plan.to) {
+        stopLapse();
+        /* 아직 못 올라간 줄이 있으면 마지막에 다 붙입니다 */
+        plan.lines.forEach(function (line) {
+          if (line.year > plan.to) put(line);
+        });
+        el("bLapseNote").textContent = plan.to + "년입니다";
+      }
+    }, TICK);
+  }
+
   /* 국면 결과 — 이 국면의 매출로 줄을 세웁니다. */
   function renderPhaseResult(teams) {
     var item = timeline[selectedTurn];
@@ -1476,7 +1618,22 @@
 
     /* 맺음말 화면에 들어온 순간 글자가 찍히기 시작합니다 */
     if (stage === "closing") startClosing();
+
+    /* 연도 연출은 이 챕터에 '들어오는 순간' 한 번 돕니다.
+       render() 가 같은 챕터로 여러 번 불려도 다시 시작하지 않아야 하고,
+       다른 챕터에 갔다 돌아오면 다시 돌아야 합니다 (진행자가 되돌릴 수 있어야 하므로). */
+    if (stage === "lapse") {
+      if (lastStageShown !== "lapse" || lapseShownFor !== selectedTurn) {
+        lapseShownFor = selectedTurn;
+        startLapse();
+      }
+    } else {
+      stopLapse();
+    }
+    lastStageShown = stage;
   }
+
+  var lastStageShown = "";
 
   /* 돌발상황 알람은 한 국면에 한 번만 — 챕터를 되돌아왔다고 다시 울리지 않습니다 */
   var lastAlarmStage = "";

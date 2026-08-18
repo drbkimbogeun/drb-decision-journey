@@ -98,7 +98,7 @@ window.DRB_CONFIG = {
     musicByScreen: {
       /* 진행자 화면의 챕터 */
       intro:     "normal",  howto:     "normal",  briefing:  "normal",  decisions: "normal",
-      event:     "lapse",   phase:     "lapse",   actual:    "lapse",
+      lapse:     "lapse",   event:     "lapse",   phase:     "lapse",   actual:    "lapse",
       map:       "lapse",   standings: "lapse",
       award:     "ending",  reflect:   "ending",  closing:   "ending",
 
