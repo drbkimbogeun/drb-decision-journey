@@ -75,8 +75,12 @@ body.fac-body {
 .fac-stage { height: 100%; position: relative; }
 
 /* ---------- 돌발상황 경고 ----------
-   내용을 열기 전 1초. 방 전체가 고개를 드는 시간입니다.
-   판 위에 통째로 덮어서, 이 순간에는 읽을 것이 이 한 줄뿐이게 만듭니다. */
+   내용을 열기 전 3초. 방 전체가 고개를 드는 시간입니다.
+   판 위에 통째로 덮어서, 이 순간에는 읽을 것이 이 한 줄뿐이게 만듭니다.
+
+   ★ 색은 공사장·방사선 경고에 쓰는 노랑/검정입니다. 게임의 보라색 세계에서
+     이 화면만 완전히 다른 색이라, 무엇이 났는지 읽기 전에 눈이 먼저 압니다.
+     (머무는 시간은 config 의 event.alertMs 에서 바꿉니다) */
 .fac-alert {
   position: absolute;
   inset: 0;
@@ -86,25 +90,46 @@ body.fac-body {
   align-items: center;
   justify-content: center;
   gap: var(--sp-5);
+  overflow: hidden;
   border-radius: var(--r-lg);
-  background: var(--coral-tint);
-  border: 3px solid var(--coral);
+  background: #14110A;
+  border: 0;
 }
 .fac-alert.is-on { display: flex; animation: fac-alert-in 180ms ease-out; }
+
+/* 위·아래 사선 띠. 폭보다 넓게 그려두고 한 칸씩 흘려보내면 끊김 없이 이어집니다. */
+.fac-alert::before,
+.fac-alert::after {
+  content: "";
+  position: absolute;
+  left: -80px; right: -80px;
+  height: 38px;
+  background: repeating-linear-gradient(
+    -45deg,
+    #F5C518 0 26px,
+    #14110A 26px 52px
+  );
+  animation: fac-alert-stripe 900ms linear infinite;
+}
+.fac-alert::before { top: 0; }
+.fac-alert::after  { bottom: 0; }
+
 .fac-alert__mark {
   display: flex; align-items: center; justify-content: center;
-  width: 132px; height: 132px;
+  width: 148px; height: 148px;
   border-radius: 50%;
-  background: var(--coral);
-  color: #FFFFFF;
+  background: #F5C518;
+  color: #14110A;
   font-family: var(--font-num);
-  font-size: 86px; font-weight: var(--fw-strong); line-height: 1;
+  font-size: 96px; font-weight: var(--fw-strong); line-height: 1;
+  box-shadow: 0 0 0 12px rgba(245, 197, 24, 0.16);
   animation: fac-alert-pulse 500ms ease-in-out infinite alternate;
 }
 .fac-alert__text {
-  color: #8A3A25;
-  font-size: 96px; font-weight: var(--fw-strong);
+  color: #F5C518;
+  font-size: 112px; font-weight: var(--fw-strong);
   letter-spacing: -0.05em; line-height: 1;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
 }
 /* 경고가 떠 있는 동안 뒤 내용은 잠깐 가라앉힙니다 */
 .fac-event.is-hushed { opacity: 0.15; }
@@ -117,9 +142,14 @@ body.fac-body {
   from { transform: scale(1); }
   to   { transform: scale(1.07); }
 }
+@keyframes fac-alert-stripe {
+  from { transform: translateX(0); }
+  to   { transform: translateX(73.6px); }   /* 사선 한 칸 = 52px × √2 */
+}
 @media (prefers-reduced-motion: reduce) {
   .fac-alert.is-on { animation: none; }
   .fac-alert__mark { animation: none; }
+  .fac-alert::before, .fac-alert::after { animation: none; }
 }
 .fac-stage > article {
   display: flex;
@@ -477,8 +507,13 @@ body.fac-body {
      (참가자 화면 투자 카드가 잘렸던 것과 같은 원인입니다) */
 .fac-signal__list {
   display: grid;
-  grid-auto-rows: minmax(min-content, 1fr);
-  gap: var(--sp-2);
+  /* ★ 줄을 남는 높이만큼 늘리지 않습니다.
+       1fr 로 두면 여섯 줄이 판 높이를 똑같이 나눠 가져, 문장 사이가 한 뼘씩
+       벌어집니다. 그러면 여섯 개가 목록이 아니라 흩어진 여섯 장으로 읽힙니다.
+       붙여 놓아야 '지금 우리가 보고 있는 것들' 한 덩어리가 됩니다. */
+  grid-auto-rows: min-content;
+  align-content: start;
+  gap: 5px;
   flex: 1 1 auto;
   min-height: 0;
 }
@@ -1273,6 +1308,7 @@ body.fac-body {
    영상처럼 보입니다. 인코딩도, 재생 끊김도 없습니다.
    ============================================================================ */
 .fac-film {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -1305,21 +1341,18 @@ body.fac-body {
 .fac-film__shot.is-zoom-a { animation: film-zoom-a 2600ms ease-out forwards; }
 .fac-film__shot.is-zoom-b { animation: film-zoom-b 2600ms ease-out forwards; }
 
-.fac-film__bar {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: baseline;
-  gap: var(--sp-4);
-  padding: var(--sp-4) var(--sp-6);
-  background: #0E0A18;
-  color: #FFFFFF;
+/* 설명은 사진 위에 얹습니다 — 자리를 먹지 않고, 없으면 아무것도 안 보입니다 */
+.fac-film__caption {
+  position: absolute;
+  left: var(--sp-6);
+  right: var(--sp-6);
+  bottom: var(--sp-5);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: var(--fs-lead);
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
 }
-.fac-film__year {
-  font-size: 46px; font-weight: var(--fw-strong);
-  letter-spacing: -0.03em; line-height: 1;
-}
-.fac-film__caption { color: rgba(255, 255, 255, 0.62); font-size: var(--fs-lead); }
-.fac-film__count { color: rgba(255, 255, 255, 0.34); font-size: var(--fs-small); }
+.fac-film__caption:empty { display: none; }
 
 /* 2초 안에 움직이는 것이 보여야 하므로 폭을 조금 키웠습니다 */
 @keyframes film-zoom-a {

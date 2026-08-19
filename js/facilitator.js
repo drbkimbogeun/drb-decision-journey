@@ -434,10 +434,23 @@
       clock.tick = setInterval(function () {
         clock.left = Math.max(0, clock.left - 1);
         if (!clock.left) { clock.running = false; clearInterval(clock.tick); clock.tick = null; }
+        markClock(clock.left);
         paintClock();
       }, 1000);
     }
     paintClock();
+  }
+
+  /* 남은 시간을 소리로 알립니다 — 1분 · 30초 · 10초 · 끝.
+     진행자가 "1분 남았습니다" 를 매번 외치지 않아도 방 전체가 같이 압니다.
+     어느 초에 울릴지는 config 의 timer.beepAt 에서 바꿉니다. */
+  function markClock(left) {
+    var marks = (CFG.timer && CFG.timer.beepAt) || [];
+    if (marks.indexOf(left) < 0) return;
+    if (!window.DRBAudio) return;
+    window.DRBAudio.play(
+      left === 0 ? "timeUp" : left <= 10 ? "markLast" : left <= 30 ? "markNear" : "markFar"
+    );
   }
   function paintClock() {
     var box = el("bTimer");
@@ -1560,15 +1573,18 @@
 
     function show() {
       film.at += 1;
-      if (film.at >= photos.length) {
-        el("bFilmCount").textContent = photos.length + " / " + photos.length;
-        return;                       /* 마지막 장은 그대로 둡니다 */
-      }
+      if (film.at >= photos.length) return;   /* 마지막 장은 그대로 둡니다 */
+
       var photo = photos[film.at];
       var next = layers[film.at % 2];
       var prev = layers[(film.at + 1) % 2];
 
       next.style.backgroundImage = "url('" + photo.src + "')";
+      /* ★ 사진마다 어디를 보여줄지 — 사람이 위쪽에 서 있는 사진은 가운데를 맞추면
+           얼굴이 잘려나갑니다. data/endingphotos.js 의 focus 로 정합니다. */
+      next.style.backgroundPosition =
+        photo.focus === "top" ? "center top" :
+        photo.focus === "bottom" ? "center bottom" : "center";
       next.style.transitionDuration = fade + "ms";
       prev.style.transitionDuration = fade + "ms";
       next.style.animationDuration = zoom + "ms";
@@ -1578,9 +1594,7 @@
       next.classList.add("is-on", film.at % 2 ? "is-zoom-b" : "is-zoom-a");
       prev.classList.remove("is-on");
 
-      el("bFilmYear").textContent = photo.year;
       el("bFilmCaption").textContent = photo.caption || "";
-      el("bFilmCount").textContent = (film.at + 1) + " / " + photos.length;
 
       film.timer = setTimeout(show, hold);
     }
@@ -1831,7 +1845,9 @@
   var lastAlarmStage = "";
   var shockTimer = null;
 
-  /* 경고를 1초 띄우고 내용을 엽니다. 그 1초 동안 알람이 울립니다. */
+  /* 경고를 띄우고 나서 내용을 엽니다. 그동안 알람이 울립니다.
+     몇 초 머무는지는 config 의 event.alertMs 에서 바꿉니다 — 짧으면 못 보고,
+     길면 진행자가 할 말 없이 서 있게 됩니다. */
   function flashShock() {
     var alert = el("bEventAlert");
     var card = el("bEvent");
@@ -1845,7 +1861,7 @@
     shockTimer = setTimeout(function () {
       alert.classList.remove("is-on");
       card.classList.remove("is-hushed");
-    }, 1000);
+    }, (CFG.event && CFG.event.alertMs) || 3000);
   }
 
   function jumpTo(stage) {

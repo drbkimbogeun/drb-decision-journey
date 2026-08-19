@@ -19,7 +19,6 @@
   var choices = {};          // 해외 진출처럼 '어디에/어떻게' 를 함께 정하는 항목
   var pickedPolicy = null;
   var lastResult = null;
-  var timerId = null;
   var stopLapse = null;
   var waitingBriefing = false;
   var lapseTurn = -1;
@@ -365,7 +364,6 @@
     /* 회고는 진행 순서 밖에 있습니다 — 시상이 끝난 뒤 진행자가 열어야 뜹니다.
        기다리는 중이든 어느 화면이든 이 화면으로 덮습니다. */
     if (reflectOpen()) {
-      stopTimer();
       loadReflectDraft();
       UI.renderReflect(reflectDraft, toggleReflectPick);
       showScreen("reflect");
@@ -379,7 +377,6 @@
     }
 
     var phase = S.phase();
-    stopTimer();
 
     switch (phase) {
       case "invest":
@@ -387,7 +384,6 @@
         UI.renderPolicy(pickedPolicy, pickPolicy);
         el("btnInvestGo").disabled = !pickedPolicy;
         showScreen("invest");
-        startTimer();
         break;
 
       /* 확정한 뒤부터 다음 국면이 열릴 때까지 여기 머뭅니다.
@@ -412,45 +408,6 @@
         S.setPhase("invest");
         render();
     }
-  }
-
-  /* ============================================================
-     타이머 — 토론 시간 관리 (진행자가 원하면 끌 수 있음)
-     ============================================================ */
-  /* 토론 시간은 브리핑 → 자원 배분 → 정책을 하나로 이어서 셉니다.
-     화면을 넘긴다고 시간이 되돌아가면 안 됩니다. */
-  var timerRemain = null;
-  var timerTurn = -1;
-
-  function startTimer() {
-    if (!CFG.timer.enabled) return;
-    /* 시대가 뒤로 갈수록 토론 시간이 짧아집니다 (5분 → 3분) */
-    var era = S.era();
-    var turn = S.turnIndex();
-    if (timerTurn !== turn || timerRemain === null) {
-      timerTurn = turn;
-      timerRemain = (era.pace && era.pace.discussSeconds) || CFG.timer.discussSeconds;
-    }
-
-    var box = el("tbTimer");
-    box.classList.remove("hidden");
-
-    function tick() {
-      var m = Math.floor(Math.abs(timerRemain) / 60);
-      var s = Math.abs(timerRemain) % 60;
-      var text = (timerRemain < 0 ? "-" : "") + (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
-      el("tbTimerText").textContent = text;
-      box.classList.toggle("is-urgent", timerRemain <= CFG.timer.warnSeconds);
-      timerRemain--;
-    }
-    tick();
-    timerId = setInterval(tick, 1000);
-  }
-
-  function stopTimer() {
-    if (timerId) clearInterval(timerId);
-    timerId = null;
-    el("tbTimer").classList.add("hidden");
   }
 
   /* ============================================================

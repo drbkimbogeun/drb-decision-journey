@@ -92,7 +92,19 @@ window.DRBAudio = (function () {
                                   { from: 660, dur: 0.10, vol: 0.10, at: 90 },
                                   { from: 880, dur: 0.20, vol: 0.11, at: 180 }]); },
     /* 화면 넘김 */
-    next:      function () { tone({ from: 560, to: 700, dur: 0.07, vol: 0.07 }); }
+    next:      function () { tone({ from: 560, to: 700, dur: 0.07, vol: 0.07 }); },
+
+    /* 토론 시간이 줄어드는 것을 알립니다 — 1분 · 30초 · 10초에 한 번씩.
+       말을 끊지 않을 만큼 짧아야 하고, 뒤로 갈수록 급해져야 합니다. */
+    markFar:   function () { tone({ from: 880, dur: 0.12, vol: 0.09 }); },
+    markNear:  function () { seq([{ from: 990, dur: 0.10, vol: 0.10 },
+                                  { from: 990, dur: 0.10, vol: 0.10, at: 150 }]); },
+    markLast:  function () { seq([{ from: 1180, dur: 0.09, vol: 0.11 },
+                                  { from: 1180, dur: 0.09, vol: 0.11, at: 130 },
+                                  { from: 1180, dur: 0.09, vol: 0.11, at: 260 }]); },
+    /* 시간 끝 — 내려앉는 두 음. 재촉이 아니라 '끝났습니다' 입니다. */
+    timeUp:    function () { seq([{ type: "triangle", from: 660, to: 440, dur: 0.30, vol: 0.13 },
+                                  { type: "triangle", from: 440, to: 300, dur: 0.55, vol: 0.13, at: 300 }]); }
   };
 
   function play(name) {

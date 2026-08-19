@@ -54,6 +54,7 @@ window.DRBUI = (function () {
 
   function closeModal() {
     el("modal").classList.remove("is-open");
+    openPickerId = null;
   }
 
   /* 첫 번째 · 두 번째 … 여섯 번째 */
@@ -429,13 +430,6 @@ window.DRBUI = (function () {
 
     el("inTokenUnit").textContent = CFG.tokenUnit;
 
-    /* 설명 첫 문장만 카드에 붙입니다. 화면은 세 줄 안에 끝나야 합니다. */
-    function tagline(item) {
-      if (item.short) return item.short;
-      var first = String(item.desc || "").split(/[.!?]\s|\n/)[0];
-      return first.replace(/[.]$/, "");
-    }
-
     function buildAllocationCard(item) {
       var amt = alloc[item.id] || 0;
       var isCash = !!item.keepCash;
@@ -457,6 +451,9 @@ window.DRBUI = (function () {
         badge.className = "alloc__new";
         badge.textContent = "새 분야";
         card.appendChild(badge);
+        /* 뱃지가 있는 카드만 이름 오른쪽을 비웁니다 —
+           없는 카드까지 비워두면 긴 이름이 괜히 두 줄로 접힙니다 */
+        card.classList.add("has-new");
       }
 
       /* ---------- 지금 넣은 금액 ---------- */
@@ -477,17 +474,29 @@ window.DRBUI = (function () {
       }
       card.appendChild(level);
 
-      /* ---------- 효과 — 길게 누르면 열립니다 ---------- */
+      /* ---------- 효과 — 카드에 늘 적혀 있습니다 ----------
+         예전에는 접어두고 길게 눌러야 열렸습니다. 그런데 카드가 절반으로 작아지는
+         2국면부터는 눌러도 아무것도 나오지 않았습니다 — 이 칸이 flex 로 0 까지
+         눌려버렸기 때문입니다. 무엇을 얻고 무엇을 잃는지 모르면 어디에 넣을지
+         정할 수가 없으므로, 이제 접지 않습니다.
+
+         칸이 좁아지는 뒷 국면에서는 '얻는 것 하나 · 잃는 것 하나' 만 남깁니다
+         (어느 줄을 남길지는 여기서 is-key 로 표시하고, 자르는 것은 CSS 가 합니다). */
       var tos = document.createElement("div");
       tos.className = "alloc__tradeoff";
+      var gotGain = false, gotCost = false;
       (item.tradeoffs || []).forEach(function (t) {
         var s2 = document.createElement("span");
         s2.className = "tradeoff tradeoff--" + t.type;
+        if (t.type === "minus") {
+          if (!gotCost) { gotCost = true; s2.className += " is-key"; }
+        } else if (!gotGain) {
+          gotGain = true; s2.className += " is-key";
+        }
         s2.textContent = t.text;
         tos.appendChild(s2);
       });
       card.appendChild(tos);
-      bindLongPress(card, item);
 
       /* ---------- 올리고 내리기 ----------
          현금 보유는 남은 예산이 저절로 오는 칸이라 직접 만지지 않습니다. */
@@ -519,11 +528,30 @@ window.DRBUI = (function () {
         card.appendChild(stepper);
       }
 
-      card.title = item.desc || "";
+      /* 카드에서 잘린 줄은 여기(마우스를 올리면 뜨는 풍선)에 전부 남습니다 */
+      card.title = [item.desc || ""].concat(
+        (item.tradeoffs || []).map(function (t) {
+          return (t.type === "minus" ? "− " : t.type === "later" ? "↻ " : "+ ") + t.text;
+        })
+      ).filter(Boolean).join("\n");
 
-      /* 해외 진출처럼 '어디에 / 어떤 방식으로' 를 함께 정해야 하는 항목 */
+      /* ---------- 해외 진출처럼 '어디에 / 어떤 방식으로' 를 함께 정하는 항목 ----------
+         ★ 고르는 판을 카드 안에 밀어 넣으면 카드가 터집니다. 2국면부터 카드는
+           높이가 절반이고, 지역 넷 · 방식 셋은 그 안에 들어갈 수 없습니다 —
+           실제로 옆 카드를 덮고 글자가 겹쳤습니다.
+           그래서 카드에는 '무엇을 골랐는지' 한 줄만 두고, 고르는 것은 창에서 합니다. */
       if (item.dimensions && amt > 0 && window.DRB_GLOBAL) {
-        card.appendChild(buildDimensions(item, choices[item.id] || {}, onChoice));
+        var chosen = choices[item.id] || {};
+        var summary = dimensionSummary(item, chosen);
+        card.classList.add("is-choosing");
+        var pick = document.createElement("button");
+        pick.className = "alloc__pick" + (summary.done ? " is-done" : " is-need");
+        pick.textContent = summary.text;
+        pick.onclick = function (ev) {
+          ev.stopPropagation();
+          openDimensionPicker(item, choices, onChoice);
+        };
+        card.appendChild(pick);
       }
 
       return card;
@@ -548,15 +576,60 @@ window.DRBUI = (function () {
       list.appendChild(card);
     });
 
-    var cols = Math.min(4, Math.max(1, items.length));
-    var rows = Math.ceil(items.length / cols);
+    /* ★ 줄은 최대 두 줄까지입니다. 세 줄이 되면 카드가 108px 로 눌려
+         '무엇을 얻고 무엇을 잃는지' 를 적을 자리가 사라집니다. 줄을 늘리는 대신
+         칸을 늘립니다 — 카드는 좁아지지만 높이는 지킵니다.
+         4개 → 4칸 1줄 · 6개 → 3칸 2줄 · 8개 → 4칸 2줄 · 10개 → 5칸 2줄 */
+    var rows = items.length <= 4 ? 1 : 2;
+    var cols = Math.max(1, Math.ceil(items.length / rows));
     list.style.gridTemplateColumns = "repeat(" + cols + ", minmax(0, 1fr))";
     list.dataset.rows = String(rows);
 
+    refreshDimensionPicker(items, choices, onChoice);
     updateBudgetBar(alloc);
   }
 
   /* 다차원 선택 UI — 무엇을(항목) 다음에 어디에·어떻게 를 묻습니다 */
+  /* 카드에 한 줄로 적을 말 — 무엇을 골랐는지, 아직 안 골랐는지 */
+  function dimensionSummary(item, picked) {
+    var G = window.DRB_GLOBAL;
+    var parts = [];
+    var need = [];
+
+    if (item.dimensions.indexOf("where") >= 0) {
+      var c = picked.where && G.countries.filter(function (x) { return x.id === picked.where; })[0];
+      if (c) parts.push(c.name); else need.push("지역");
+    }
+    if (item.dimensions.indexOf("how") >= 0) {
+      var m = picked.how && G.modes.filter(function (x) { return x.id === picked.how; })[0];
+      if (m) parts.push(m.name); else need.push("방식");
+    }
+
+    return need.length
+      ? { done: false, text: "⚠ " + need.join(" · ") + " 정하기" }
+      : { done: true, text: "📍 " + parts.join(" · ") };
+  }
+
+  /* 어느 항목의 고르는 창이 열려 있는지 — 다시 그릴 때 창 안도 같이 갱신합니다 */
+  var openPickerId = null;
+
+  function openDimensionPicker(item, choices, onChoice) {
+    openPickerId = item.id;
+    openModal(item.name + " — 어디에, 어떤 방식으로", "");
+    el("modalBody").appendChild(buildDimensions(item, choices[item.id] || {}, onChoice));
+  }
+
+  /* 창 안에서 하나를 고르면 화면 전체가 다시 그려집니다.
+     그때 창까지 같이 새로 그려야 방금 고른 것에 표시가 붙습니다. */
+  function refreshDimensionPicker(items, choices, onChoice) {
+    if (!openPickerId) return;
+    if (!el("modal").classList.contains("is-open")) { openPickerId = null; return; }
+    var item = items.filter(function (x) { return x.id === openPickerId; })[0];
+    if (!item) { openPickerId = null; return; }
+    clearNode(el("modalBody"));
+    el("modalBody").appendChild(buildDimensions(item, choices[item.id] || {}, onChoice));
+  }
+
   function buildDimensions(item, picked, onChoice) {
     var G = window.DRB_GLOBAL;
     var wrap = document.createElement("div");
@@ -606,28 +679,6 @@ window.DRBUI = (function () {
     }
 
     return wrap;
-  }
-
-  /* 카드를 길게 누르면(또는 마우스를 올리면) 효과가 열립니다.
-     평소에는 접어두어야 한 화면에 네 장이 들어갑니다. */
-  function bindLongPress(card, item) {
-    var timer = null;
-
-    function open() { card.classList.add("is-open"); }
-    function close() { card.classList.remove("is-open"); }
-    function start() { clearTimeout(timer); timer = setTimeout(open, 320); }
-    function cancel() { clearTimeout(timer); }
-
-    card.addEventListener("pointerdown", start);
-    card.addEventListener("pointerup", cancel);
-    card.addEventListener("pointerleave", function () { cancel(); close(); });
-    card.addEventListener("pointercancel", function () { cancel(); close(); });
-    card.addEventListener("mouseenter", open);
-    /* 키보드로도 볼 수 있어야 합니다 */
-    card.tabIndex = 0;
-    card.setAttribute("aria-label", item.name + " — 효과 보기");
-    card.addEventListener("focus", open);
-    card.addEventListener("blur", close);
   }
 
   function allocSum(alloc) {

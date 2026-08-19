@@ -326,12 +326,10 @@
       <section class="fac-stage hidden" id="stageFinale" data-stage-panel="finale">
         <article class="fac-film" id="bFilm">
           <div class="fac-film__stage" id="bFilmStage"></div>
-          <div class="fac-film__bar">
-            <span class="fac-film__year num" id="bFilmYear"></span>
-            <span class="fac-film__caption" id="bFilmCaption"></span>
-            <span class="spacer"></span>
-            <span class="fac-film__count num" id="bFilmCount"></span>
-          </div>
+          <!-- ★ 연도 띠를 없앴습니다. 사진 아래 검은 띠가 화면 높이를 먹고 있었고,
+                 사진마다 연도를 읽게 하면 관객이 사진 대신 숫자를 봅니다.
+                 설명이 있는 사진만 사진 위에 조용히 얹습니다. -->
+          <div class="fac-film__caption" id="bFilmCaption"></div>
         </article>
       </section>
 
