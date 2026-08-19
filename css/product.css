@@ -1332,7 +1332,10 @@ button, .btn, .policy, .alloc, .teampick__btn { touch-action: manipulation; }
   font-weight: var(--fw-strong);
   letter-spacing: 0.08em;
 }
+/* 밖에서 온 돌발은 코랄, 우리 상태가 불러온 일은 보라 —
+   같은 사건이 아니라는 것이 색으로도 보여야 합니다 */
 .rfitem--event .rfitem__tag { color: var(--coral); }
+.rfitem--inner .rfitem__tag { color: var(--accent); }
 .rfitem__year { color: var(--text-3); font-size: var(--fs-tiny); }
 .rfitem__title {
   color: var(--text-1);

@@ -52,18 +52,20 @@ window.DRBReflect = (function () {
     return parts.slice(0, howMany || 2).join(" ").trim();
   }
 
+  /* ★ DRB_EVENTS 는 { e1_material: {...}, c_claim: {...} } 꼴입니다.
+       예전에는 시대별 배열인 줄 알고 Array.isArray 로 걸렀는데, 그게 늘 거짓이라
+       사건 설명을 한 번도 못 찾았습니다. 회고 카드에 그때 무슨 일이었는지가
+       안 나오고 "이 사건을 겪고 …" 라는 기본 문장만 떴습니다. */
   function eventBody(eventId) {
-    var found = "";
     var events = window.DRB_EVENTS;
-    if (!events) return "";
-    Object.keys(events).forEach(function (key) {
-      var list = events[key];
-      if (!Array.isArray(list)) return;
-      list.forEach(function (item) {
-        if (item && item.id === eventId && !found) found = item.body || item.description || "";
+    if (!events || !eventId) return "";
+    var ev = events[eventId];
+    if (!ev) {
+      Object.keys(events).forEach(function (key) {
+        if (!ev && events[key] && events[key].id === eventId) ev = events[key];
       });
-    });
-    return found;
+    }
+    return ev ? (ev.body || ev.description || "") : "";
   }
 
   /* 그 국면에 이 조가 실제로 무엇을 했는가 */
@@ -107,12 +109,20 @@ window.DRBReflect = (function () {
 
     if (kind === "event") {
       var title = "";
+      /* 밖에서 온 돌발인지, 우리 회사 상태가 불러온 일인지 —
+         기록에 남겨둔 conditional 로 갈립니다 (engine.js 참고) */
+      var inner = false;
       (team.history || []).forEach(function (h) {
         (((h.report && h.report.events) || [])).forEach(function (event) {
-          if (event && event.id === parts[2] && event.title) title = event.title;
+          if (event && event.id === parts[2]) {
+            if (event.title) title = event.title;
+            inner = !!event.conditional;
+          }
         });
       });
+      out.kind = inner ? "inner" : "event";
       out.title = title || "돌발상황";
+      out.where += inner ? " · 우리 상태" : " · 돌발";
       out.situation = firstSentences(eventBody(parts[2]), 2) ||
         "이 사건을 겪고 이 조가 내린 판단입니다.";
     }

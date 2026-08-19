@@ -1331,15 +1331,22 @@ window.DRBUI = (function () {
         detail: (top.length ? top.join(" + ") + " 중심" : "투자 없음") +
                 (h.policyName ? " · " + h.policyName : "")
       });
+      /* ★ 사건은 두 가지입니다. 딱지를 나눠 붙입니다.
+           돌발    — 국면에 정해진 것. 밖에서 옵니다 (1986 자동차 입찰 · 1997 IMF).
+           우리 상태 — 우리 회사가 그 상태가 되어 터진 것 (품질이 떨어져 클레임 등).
+         둘 다 '돌발' 로 적어두니 두 번뿐인 돌발이 화면에서 네 번으로 보였습니다. */
       ((h.report && h.report.events) || []).forEach(function (event) {
         if (!event || !event.id) return;
+        var inner = !!event.conditional;
         out.push({
           id: "event:" + h.subroundId + ":" + event.id,
-          kind: "event",
-          tag: "돌발",
+          kind: inner ? "inner" : "event",
+          tag: inner ? "우리 상태" : "돌발",
           year: h.year,
           title: event.title || "",
-          detail: "이 사건을 겪고 우리가 내린 판단"
+          detail: inner
+            ? "우리 회사가 이렇게 되어 벌어진 일 · 그때 우리가 내린 판단"
+            : "밖에서 온 일 · 그때 우리가 내린 판단"
         });
       });
     });

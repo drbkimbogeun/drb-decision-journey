@@ -416,7 +416,13 @@ window.DRBEngine = (function () {
     var shield    = clamp(s.shield, 0, 0.45);
 
     function applyEvent(ev) {
-      var entry = { id: ev.id, title: ev.title, body: ev.body, reactions: [] };
+      /* ★ conditional 을 기록에 남깁니다. 두 가지는 성격이 전혀 다릅니다 —
+           국면에 정해진 사건은 밖에서 오고(자동차 입찰 · IMF), 조건부 사건은
+           우리 회사가 그 상태가 되어서 터집니다(품질 30 미만 → 클레임).
+           둘을 같은 '돌발' 로 적어두면 "돌발은 두 번" 이라고 말해놓고
+           회고 화면에는 네 번이 뜹니다. 실제로 그렇게 보였습니다. */
+      var entry = { id: ev.id, title: ev.title, body: ev.body,
+                    conditional: !!ev.conditional, reactions: [] };
 
       function applyMod(mod, sourceLabel) {
         if (!mod) return;
