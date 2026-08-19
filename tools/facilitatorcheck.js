@@ -329,7 +329,12 @@ function checkEvents(W, timeline) {
     } else {
       fixedIds.push(key);
       expect(!event.trigger, key + " 고정 event에 trigger가 없음");
-      expect(referenced.get(key) === 1, key + " 고정 event가 하나의 국면에 정확히 연결됨");
+      /* 한 사건이 두 국면에 걸리면 버그입니다.
+         아예 안 걸린 것은 버그가 아닙니다 — 돌발 수를 줄이면서 일부러 빼둔 것이고,
+         되돌릴 수 있게 정의는 남겨둡니다 (data/rounds.js 머리말 참고). */
+      const used = referenced.get(key) || 0;
+      expect(used <= 1, key + " 고정 event가 두 국면에 겹쳐 걸리지 않음");
+      if (used === 0) console.log("참고 " + key + " 는 지금 어느 국면에도 걸려 있지 않습니다 (일부러 뺀 것)");
     }
 
     (event.reactions || []).forEach(function (reaction, index) {
@@ -476,10 +481,10 @@ function checkFacilitatorStages() {
   /* 시상·순위는 진행자 화면에만 있습니다. 참가자에게 절대 내보내지 않으므로
      Worker 목록에는 없어야 합니다. */
   /* lapse(시간 흐름) 는 빔에서만 돕니다 — 조별 노트북은 그동안 대기 화면입니다 */
-  const facilitatorOnlyStages = ["intro", "howto", "lapse", "phase", "standings", "award", "closing"];
+  const facilitatorOnlyStages = ["intro", "howto", "lapse", "phase", "standings", "award", "finale", "closing"];
   /* 탭 순서는 실제 진행 순서입니다 (진행자 전용 화면이 사이사이 끼어 있습니다) */
   const allTabStages = ["intro", "howto", "briefing", "decisions", "lapse", "event", "phase",
-                        "actual", "map", "standings", "award", "reflect", "closing"];
+                        "actual", "map", "standings", "award", "reflect", "finale", "closing"];
   const html = read("facilitator.html");
   const worker = read("worker.js");
   const tabStages = Array.from(html.matchAll(/\bdata-stage=[\"']([^\"']+)[\"']/g), function (match) {
@@ -653,8 +658,13 @@ function checkLiveApi() {
   const localBlock = /var\s+LOCAL_STAGES\s*=\s*\[([\s\S]*?)\]/.exec(facSource);
   expect(!!localBlock && localBlock[1].indexOf("reflect") < 0,
     "reflect 는 진행자 전용이 아님 — 참가자에게 반드시 나가야 함");
-  expect(/out\.push\(\{\s*turn:\s*timeline\.length\s*-\s*1,\s*stage:\s*"reflect"\s*\}\);[\s\S]{0,120}stage:\s*"closing"/.test(facSource),
-    "회고 챕터는 시상 다음 · 맺음말 앞");
+  /* 마지막 순서 : 시상 → 회고 → (회사 사진) → 맺음말.
+     사진 챕터는 사진이 있을 때만 끼어들므로 사이에 있어도 됩니다. */
+  const tailOrder = ["award", "reflect", "finale", "closing"]
+    .map(function (stage) { return facSource.indexOf('stage: "' + stage + '"'); });
+  expect(tailOrder.every(function (at) { return at > 0; }) &&
+    tailOrder[0] < tailOrder[1] && tailOrder[1] < tailOrder[2] && tailOrder[2] < tailOrder[3],
+    "마지막 챕터 순서 : 시상 → 회고 → 회사 사진 → 맺음말");
 
   const workerSnapshot = functionSource(worker, "sanitizeSnapshot");
   const workerHistory = functionSource(worker, "sanitizeHistoryEntry");

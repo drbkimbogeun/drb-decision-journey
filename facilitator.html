@@ -320,6 +320,21 @@
         </article>
       </section>
 
+      <!-- ······ 회사 사진 ······
+           맺음말 바로 앞. 그림이 먼저 오고 말은 그 다음입니다.
+           사진은 data/endingphotos.js 에 있고, 비어 있으면 이 챕터가 안 뜹니다. -->
+      <section class="fac-stage hidden" id="stageFinale" data-stage-panel="finale">
+        <article class="fac-film" id="bFilm">
+          <div class="fac-film__stage" id="bFilmStage"></div>
+          <div class="fac-film__bar">
+            <span class="fac-film__year num" id="bFilmYear"></span>
+            <span class="fac-film__caption" id="bFilmCaption"></span>
+            <span class="spacer"></span>
+            <span class="fac-film__count num" id="bFilmCount"></span>
+          </div>
+        </article>
+      </section>
+
       <!-- ······ 맺음말 — 한 글자씩 찍힙니다 ······ -->
       <section class="fac-stage hidden" id="stageClosing" data-stage-panel="closing">
         <article class="fac-closing">
@@ -387,6 +402,7 @@
           <button class="fac-jump__item" data-stage="standings">순위 이동</button>
           <button class="fac-jump__item" data-stage="award">시상</button>
           <button class="fac-jump__item" data-stage="reflect">회고</button>
+          <button class="fac-jump__item" data-stage="finale">회사 사진</button>
           <button class="fac-jump__item" data-stage="closing">맺음말</button>
         </nav>
       </div>
@@ -431,6 +447,7 @@
   <script src="data/events.js"></script>
   <script src="data/rounds.js"></script>
   <script src="data/actual_drb.js"></script>
+  <script src="data/endingphotos.js"></script>
   <script src="data/global.js"></script>
   <script src="data/rivals.js"></script>
   <script src="js/audio.js"></script>

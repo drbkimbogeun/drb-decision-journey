@@ -25,9 +25,9 @@
   /* 진행자 화면에만 있는 화면. 순위·시상이 들어 있어 절대 공개하지 않습니다.
      lapse(연도 흐름)도 여기 둡니다 — 참가자 노트북은 그동안 대기 화면 그대로입니다.
      연출을 조별로 또 돌리면 방이 흩어집니다. 이건 빔에서 한 번만 돕니다. */
-  var LOCAL_STAGES = ["intro", "howto", "lapse", "phase", "standings", "award", "closing"];
+  var LOCAL_STAGES = ["intro", "howto", "lapse", "phase", "standings", "award", "finale", "closing"];
   var STAGES = ["intro", "howto", "briefing", "decisions", "lapse", "event", "phase",
-                "actual", "map", "standings", "award", "reflect", "closing"];
+                "actual", "map", "standings", "award", "reflect", "finale", "closing"];
 
   /* 챕터마다 진행자가 할 말 한 줄. 화면 제목이 곧 대본입니다. */
   var CHAPTER = {
@@ -43,6 +43,7 @@
     standings: { title: "여기까지의 순위",             tab: "순위" },
     award:     { title: "여섯 번의 선택이 끝났습니다", tab: "시상" },
     reflect:   { title: "앞으로는 이렇게 하겠습니다",     tab: "회고" },
+    finale:    { title: "우리는 이렇게 걸어왔습니다",     tab: "회사 사진" },
     closing:   { title: "그리고 2026년부터는",         tab: "맺음말" }
   };
 
@@ -323,6 +324,8 @@
     });
     out.push({ turn: timeline.length - 1, stage: "award" });
     out.push({ turn: timeline.length - 1, stage: "reflect" });
+    /* 사진이 없으면 이 챕터는 아예 만들지 않습니다 — 검은 화면을 넘기게 하지 않습니다 */
+    if (endingPhotos().length) out.push({ turn: timeline.length - 1, stage: "finale" });
     out.push({ turn: timeline.length - 1, stage: "closing" });
     return out;
   }
@@ -726,9 +729,9 @@
 
     body.innerHTML =
       podium +
-      "<div class='awards'>" + buildAwards(teams, rows) + "</div>" +
+      buildAwards(teams, rows) +
       "<p class='fac-award__message'>1등이 정답은 아닙니다.<br>" +
-      timeline.length + "번의 선택이 회사의 성격을 만들었습니다.</p>";
+      "잘 맞히는 것이 아니라, 다시 선택할 수 있는 힘입니다.</p>";
   }
 
   /* ============================================================
@@ -829,79 +832,54 @@
     }).join("");
   }
 
+  /* ============================================================
+     시상 — 상은 하나뿐입니다
+
+     ★ 이 자리는 상을 나눠주는 자리가 아니라, 60분 내내 숨겨두었던 것을
+       처음 말하는 자리입니다 — "우리가 본 것은 매출이 아니라 대응력이었다".
+
+       예전에는 부문상이 다섯 개였습니다 (가장 일관된 조 · 가장 과감한 조 ·
+       가장 넓게 나간 조 · DRB와 가장 닮은 조 …). 상이 많으면 다 같이 하나씩
+       받고 끝나고, 정작 하려던 말이 그 사이에 묻힙니다.
+       그중 '위기에 가장 강한 조' 는 재는 것이 일관성(정책 변경 횟수)인데
+       이름은 위기 대응이라, 진행자가 근거 없는 말을 하게 되어 있었습니다.
+
+       하나만 남깁니다. 그리고 왜 그 조인지를 그 자리에서 펼쳐 보입니다.
+     ============================================================ */
   function buildAwards(teams, rows) {
-    var out = [];
+    var best = rows.slice().sort(function (a, b) { return b.adapt - a.adapt; })[0];
+    if (!best) return "";
 
-    /* 가장 멀리 볼 수 있는 회사 */
-    var adaptBest = rows.slice().sort(function (a, b) { return b.adapt - a.adapt; })[0];
-    if (adaptBest) out.push(awardCard("가장 멀리 본 조", adaptBest.name,
-      "무엇이 오든 다시 시작할 수 있는 여력을 가장 많이 남겼습니다 (" + adaptBest.adapt + "점)"));
+    /* 무엇이 그 점수를 만들었는지 — 변화 대응력의 재료를 그대로 보여줍니다.
+       이 표가 곧 '오늘 하려던 말' 입니다. */
+    var parts = window.DRBEngine.adaptiveCapacity(best.team.state).parts
+      .filter(function (p) { return Math.abs(p.value) >= 0.5; })
+      .sort(function (a, b) { return b.value - a.value; });
 
-    /* 가장 일관된 조 — 정책을 가장 적게 바꾼 조 */
-    var steady = teams.map(function (team) {
-      var changes = 0, prev = null;
-      (team.history || []).forEach(function (h) {
-        if (prev && h.policyId && h.policyId !== prev) changes++;
-        if (h.policyId) prev = h.policyId;
-      });
-      return { name: team.name, changes: changes };
-    }).sort(function (a, b) { return a.changes - b.changes; })[0];
-    if (steady) out.push(awardCard("위기에 가장 강한 조", steady.name,
-      "여섯 번의 결정 내내 방향을 " + steady.changes + "번만 바꿨습니다"));
-
-    /* 가장 크게 방향을 바꾼 조 */
-    var boldest = teams.map(function (team) {
-      var changes = 0, prev = null;
-      (team.history || []).forEach(function (h) {
-        if (prev && h.policyId && h.policyId !== prev) changes++;
-        if (h.policyId) prev = h.policyId;
-      });
-      return { name: team.name, changes: changes };
-    }).sort(function (a, b) { return b.changes - a.changes; })[0];
-    if (boldest && boldest.changes > 0 && boldest.name !== steady.name) {
-      out.push(awardCard("가장 과감한 조", boldest.name,
-        "필요할 때 방향을 " + boldest.changes + "번 바꿨습니다. 바꾸는 데에도 대가를 치렀습니다"));
-    }
-
-    /* 가장 넓게 나간 조 */
-    var widest = teams.map(function (team) {
-      return { name: team.name, sites: (team.state.sites || []).length };
-    }).sort(function (a, b) { return b.sites - a.sites; })[0];
-    if (widest && widest.sites > 0) out.push(awardCard("가장 넓게 나간 조", widest.name,
-      "해외 거점을 " + widest.sites + "곳 만들었습니다"));
-
-    /* DRB와 가장 닮은 조 — 확인된 기록과 비교합니다 */
-    var drbLike = mostLikeDrb(teams);
-    if (drbLike) out.push(awardCard("DRB와 가장 닮은 조", drbLike,
-      "확인된 DRB 기록과 같은 분야를 가장 자주 골랐습니다", true));
-
-    return out.slice(0, 4).join("");
-  }
-
-  /* 시대마다 DRB 기록이 고른 분야와 같은 선택을 몇 번 했는가 */
-  function mostLikeDrb(teams) {
-    var scored = teams.map(function (team) {
-      var hits = 0;
-      timeline.forEach(function (item, turn) {
-        var actual = window.DRB_ACTUAL[item.round.actualId];
-        if (!actual || !actual.matchInvest) return;
-        var h = historyAt(team, turn);
-        var top = h ? topIds(h.allocation, 1)[0] : null;
-        if (top && top.id === actual.matchInvest) hits++;
-      });
-      return { name: team.name, hits: hits };
-    }).filter(function (r) { return r.hits > 0; })
-      .sort(function (a, b) { return b.hits - a.hits; });
-    return scored.length ? scored[0].name : "";
-  }
-
-  function awardCard(label, name, why, fact) {
-    return "<div class='award" + (fact ? " award--fact" : "") + "' title='" + esc(why) + "'>" +
-      "<div class='award__label'>" + esc(label) + "</div>" +
-      "<div class='award__team'>" + esc(name) + "</div>" +
+    return "<div class='faraward'>" +
+      "<div class='faraward__head'>" +
+        "<span class='faraward__label'>오늘 우리가 보고 있던 것</span>" +
+        "<b class='faraward__title'>가장 멀리 본 조</b>" +
+        "<span class='spacer'></span>" +
+        "<span class='faraward__team'>" + esc(best.name) + "</span>" +
+        "<span class='faraward__score num'>" + best.adapt + "</span>" +
+      "</div>" +
+      "<p class='faraward__why'>매출이 아니라 <b>다시 선택할 수 있는 여력</b>을 가장 많이 남긴 조입니다. " +
+        "무엇이 오든 여기서 다시 시작할 수 있습니다.</p>" +
+      "<div class='faraward__parts'>" + parts.map(function (p) {
+        var up = p.value >= 0;
+        return "<span class='farpart" + (up ? "" : " is-down") + "'>" +
+          "<i>" + esc(p.name) + "</i>" +
+          "<b class='num'>" + (up ? "+" : "") + p.value.toFixed(1) + "</b>" +
+        "</span>";
+      }).join("") + "</div>" +
+      "<p class='faraward__foot'>선택권을 만드는 것은 더하고, 없애는 것은 뺍니다. " +
+        "경직성과 조직 피로는 깎입니다.</p>" +
     "</div>";
   }
 
+  /* 부문상을 하나로 줄이면서 mostLikeDrb() 와 awardCard() 는 쓰이지 않게 되었습니다.
+     'DRB와 가장 닮은 조' 는 DRB 실제 챕터에서 이미 조별로 비교해 보여주고 있습니다. */
 
   /* ============================================================
      각 챕터의 본문
@@ -1535,6 +1513,64 @@
 
   function closingLines() { return (CFG.closing && CFG.closing.lines) || []; }
 
+  /* ============================================================
+     회사 사진 — 맺음말 바로 앞, 한 장씩 흐릅니다
+
+     ★ 영상 파일이 아니라 사진입니다. 인코딩이 필요 없고, People팀이
+       사진만 갈아 끼울 수 있습니다 (tools/endingphotos.js).
+       한 장이 머무는 시간은 config 의 closing.photoMs.
+     ============================================================ */
+  var film = { timer: null, at: -1 };
+
+  function endingPhotos() {
+    return (window.DRB_ENDING_PHOTOS || []).filter(function (p) { return p && p.src; });
+  }
+
+  function stopFilm() {
+    if (film.timer) { clearTimeout(film.timer); film.timer = null; }
+  }
+
+  function startFilm() {
+    stopFilm();
+    var photos = endingPhotos();
+    var stage = el("bFilmStage");
+    if (!stage || !photos.length) return;
+
+    stage.innerHTML = "";
+    film.at = -1;
+
+    /* 두 장을 겹쳐 두고 번갈아 띄웁니다 — 갈아끼우면 화면이 한 번 깜빡입니다 */
+    var layers = [document.createElement("div"), document.createElement("div")];
+    layers.forEach(function (n) { n.className = "fac-film__shot"; stage.appendChild(n); });
+
+    var hold = (CFG.closing && CFG.closing.photoMs) || 4000;
+
+    function show() {
+      film.at += 1;
+      if (film.at >= photos.length) {
+        el("bFilmCount").textContent = photos.length + " / " + photos.length;
+        return;                       /* 마지막 장은 그대로 둡니다 */
+      }
+      var photo = photos[film.at];
+      var next = layers[film.at % 2];
+      var prev = layers[(film.at + 1) % 2];
+
+      next.style.backgroundImage = "url('" + photo.src + "')";
+      /* 확대 방향을 번갈아 — 같은 방향으로만 밀면 슬라이드쇼처럼 보입니다 */
+      next.classList.remove("is-on", "is-zoom-a", "is-zoom-b");
+      void next.offsetWidth;
+      next.classList.add("is-on", film.at % 2 ? "is-zoom-b" : "is-zoom-a");
+      prev.classList.remove("is-on");
+
+      el("bFilmYear").textContent = photo.year;
+      el("bFilmCaption").textContent = photo.caption || "";
+      el("bFilmCount").textContent = (film.at + 1) + " / " + photos.length;
+
+      film.timer = setTimeout(show, hold);
+    }
+    show();
+  }
+
   /* ★ 스무 줄을 한 화면에 다 쌓으면 글자가 34px 을 넘을 수 없습니다.
        마지막 화면인데 본문보다 조금 큰 정도로는 아무 일도 일어나지 않습니다.
 
@@ -1762,6 +1798,14 @@
     } else {
       stopLapse();
     }
+
+    /* 사진도 들어오는 순간 한 번 돕니다. 되돌아오면 처음부터 다시 흐릅니다. */
+    if (stage === "finale") {
+      if (lastStageShown !== "finale") startFilm();
+    } else {
+      stopFilm();
+    }
+
     lastStageShown = stage;
   }
 

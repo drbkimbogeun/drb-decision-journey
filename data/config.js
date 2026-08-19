@@ -87,7 +87,10 @@ window.DRB_CONFIG = {
     music: {
       normal: "assets/audio/music-normal.m4a",
       lapse:  "assets/audio/music-lapse.m4a",
-      ending: "assets/audio/music-ending.m4a"
+      ending: "assets/audio/music-ending.m4a",
+      /* 회사 사진이 흐르는 챕터부터 맺음말까지 끊기지 않고 이어집니다.
+         두 챕터가 같은 곡을 가리키므로 넘어갈 때 다시 시작하지 않습니다. */
+      finale: "assets/audio/music-finale.m4a"
     },
 
     /* 어느 화면에서 어느 곡을 트는가. 여기 적히지 않은 화면은 normal 입니다.
@@ -100,7 +103,8 @@ window.DRB_CONFIG = {
       intro:     "normal",  howto:     "normal",  briefing:  "normal",  decisions: "normal",
       lapse:     "lapse",   event:     "lapse",   phase:     "lapse",   actual:    "lapse",
       map:       "lapse",   standings: "lapse",
-      award:     "ending",  reflect:   "ending",  closing:   "ending",
+      award:     "ending",  reflect:   "ending",
+      finale:    "finale",  closing:   "finale",
 
       /* 참가자 화면 (연습 모드에서 소리를 켜고 볼 때만 쓰입니다) */
       roundOpen: "normal",  situation: "normal",  invest: "normal",  policy: "normal",
@@ -140,24 +144,38 @@ window.DRB_CONFIG = {
   closing: {
     charMs: 55,     // 글자 하나 찍히는 간격
     lineMs: 700,    // 줄과 줄 사이 (연과 연 사이는 이것의 2.4배)
+
+    /* 맺음말 앞에 회사 사진이 한 장씩 흐릅니다 (data/endingphotos.js).
+       한 장이 머무는 시간입니다. 15장 × 4초 = 1분.
+       사진이 없으면 그 챕터는 아예 뜨지 않습니다. */
+    photoMs: 4000,
     lines: [
       "오늘 여러분은",
-      "1945년에 앉아 있었습니다.",
+      "80년을 지나왔습니다.",
       "",
-      "무엇이 옳은지",
-      "아무도 모르는 자리였습니다.",
+      "하나에만 힘을 쏟은 순간,",
+      "다른 곳이 무너졌습니다.",
       "",
-      "그래도 여섯 번,",
-      "여러분은 골랐습니다.",
+      "위기는 언제나",
+      "준비하지 못한 곳에서 왔습니다.",
       "",
-      "DRB의 80년도",
-      "그렇게 만들어졌습니다.",
+      "그래도 우리는 견뎌냈습니다.",
+      "그 자리를 서로가 메웠기 때문입니다.",
       "",
-      "내일 아침에 앉는 자리도",
-      "같은 자리입니다.",
+      "내일의 답은",
+      "알 수 없습니다.",
       "",
-      "답을 아는 사람은 없고,",
-      "고를 사람은 있습니다."
+      "한 사람이 다 볼 수 있는 회사는",
+      "이제 없습니다.",
+      "",
+      "앞이 보이지 않을 때",
+      "우리는 함께 봅니다.",
+      "",
+      "DRB의 80년이",
+      "그렇게 쌓였습니다.",
+      "",
+      "그리고 지금,",
+      "다음 80년이 시작됩니다."
     ]
   },
 

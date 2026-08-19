@@ -71,7 +71,7 @@ const server = http.createServer((req, res) => {
   expect(fs.existsSync(path.join(ROOT, CFG.audio.shock)), `shock → ${CFG.audio.shock}`);
 
   console.log("\n2. 챕터와 곡의 짝");
-  expect(Object.keys(music).length === 3, "배경음악이 정확히 세 곡임 (" + Object.keys(music).join(" · ") + ")");
+  expect(Object.keys(music).length === 4, "배경음악이 네 곡임 (" + Object.keys(music).join(" · ") + ")");
   const unknown = Object.keys(byScreen).filter(s => !music[byScreen[s]]);
   expect(unknown.length === 0, "musicByScreen 이 없는 곡을 가리키지 않음" + (unknown.length ? " — " + unknown.join(", ") : ""));
   /* ★ 음악은 진행자 빔에서만 납니다. 그래서 짝을 맞춰야 하는 것은 진행자 챕터입니다.
@@ -80,8 +80,12 @@ const server = http.createServer((req, res) => {
     "시대 설명 · 조별 결정은 평상시 곡");
   expect(byScreen.event === "lapse" && byScreen.phase === "lapse",
     "돌발상황 · 국면 결과는 시대흐름 곡");
-  expect(byScreen.award === "ending" && byScreen.closing === "ending",
-    "시상과 맺음말은 엔딩 곡");
+  expect(byScreen.award === "ending" && byScreen.reflect === "ending",
+    "시상과 회고는 엔딩 곡");
+  /* 사진이 흐르는 동안 시작해서 맺음말까지 끊기지 않아야 합니다 —
+     두 챕터가 같은 곡을 가리켜야 넘어갈 때 다시 시작하지 않습니다 */
+  expect(byScreen.finale === "finale" && byScreen.closing === "finale",
+    "회사 사진과 맺음말은 같은 곡(finale)으로 이어짐");
 
   console.log("\n2-2. 음악이 나는 화면은 한 곳뿐인가");
   const facHtml = fs.readFileSync(path.join(ROOT, "facilitator.html"), "utf8");

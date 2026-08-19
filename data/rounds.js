@@ -23,6 +23,19 @@
      시작이 1945인 이유 : DRB는 광복한 해인 1945년 9월 30일에 창업했습니다.
      첫 결정은 그 자리에서 내리는 것이라 창업연도와 같아야 합니다.
 
+   ★★ 돌발상황은 두 번뿐입니다 ★★
+     3국면(1986) 자동차 공동개발 입찰 · 4국면(1997) IMF 외환위기.
+
+     예전에는 다섯 국면에 하나씩 있었습니다. 매 국면 사건이 터지면 그게 일상이 되어
+     '돌발' 이 아니게 되고, 60분 안에 진행자가 다섯 번 흐름을 끊어야 했습니다.
+     두 번만 남기면 그 두 번이 무겁게 걸립니다.
+
+     빠진 국면의 상황(원료값 급등 · 공급망 단절 · 모빌리티 전환)은 사라지지 않습니다.
+     '결정하기 전에 이미 알고 있는 조건' 으로 브리핑에 남습니다 — 놀랄 일이 아니라
+     감안하고 결정할 일이 됩니다.
+
+     되돌리려면 아래 event: null 을 옛 값으로 바꾸면 됩니다 (주석에 적어뒀습니다).
+
    ⚠ 아래 상황 글은 '그 시대 고무산업이 놓여 있던 일반적인 상황'입니다.
      DRB의 실제 사건이 아닙니다. 실제 DRB 사례는 actual_drb.js 에만 넣습니다.
    ============================================================ */
@@ -66,7 +79,7 @@ window.DRB_ROUNDS = [
         year: 1965,
         title: "두 번째 국면 · 원료값이 뛰었다",
         budget: 60,
-        event: "e1_material",
+        event: null,   /* 돌발을 두 번만 씁니다 — 아래 머리말 참고 (예전 값 "e1_material") */
         allowConditional: true,
         situation: {
           title: "생고무를 전량 수입하는데, 국제 시세가 뛰었습니다",
@@ -159,7 +172,7 @@ window.DRB_ROUNDS = [
         year: 2012,
         title: "첫 번째 국면 · 전부 한꺼번에 온다",
         budget: 80,
-        event: "e3_supplyBreak",
+        event: null,   /* 돌발을 두 번만 씁니다 — 아래 머리말 참고 (예전 값 "e3_supplyBreak") */
         allowConditional: true,
         situation: {
           title: "공급망이 끊기고, 기술은 동시에 바뀝니다",
@@ -179,7 +192,7 @@ window.DRB_ROUNDS = [
         year: 2026,
         title: "두 번째 국면 · 마지막 결정",
         budget: 80,
-        event: "e3_transition",
+        event: null,   /* 돌발을 두 번만 씁니다 — 아래 머리말 참고 (예전 값 "e3_transition") */
         allowConditional: true,
         isFinalDecision: true,          // ← 이 결정 뒤에는 '결과'가 없습니다
         situation: {
