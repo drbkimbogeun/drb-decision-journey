@@ -692,6 +692,14 @@ button, .btn, .policy, .alloc, .teampick__btn { touch-action: manipulation; }
 .scorebox__label { color: var(--text-3); font-size: var(--fs-small); font-weight: var(--fw-mid); }
 .scorebox--main .scorebox__label { color: var(--accent-deep); }
 .scorebox__value { margin-top: var(--sp-2); font-size: 62px; font-weight: var(--fw-strong); line-height: 1; letter-spacing: -0.05em; color: var(--text-3); }
+/* ★ 변화 대응력 자리에는 숫자가 아니라 '무엇이 남아 있는가' 가 들어갑니다.
+     62px 로 두면 세 항목이 화면 밖으로 나갑니다. */
+.scorebox--main .scorebox__value {
+  font-size: 27px;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+  color: var(--text-1);
+}
 .scorebox--main .scorebox__value { color: var(--accent); }
 .scorebox__bar { height: 8px; margin-top: var(--sp-4); border-radius: var(--r-pill); background: var(--accent-track); overflow: hidden; }
 .scorebox__fill { height: 100%; border-radius: var(--r-pill); background: var(--accent-line); transition: width var(--t-base); }

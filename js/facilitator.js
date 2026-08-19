@@ -695,7 +695,7 @@
 
     if (!teams.length || done.length < teams.length) {
       state.textContent = done.length + " / " + teams.length + "조 완주";
-      body.innerHTML = "<p class='fac-award__wait'>모든 조가 2026년까지 마치면 종합 순위와 부문상이 열립니다.<br>" +
+      body.innerHTML = "<p class='fac-award__wait'>모든 조가 2026년까지 마치면 결과가 열립니다.<br>" +
         "그 전에 열면 아직 결정을 남긴 조가 불리해집니다.</p>";
       return;
     }
@@ -720,9 +720,9 @@
           "<span class='podium__name'>" + esc(r.name) + "</span>" +
         "</div>" +
         "<div class='podium__style'>" + esc(r.style) + "</div>" +
+        /* 변화 대응력은 숫자로 내놓지 않습니다 — 순서만 아래 시상 카드에서 말합니다 */
         "<div class='podium__scores'>" +
-          "<span><i>변화 대응력</i><b class='num'>" + r.adapt + "</b></span>" +
-          "<span><i>경쟁력</i><b class='num'>" + r.power + "</b></span>" +
+          "<span><i>현재 경쟁력</i><b class='num'>" + r.power + "</b></span>" +
         "</div>" +
       "</div>";
     }).join("") + "</div>";
@@ -847,14 +847,25 @@
        하나만 남깁니다. 그리고 왜 그 조인지를 그 자리에서 펼쳐 보입니다.
      ============================================================ */
   function buildAwards(teams, rows) {
-    var best = rows.slice().sort(function (a, b) { return b.adapt - a.adapt; })[0];
+    var order = rows.slice().sort(function (a, b) { return b.adapt - a.adapt; });
+    var best = order[0];
     if (!best) return "";
 
-    /* 무엇이 그 점수를 만들었는지 — 변화 대응력의 재료를 그대로 보여줍니다.
-       이 표가 곧 '오늘 하려던 말' 입니다. */
+    /* ★ 점수를 숫자로 내놓지 않습니다.
+         정상적으로 플레이해도 30 언저리라, 숫자를 보면 "우리가 못했나" 로 읽힙니다.
+         이 지표는 잘하고 못하고를 재는 것이 아니라 '어느 회사가 다시 움직일 수
+         있는가' 를 보는 것이라, 필요한 것은 절대값이 아니라 서로의 자리입니다. */
+    var standing = order.map(function (r, i) {
+      return "<span class='farrank" + (i === 0 ? " is-first" : "") + "'>" +
+        "<b class='num'>" + (i + 1) + "</b>" + esc(r.name) + "</span>";
+    }).join("");
+
+    /* 무엇이 그 자리를 만들었는지 — 큰 것부터 이름만 늘어놓습니다.
+       이 줄이 곧 '오늘 하려던 말' 입니다. */
     var parts = window.DRBEngine.adaptiveCapacity(best.team.state).parts
-      .filter(function (p) { return Math.abs(p.value) >= 0.5; })
       .sort(function (a, b) { return b.value - a.value; });
+    var kept = parts.filter(function (p) { return p.value >= 0.5; }).slice(0, 5);
+    var lost = parts.filter(function (p) { return p.value <= -0.5; });
 
     return "<div class='faraward'>" +
       "<div class='faraward__head'>" +
@@ -862,19 +873,15 @@
         "<b class='faraward__title'>가장 멀리 본 조</b>" +
         "<span class='spacer'></span>" +
         "<span class='faraward__team'>" + esc(best.name) + "</span>" +
-        "<span class='faraward__score num'>" + best.adapt + "</span>" +
       "</div>" +
       "<p class='faraward__why'>매출이 아니라 <b>다시 선택할 수 있는 여력</b>을 가장 많이 남긴 조입니다. " +
         "무엇이 오든 여기서 다시 시작할 수 있습니다.</p>" +
-      "<div class='faraward__parts'>" + parts.map(function (p) {
-        var up = p.value >= 0;
-        return "<span class='farpart" + (up ? "" : " is-down") + "'>" +
-          "<i>" + esc(p.name) + "</i>" +
-          "<b class='num'>" + (up ? "+" : "") + p.value.toFixed(1) + "</b>" +
-        "</span>";
-      }).join("") + "</div>" +
-      "<p class='faraward__foot'>선택권을 만드는 것은 더하고, 없애는 것은 뺍니다. " +
-        "경직성과 조직 피로는 깎입니다.</p>" +
+      "<div class='faraward__parts'>" +
+        kept.map(function (p) { return "<span class='farpart'>" + esc(p.name) + "</span>"; }).join("") +
+        lost.map(function (p) { return "<span class='farpart is-down'>" + esc(p.name) + "</span>"; }).join("") +
+      "</div>" +
+      "<div class='faraward__rank'><span class='faraward__ranklabel'>여력이 남은 순서</span>" + standing + "</div>" +
+      "<p class='faraward__foot'>점수로 줄 세우지 않습니다. 매출이 가장 큰 조와 여력이 가장 많은 조는 다를 수 있습니다.</p>" +
     "</div>";
   }
 
@@ -1543,7 +1550,13 @@
     var layers = [document.createElement("div"), document.createElement("div")];
     layers.forEach(function (n) { n.className = "fac-film__shot"; stage.appendChild(n); });
 
-    var hold = (CFG.closing && CFG.closing.photoMs) || 4000;
+    var hold = (CFG.closing && CFG.closing.photoMs) || 2000;
+    /* ★ 겹쳐 넘어가는 시간과 확대 시간을 머무는 시간에서 뽑습니다.
+         CSS 에 고정해두면 photoMs 를 줄였을 때 앞 장이 다 사라지기도 전에
+         다음 장이 오고, 확대는 시작만 하다 끝납니다.
+         확대는 한 장의 수명보다 조금 길게 둡니다 — 멈춘 채 떠나면 사진처럼 보입니다. */
+    var fade = Math.max(220, Math.min(600, Math.round(hold * 0.3)));
+    var zoom = hold + fade;
 
     function show() {
       film.at += 1;
@@ -1556,6 +1569,9 @@
       var prev = layers[(film.at + 1) % 2];
 
       next.style.backgroundImage = "url('" + photo.src + "')";
+      next.style.transitionDuration = fade + "ms";
+      prev.style.transitionDuration = fade + "ms";
+      next.style.animationDuration = zoom + "ms";
       /* 확대 방향을 번갈아 — 같은 방향으로만 밀면 슬라이드쇼처럼 보입니다 */
       next.classList.remove("is-on", "is-zoom-a", "is-zoom-b");
       void next.offsetWidth;

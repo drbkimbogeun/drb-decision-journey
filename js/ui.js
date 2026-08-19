@@ -1013,7 +1013,16 @@ window.DRBUI = (function () {
 
     el("fiPowerScore").textContent = power;
     el("fiPowerFill").style.width = clamp01(power / 100) * 100 + "%";
-    el("fiAdaptScore").textContent = adapt.score;
+    /* ★ 변화 대응력은 숫자로 내놓지 않습니다.
+         정상적으로 플레이해도 30 언저리라, 숫자만 보면 "우리가 못했나" 가 됩니다.
+         참가자 화면에는 순위도 나가지 않으므로, 남은 여력이 무엇인지만 말합니다.
+         (조끼리의 자리는 진행자 화면 시상에서 한 번만 공개합니다) */
+    var strong = adapt.parts
+      .filter(function (p) { return p.value >= 0.5; })
+      .sort(function (a, b) { return b.value - a.value; })
+      .slice(0, 3)
+      .map(function (p) { return p.name; });
+    el("fiAdaptScore").textContent = strong.length ? strong.join(" · ") : "아직 남은 것이 적습니다";
     el("fiAdaptFill").style.width = clamp01(adapt.score / 100) * 100 + "%";
     el("fiVerdict").textContent = verdictText(power, adapt.score);
 

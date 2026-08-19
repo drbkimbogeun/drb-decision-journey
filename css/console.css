@@ -1191,45 +1191,79 @@ body.fac-body {
    60분 내내 숨겨두었던 것을 처음 말하는 자리입니다.
    상을 나눠주는 자리가 아니라서, 카드도 하나만 크게 둡니다.
    ============================================================================ */
+/* ⚠ 이 카드는 딥퍼플 판(.fac-award) 위에 올라갑니다.
+   밝은 화면 토큰(--bg-2, --accent-deep)을 그대로 쓰면 흰 바탕에 흰 글자가 됩니다.
+   실제로 그랬습니다 — 여기서는 색을 흰색 기준으로 직접 정합니다. */
 .faraward {
   margin-top: var(--sp-5);
   padding: var(--sp-5) var(--sp-6);
-  border: 2px solid var(--accent);
+  border: 1px solid rgba(255, 255, 255, 0.28);
   border-radius: var(--r-lg);
-  background: var(--accent-soft);
+  background: rgba(255, 255, 255, 0.07);
+  color: #FFFFFF;
 }
 .faraward__head { display: flex; align-items: baseline; gap: var(--sp-4); }
 .faraward__label {
-  color: var(--accent-deep); font-size: var(--fs-tiny);
+  color: rgba(255, 255, 255, 0.52); font-size: var(--fs-tiny);
   font-weight: var(--fw-strong); letter-spacing: 0.12em;
 }
 .faraward__title { font-size: 30px; font-weight: var(--fw-strong); letter-spacing: -0.035em; }
 .faraward__team {
-  padding: 5px 18px; border-radius: var(--r-pill);
-  background: var(--accent); color: var(--text-on-accent);
+  padding: 5px 20px; border-radius: var(--r-pill);
+  background: #FFFFFF; color: var(--accent-deep);
   font-size: 26px; font-weight: var(--fw-strong);
 }
-.faraward__score {
-  color: var(--accent-deep);
-  font-size: 52px; font-weight: var(--fw-strong); line-height: 1; letter-spacing: -0.04em;
-}
-.faraward__why { margin-top: var(--sp-3); font-size: 22px; line-height: 1.5; }
-.faraward__parts {
-  display: flex; flex-wrap: wrap; gap: var(--sp-2);
-  margin-top: var(--sp-4);
-}
+.faraward__why { margin-top: var(--sp-3); font-size: 22px; line-height: 1.5; color: rgba(255, 255, 255, 0.92); }
+.faraward__why b { color: #FFFFFF; }
+
+.faraward__parts { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: var(--sp-4); }
 .farpart {
-  display: inline-flex; align-items: baseline; gap: var(--sp-2);
+  display: inline-flex; align-items: baseline;
   padding: 7px var(--sp-4);
-  border: 1px solid var(--accent-line); border-radius: var(--r-pill);
-  background: var(--bg-2);
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.10);
+  color: #FFFFFF;
   font-size: 17px;
 }
-.farpart i { font-style: normal; color: var(--text-2); }
-.farpart b { color: var(--accent-deep); font-weight: var(--fw-strong); }
-.farpart.is-down { border-color: var(--coral-line); background: var(--coral-tint); }
-.farpart.is-down b { color: var(--coral); }
-.faraward__foot { margin-top: var(--sp-3); color: var(--text-2); font-size: var(--fs-small); }
+/* 깎인 것 — 코랄로 구분합니다 */
+.farpart.is-down {
+  border-color: rgba(255, 122, 92, 0.62);
+  background: rgba(255, 122, 92, 0.16);
+  color: #FFC6B6;
+}
+
+/* 여력이 남은 순서 — 점수 대신 서로의 자리만 말합니다 */
+.faraward__rank {
+  display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-2);
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-4);
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+.faraward__ranklabel {
+  margin-right: var(--sp-2);
+  color: rgba(255, 255, 255, 0.52); font-size: var(--fs-tiny);
+  font-weight: var(--fw-strong); letter-spacing: 0.1em;
+}
+.farrank {
+  display: inline-flex; align-items: baseline; gap: var(--sp-2);
+  padding: 5px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 18px;
+}
+.farrank b { color: rgba(255, 255, 255, 0.45); font-size: var(--fs-small); }
+.farrank.is-first {
+  border-color: #FFFFFF;
+  background: #FFFFFF;
+  color: var(--accent-deep);
+  font-weight: var(--fw-strong);
+}
+.farrank.is-first b { color: var(--accent); }
+
+.faraward__foot { margin-top: var(--sp-3); color: rgba(255, 255, 255, 0.55); font-size: var(--fs-small); }
 
 
 /* ============================================================================
@@ -1262,12 +1296,14 @@ body.fac-body {
   background-size: cover;
   background-repeat: no-repeat;
   opacity: 0;
-  transition: opacity 900ms ease;
+  /* 시간은 js/facilitator.js 가 config 의 photoMs 를 보고 덮어씁니다.
+     여기 값은 스크립트가 아직 안 돌았을 때 쓰이는 것입니다. */
+  transition: opacity 600ms ease;
 }
 .fac-film__shot.is-on { opacity: 1; }
 /* 확대 방향을 번갈아 줍니다. 같은 방향으로만 밀면 슬라이드쇼처럼 보입니다. */
-.fac-film__shot.is-zoom-a { animation: film-zoom-a 5200ms ease-out forwards; }
-.fac-film__shot.is-zoom-b { animation: film-zoom-b 5200ms ease-out forwards; }
+.fac-film__shot.is-zoom-a { animation: film-zoom-a 2600ms ease-out forwards; }
+.fac-film__shot.is-zoom-b { animation: film-zoom-b 2600ms ease-out forwards; }
 
 .fac-film__bar {
   flex: 0 0 auto;
@@ -1285,12 +1321,13 @@ body.fac-body {
 .fac-film__caption { color: rgba(255, 255, 255, 0.62); font-size: var(--fs-lead); }
 .fac-film__count { color: rgba(255, 255, 255, 0.34); font-size: var(--fs-small); }
 
+/* 2초 안에 움직이는 것이 보여야 하므로 폭을 조금 키웠습니다 */
 @keyframes film-zoom-a {
   from { transform: scale(1.00); }
-  to   { transform: scale(1.09); }
+  to   { transform: scale(1.11); }
 }
 @keyframes film-zoom-b {
-  from { transform: scale(1.09); }
+  from { transform: scale(1.11); }
   to   { transform: scale(1.00); }
 }
 @media (prefers-reduced-motion: reduce) {
