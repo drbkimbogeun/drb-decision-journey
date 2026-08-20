@@ -723,7 +723,31 @@ button, .btn, .policy, .alloc, .teampick__btn { touch-action: manipulation; }
 .scorebox__fill { height: 100%; border-radius: var(--r-pill); background: var(--accent-line); transition: width var(--t-base); }
 .scorebox--main .scorebox__fill { background: var(--accent); }
 
-.final__message { margin-top: auto; padding-top: 50px; font-size: 40px; font-weight: var(--fw-strong); line-height: 1.4; letter-spacing: -0.04em; }
+/* ★ 변화 대응력이 왜 이렇게 나왔는가 — 표어가 있던 자리입니다.
+     숫자는 없습니다. 이름과 막대 길이만으로 무엇을 쌓았고 무엇을 깎아먹었는지 봅니다. */
+.adaptwhy {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--sp-5);
+  margin-top: auto;
+  padding-top: var(--sp-5);
+}
+.adaptwhy__col { min-width: 0; }
+.adaptwhy__head {
+  margin-bottom: var(--sp-3);
+  color: var(--text-3);
+  font-size: var(--fs-tiny);
+  font-weight: var(--fw-strong);
+  letter-spacing: 0.08em;
+}
+.adaptwhy__col[data-side="down"] .adaptwhy__head { color: var(--coral); }
+.adaptwhy__list { display: grid; gap: 7px; }
+
+.adaptrow { display: grid; grid-template-columns: 128px minmax(0, 1fr); align-items: center; gap: var(--sp-3); }
+.adaptrow__name { font-size: var(--fs-small); font-weight: var(--fw-mid); letter-spacing: -0.02em; }
+.adaptrow__bar { height: 10px; border-radius: var(--r-pill); background: var(--accent-track); overflow: hidden; }
+.adaptrow__bar i { display: block; height: 100%; border-radius: var(--r-pill); background: var(--accent); }
+.adaptrow.is-down .adaptrow__bar i { background: var(--coral); }
 
 .partchips { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
 .partchip { padding: 8px 14px; border: 1px solid var(--line); border-radius: var(--r-sm); font-size: var(--fs-small); color: var(--text-2); }

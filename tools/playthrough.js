@@ -106,6 +106,34 @@ const STRATEGY = {
   },
 };
 
+/* 조가 회고에 실제로 적는 것.
+   pick 은 목록에서 고를 줄을 찾는 말입니다 (앞에서부터 맞는 것 하나).
+   ★ 세 조가 서로 다른 자리를 고르게 해두었습니다. 진행자 화면에 나란히 섰을 때
+     "같은 80년인데 각자 다른 데서 멈췄다" 가 보여야 하기 때문입니다. */
+const REFLECT = {
+  "1조": {
+    pick: ["자동차", "문이 한꺼번에"],
+    comment: "우리는 준비가 됐다고 생각했는데 계약은 한 곳만 갔습니다. " +
+             "개발비는 이미 나간 뒤였습니다. 다음에 이런 자리가 오면 " +
+             "딸 수 있느냐만 보지 않고, 못 땄을 때 무엇이 남는지를 먼저 정하고 들어가겠습니다.",
+  },
+  "2조": {
+    /* ★ 일부러 '우리 상태' 줄을 고르게 했습니다. 2조는 매출 1위인데
+         자기가 만든 사고가 회고 목록에 두 개 올라와 있습니다. */
+    pick: ["대형 품질 클레임", "핵심 인력 이탈"],
+    comment: "매출은 우리가 가장 컸는데 회고 목록에 우리가 만든 사고가 두 개 있습니다. " +
+             "품질에 한 번도 넣지 않아 클레임이 났고, 사람을 계속 갈아 넣어 인력이 빠졌습니다. " +
+             "밖에서 온 일이 아니라 우리가 굶긴 자리에서 터졌습니다. " +
+             "다음에는 크게 거는 만큼 지킬 것도 같이 세우겠습니다.",
+  },
+  "3조": {
+    pick: ["돈이 마른다", "마지막 결정"],
+    comment: "돈이 마르던 국면에 아무것도 벌이지 않고 사람과 현금을 지켰습니다. " +
+             "그때는 뒤처지는 것 같았는데, 80년을 지나고 보니 그 자리가 남았습니다. " +
+             "앞으로도 한쪽에 다 걸지 않고 다시 고를 수 있는 여지를 남기겠습니다.",
+  },
+};
+
 const server = http.createServer((req, res) => {
   const rel = decodeURIComponent(req.url.split("?")[0]).replace(/^\//, "") || "index.html";
   const file = path.join(ROOT, rel);
@@ -120,6 +148,7 @@ const CHAPTER = {
   intro: "표지", howto: "진행 방법", briefing: "시대 설명", decisions: "조별 결정",
   lapse: "시간 흐름", event: "돌발상황", phase: "국면 결과", actual: "DRB 실제",
   map: "산업 지도", standings: "순위", award: "시상", reflect: "회고", closing: "맺음말",
+  review: "간담회 자료",
 };
 
 function esc(s) {
@@ -359,12 +388,61 @@ function esc(s) {
       if (screen === "ending") { await snap(page, name, 6, "2026 엔딩", "여기서부터는 정답이 없습니다."); await page.click("#btnEndNext").catch(() => {}); }
       else if (screen === "final") { await snap(page, name, 6, "최종 결과", "등수가 아니라 '어떤 회사를 만들었는가' 입니다."); await page.click("#btnFinalGo").catch(() => {}); }
       else if (screen === "reflect") {
-        await snap(page, name, 6, "회고", "80년 중 가장 이야기하고 싶은 결정 하나를 고릅니다.");
+        await snap(page, name, 6, "회고 · 고르기 전",
+          "80년 동안 우리 조가 내린 결정이 그대로 올라옵니다. 이 중 하나만 고릅니다.");
+        const wrote = await fillReflection(name);
+        if (!wrote) errors.push(`${name} 회고를 제출하지 못했습니다`);
+        await snap(page, name, 6, "회고 · 제출",
+          "고른 결정 하나와 '앞으로 어떻게 하겠는가'. 이것이 진행자 화면과 간담회 자료로 올라갑니다.");
         break;
       } else break;
       await page.waitForTimeout(600);
     }
     }
+  }
+
+  /* 회고 한 장을 실제로 적어 제출합니다.
+     사람이 하는 그대로 — 줄을 고르고, 칸에 적고, [제출] 을 누릅니다. */
+  async function fillReflection(name) {
+    const spec = REFLECT[name];
+    if (!spec) return false;
+
+    /* ★ 조마다 목록이 다릅니다. 국면 결정 6개는 같지만, 사건은
+         '그 조가 실제로 겪은 것' 만 올라옵니다. 돌발 둘은 모두에게 오고,
+         '우리 상태' 는 그 조 상태가 조건에 걸렸을 때만 그 조에 옵니다. */
+    const rows = await page.evaluate(() =>
+      [...document.querySelectorAll(".rfitem")].map(r => ({
+        tag: (r.querySelector(".rfitem__tag") || {}).textContent || "",
+        year: (r.querySelector(".rfitem__year") || {}).textContent || "",
+        title: (r.querySelector(".rfitem__title") || {}).textContent || "",
+      })));
+    console.log(`         ${name} 회고 목록 ${rows.length}줄`);
+    rows.forEach(r => console.log(`             ${r.tag.padEnd(6)} ${r.year.padEnd(6)} ${r.title}`));
+
+    const picked = await page.evaluate((wants) => {
+      const rows = [...document.querySelectorAll(".rfitem")];
+      if (!rows.length) return null;
+      let row = null;
+      for (const want of wants) {
+        row = rows.filter(r => r.textContent.indexOf(want) >= 0)[0];
+        if (row) break;
+      }
+      if (!row) row = rows[rows.length - 1];
+      row.click();
+      return row.textContent.replace(/\s+/g, " ").trim().slice(0, 60);
+    }, spec.pick);
+    if (!picked) return false;
+    console.log(`         ${name} 회고 — ${picked}`);
+
+    await page.fill("#rfComment", spec.comment);
+    await page.waitForTimeout(150);
+    await page.click("#btnReflectSend");
+    await page.waitForTimeout(500);
+
+    return await page.evaluate(() => {
+      const t = window.DRBState.team();
+      return !!(t && t.finalReflection && t.finalReflection.comment);
+    });
   }
 
   /* 엔딩·최종 화면에서는 상단 조 전환이 열리지 않습니다.
@@ -442,6 +520,24 @@ function esc(s) {
     await fac.click("#btnNextStep");
     await fac.waitForTimeout(320);
   }
+  /* ---------- 간담회 자료 ----------
+     진행자 화면이 [회고] 챕터를 열 때 이 PC 에 자료를 저장해 둡니다.
+     그래서 빔을 끝까지 돌린 뒤에 열어야 내용이 들어 있습니다. */
+  const rv = await beamCtx.newPage();
+  rv.on("pageerror", e => errors.push("간담회 자료: " + e.message));
+  await rv.goto(`http://127.0.0.1:${PORT}/review.html`);
+  await rv.waitForTimeout(1200);
+  await snap(rv, "beam", 6, "review",
+    "간담회에서 그대로 띄우는 자료입니다. 각 조가 고른 결정과 앞으로의 판단이 한 장에 모입니다.");
+  const rvInfo = await rv.evaluate(() => ({
+    cards: document.querySelectorAll(".rvcard, .review-card, article").length,
+    text: document.body.innerText.replace(/\s+/g, " ").slice(0, 300),
+  }));
+  console.log(`
+간담회 자료 — 카드 ${rvInfo.cards}장`);
+  console.log("  " + rvInfo.text);
+  await rv.close();
+
   await beamCtx.close();
   await browser.close();
   server.close();

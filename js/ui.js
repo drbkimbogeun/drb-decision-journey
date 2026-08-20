@@ -996,7 +996,35 @@ window.DRBUI = (function () {
     el("fiAdaptFill").style.width = clamp01(adapt.score / 100) * 100 + "%";
     el("fiVerdict").textContent = verdictText(power, adapt.score);
 
-    /* 변화 대응력이 무엇으로 만들어졌는지 — 올린 것과 깎아먹은 것 */
+    /* ★ 화면에 바로 보이는 자리 — 우리 변화 대응력이 왜 이렇게 나왔는가.
+         숫자는 쓰지 않습니다(그 결정은 시상에서 이미 내렸습니다). 이름과 막대 길이로
+         "무엇을 쌓았고 무엇을 깎아먹었는지" 만 보여줍니다. */
+    var up = el("fiAdaptUp"), down = el("fiAdaptDown");
+    if (up && down) {
+      clearNode(up); clearNode(down);
+      var widest = Math.max.apply(null, adapt.parts.map(function (p) { return Math.abs(p.value); }).concat([1]));
+
+      function bar(node, p) {
+        var row = document.createElement("div");
+        row.className = "adaptrow" + (p.value < 0 ? " is-down" : "");
+        row.innerHTML =
+          "<span class='adaptrow__name'>" + escapeHtml(p.name) + "</span>" +
+          "<span class='adaptrow__bar'><i style='width:" +
+            Math.round(Math.abs(p.value) / widest * 100) + "%'></i></span>";
+        node.appendChild(row);
+      }
+
+      var ups = adapt.parts.filter(function (p) { return p.value > 0; })
+                           .sort(function (a, b) { return b.value - a.value; });
+      var downs = adapt.parts.filter(function (p) { return p.value < 0; })
+                             .sort(function (a, b) { return a.value - b.value; });
+      ups.forEach(function (p) { bar(up, p); });
+      downs.forEach(function (p) { bar(down, p); });
+      if (!ups.length) up.innerHTML = "<p class='hint'>쌓아둔 것이 없습니다</p>";
+      if (!downs.length) down.innerHTML = "<p class='hint'>깎아먹은 것이 없습니다</p>";
+    }
+
+    /* 변화 대응력이 무엇으로 만들어졌는지 — 올린 것과 깎아먹은 것 (숫자까지) */
     var ap = el("fiAdaptParts");
     clearNode(ap);
     adapt.parts.slice().sort(function (a, b) { return b.value - a.value; }).forEach(function (p) {
