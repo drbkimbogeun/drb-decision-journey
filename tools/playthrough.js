@@ -1,17 +1,21 @@
 /* ============================================================
-   playthrough.js — 2개 조 + 경쟁사 1개로 한 판을 실제로 플레이하고 기록합니다
+   playthrough.js — 여러 조가 서로 다른 전략으로 한 판을 실제로 플레이하고 기록합니다
 
-   실행 :  node tools/playthrough.js
-   결과 :  export/플레이 기록 2조.html   (스크린샷까지 파일 안에 들어 있습니다)
+   실행 :  node tools/playthrough.js            (2개 조)
+           TEAMS=4 node tools/playthrough.js    (4개 조)
+           TEAMS=4 RIVALS=3 node tools/playthrough.js
+   결과 :  export/플레이 기록 4조.html   (스크린샷까지 파일 안에 들어 있습니다)
 
    ★ tools/report.js 와 다릅니다.
      report.js  : 화면이 어떻게 생겼는지 (한 조가 기계적으로 다 눌러봄)
      이 파일     : 실제로 두 조가 서로 다른 전략으로 붙으면 어떻게 되는지
 
-   두 조에 뚜렷이 다른 성격을 줍니다.
-     1조  만들 수 있는 회사 — 기술과 품질에 먼저 넣고, 크게 벌이지 않습니다
-     2조  먼저 크게 거는 회사 — 눈앞의 시장과 확장에 몰아 넣습니다
-   3국면 자동차 공동개발은 한 곳만 계약하므로, 여기서 둘이 정면으로 부딪힙니다.
+   조마다 뚜렷이 다른 성격을 줍니다. 앞에서부터 필요한 만큼 씁니다.
+     1조  만들 수 있는 회사   기술과 품질에 먼저 넣고, 크게 벌이지 않습니다
+     2조  먼저 크게 거는 회사  눈앞의 시장과 확장에 몰아 넣습니다
+     3조  버티는 회사        현금과 사람을 남깁니다. 느리지만 무너지지 않습니다
+     4조  고객을 따라가는 회사  고객이 가는 곳으로 갑니다. 판로와 해외에 겁니다
+   3국면 자동차 공동개발은 한 곳만 계약하므로, 여기서 조들이 정면으로 부딪힙니다.
 
    ⚠ 회사 보안정책이 공유폴더에 .png / .jpg 쓰기를 막습니다.
      그래서 이미지 파일을 따로 만들지 않고 HTML 안에 넣습니다.
@@ -31,7 +35,10 @@ try {
 }
 
 const ROOT = path.join(__dirname, "..");
-const OUT = path.join(ROOT, "export", "플레이 기록 2조.html");
+/* 몇 조로 돌릴지는 실행할 때 정합니다 — TEAMS=4 node tools/playthrough.js */
+const TEAM_COUNT = Math.max(1, Math.min(4, Number(process.env.TEAMS) || 2));
+const RIVALS = Math.max(1, Math.min(3, Number(process.env.RIVALS) || 1));
+const OUT = path.join(ROOT, "export", `플레이 기록 ${TEAM_COUNT}조.html`);
 const PORT = 8817;
 const MIME = {
   ".html": "text/html", ".js": "text/javascript", ".css": "text/css",
@@ -44,12 +51,15 @@ const BEAM_VIEW = { width: 1920, height: 1080 };
 const SCALE = 0.8;
 const QUALITY = 74;
 
-const TEAMS = ["1조", "2조"];
-const RIVALS = 1;
+const TEAMS = ["1조", "2조", "3조", "4조"].slice(0, TEAM_COUNT);
 
 /* 조별 성격. 국면마다 '어디에 먼저 넣는가' 를 순서로 적습니다.
    앞에서부터 최대치까지 채우고, 남으면 다음 항목으로 넘어갑니다. */
 /* 조별 성격. 국면마다 '어디에 얼마' 를 적습니다 (토큰 10 단위).
+   ⚠ 선택지는 국면마다 단계적으로 열립니다. 1국면(1945)에는 고무신 · 벨트 · 생산설비뿐이고
+     품질체계와 숙련인력은 2국면부터입니다 (investments.js 의 unlockSubround).
+     그 시대에 아직 없는 것만 적어두면 그 조는 1국면에 한 푼도 안 넣고 지나갑니다.
+     실제로 그랬습니다 — 그래서 각 era 목록 앞에는 unlock=0 인 것을 둡니다.
    ★ 예산을 전부 쓰지 않습니다 — 남긴 것은 현금이 되고, 다음 국면 예산을 지킵니다.
      전액을 매번 쏟아부으면 현금이 말라 3국면에 쓸 돈이 10까지 떨어집니다.
      실제로 그렇게 돌려봤고, 그래서 자동차 계약 문턱(20)도 못 넘었습니다. */
@@ -59,7 +69,7 @@ const STRATEGY = {
     note: "기술과 품질에 먼저 넣습니다. 눈앞의 매출보다 만들 수 있는 능력을 쌓고, 현금을 남깁니다.",
     policy: { era1: "techfirst", era2: "techfirst", era3: "techLead" },
     plan: {
-      era1: [["quality", 20], ["people", 20]],
+      era1: [["belt", 20], ["facility", 10], ["quality", 20], ["people", 20]],
       era2: [["rnd", 30], ["auto", 20], ["quality", 10]],
       era3: [["aiRnd", 30], ["newMaterial", 20], ["esg", 10]],
     },
@@ -72,6 +82,26 @@ const STRATEGY = {
       era1: [["consumer", 30], ["facility", 20]],
       era2: [["auto", 40], ["beltExpand", 20], ["globalPlant", 10]],
       era3: [["mobility", 40], ["globalReshape", 20], ["smartFactory", 10]],
+    },
+  },
+  "3조": {
+    label: "버티는 회사",
+    note: "한 곳에 몰지 않습니다. 사람과 현금을 남겨두고, 다음에 고를 수 있는 자리를 지킵니다.",
+    policy: { era1: "stable", era2: "talent", era3: "optionality" },
+    plan: {
+      era1: [["facility", 10], ["belt", 10], ["people", 20], ["quality", 10]],
+      era2: [["people", 20], ["quality", 20], ["rnd", 10]],
+      era3: [["talent", 20], ["pilot", 20], ["aiRnd", 10]],
+    },
+  },
+  "4조": {
+    label: "고객을 따라가는 회사",
+    note: "고객이 가는 곳으로 따라갑니다. 판로와 해외, 그리고 고객과 함께 만드는 것에 겁니다.",
+    policy: { era1: "customer", era2: "globalFirst", era3: "focusCore" },
+    plan: {
+      era1: [["consumer", 20], ["facility", 10], ["quality", 20]],
+      era2: [["globalPlant", 30], ["beltExpand", 20], ["quality", 10]],
+      era3: [["globalReshape", 20], ["customerLock", 30], ["esg", 10]],
     },
   },
 };
@@ -243,6 +273,14 @@ function esc(s) {
     await snap(page, teamName, turn, "확정 직전",
       `예산 ${picked.budget} → ${picked.picks.join(" · ")} · 정책 ${picked.policy}`);
     log.push({ turn, team: teamName, ...picked, year: at.year });
+
+    /* ★ 한 푼도 안 넣고 지나가면 그 조는 그 국면을 안 한 것과 같습니다.
+         전략에 적어둔 항목이 그 국면에 아직 안 열렸을 때 조용히 이렇게 됩니다.
+         조용히 넘어가면 기록만 보고는 알 수가 없어 여기서 소리를 냅니다. */
+    if (!picked.picks.length) {
+      errors.push(`${teamName} 가 ${turn + 1}국면(${at.year})에 아무 데도 넣지 않았습니다 — ` +
+                  `STRATEGY 에 적은 항목이 이 국면에 아직 열리지 않았을 수 있습니다`);
+    }
 
     await page.click("#btnInvestGo");
     await page.waitForTimeout(700);
@@ -436,12 +474,11 @@ function esc(s) {
 function buildHtml(d) {
   const { shots, log, finals, setup, flat, CFG, errors } = d;
 
-  const WHO = {
-    beam: { label: "빔", cls: "beam" },
-    "1조": { label: "1조 노트북", cls: "t1" },
-    "2조": { label: "2조 노트북", cls: "t2" },
-    team: { label: "노트북", cls: "t1" },
-  };
+  /* 조가 몇이든 딱지를 만들어 둡니다 — 없으면 4조에서 화면 만들다 멈춥니다 */
+  const WHO = { beam: { label: "빔", cls: "beam" }, team: { label: "노트북", cls: "t1" } };
+  ["1조", "2조", "3조", "4조"].forEach((name, i) => {
+    WHO[name] = { label: name + " 노트북", cls: "t" + (i + 1) };
+  });
 
   function card(s) {
     const w = WHO[s.who] || WHO.team;
@@ -507,7 +544,7 @@ function buildHtml(d) {
   --ink:#1A1327; --ink-2:#5F5677; --ink-3:#8E86A4;
   --ground:#FFFFFF; --surface:#FAF8FD; --line:#E7E2F0; --line-2:#D6CEE7;
   --accent:#8B5CD6; --accent-deep:#43277F; --coral:#FF7A5C;
-  --t1:#8B5CD6; --t2:#E0733F;
+  --t1:#8B5CD6; --t2:#E0733F; --t3:#2E9E8F; --t4:#C2417A;
   --shadow:0 1px 2px rgba(26,19,39,.05), 0 12px 32px rgba(26,19,39,.06);
   --sans:"IBM Plex Sans KR","Pretendard","Malgun Gothic","맑은 고딕",system-ui,sans-serif;
   --disp:"Gothic A1","Pretendard","Malgun Gothic","맑은 고딕",system-ui,sans-serif;
@@ -518,7 +555,7 @@ function buildHtml(d) {
     --ink:#EFEBF7; --ink-2:#A79EBE; --ink-3:#776E8D;
     --ground:#14101F; --surface:#1D1730; --line:#2E2545; --line-2:#3D3159;
     --accent:#A985E6; --accent-deep:#C6A9EE; --coral:#FF9179;
-    --t1:#A985E6; --t2:#F0925C;
+    --t1:#A985E6; --t2:#F0925C; --t3:#5CC9B8; --t4:#E8749F; --t3:#5CC9B8; --t4:#E8749F;
     --shadow:0 1px 2px rgba(0,0,0,.4), 0 14px 36px rgba(0,0,0,.34);
   }
 }
@@ -526,7 +563,7 @@ function buildHtml(d) {
   --ink:#EFEBF7; --ink-2:#A79EBE; --ink-3:#776E8D;
   --ground:#14101F; --surface:#1D1730; --line:#2E2545; --line-2:#3D3159;
   --accent:#A985E6; --accent-deep:#C6A9EE; --coral:#FF9179;
-  --t1:#A985E6; --t2:#F0925C;
+  --t1:#A985E6; --t2:#F0925C; --t3:#5CC9B8; --t4:#E8749F;
   --shadow:0 1px 2px rgba(0,0,0,.4), 0 14px 36px rgba(0,0,0,.34);
 }
 *{box-sizing:border-box}
@@ -540,6 +577,8 @@ body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);
 .who__card{padding:18px 20px;border:1px solid var(--line);border-left:5px solid var(--line-2);border-radius:12px;background:var(--surface)}
 .who__card--t1{border-left-color:var(--t1)}
 .who__card--t2{border-left-color:var(--t2)}
+.who__card--t3{border-left-color:var(--t3)}
+.who__card--t4{border-left-color:var(--t4)}
 .who__name{font-family:var(--disp);font-weight:800;font-size:19px}
 .who__label{color:var(--ink-2);font-size:15px}
 .who__note{margin:6px 0 0;color:var(--ink-2);font-size:14px;line-height:1.5}
@@ -547,6 +586,8 @@ body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);
 .tag--beam{background:color-mix(in srgb,var(--accent) 14%,transparent);border-color:var(--accent);color:var(--accent-deep)}
 .tag--t1{border-color:var(--t1);color:var(--t1)}
 .tag--t2{border-color:var(--t2);color:var(--t2)}
+.tag--t3{border-color:var(--t3);color:var(--t3)}
+.tag--t4{border-color:var(--t4);color:var(--t4)}
 .rail{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:6px;margin:0 -24px;padding:12px 24px;background:color-mix(in srgb,var(--ground) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
 .rail a{display:inline-flex;align-items:baseline;gap:7px;padding:5px 12px;border-radius:8px;color:var(--ink-2);text-decoration:none;font-family:var(--mono);font-size:13px}
 .rail a:hover,.rail a:focus-visible{background:var(--surface);color:var(--ink)}
@@ -561,6 +602,8 @@ body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);
 .call{display:grid;grid-template-columns:auto auto;gap:2px 12px;padding:14px 18px;border:1px solid var(--line);border-left:5px solid var(--line-2);border-radius:10px;background:var(--surface);font-size:15px}
 .call--t1{border-left-color:var(--t1)}
 .call--t2{border-left-color:var(--t2)}
+.call--t3{border-left-color:var(--t3)}
+.call--t4{border-left-color:var(--t4)}
 .call b{font-family:var(--disp);font-size:17px}
 .call__budget{font-family:var(--mono);color:var(--ink-2);font-size:13px;text-align:right}
 .call__picks{grid-column:1/-1;color:var(--ink)}
@@ -572,6 +615,8 @@ body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);
 .shot--beam .shot__frame{border-color:var(--accent)}
 .shot--t1 .shot__frame{border-color:var(--t1)}
 .shot--t2 .shot__frame{border-color:var(--t2)}
+.shot--t3 .shot__frame{border-color:var(--t3)}
+.shot--t4 .shot__frame{border-color:var(--t4)}
 .shot__frame img{display:block;width:100%;height:auto}
 .shot figcaption{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 10px}
 .shot figcaption b{font-family:var(--disp);font-weight:700;font-size:16px;letter-spacing:-.02em}
