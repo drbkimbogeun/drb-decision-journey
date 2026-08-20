@@ -1091,11 +1091,18 @@
       el("bEventYear").textContent = item.sub.year;
       el("bEventHeadline").textContent = "이 국면은 사전 돌발상황이 없습니다";
       el("bEventBody").textContent = "시장 자체와 첫 선택의 불확실성에 집중합니다.";
+      el("bEventSource").textContent = "";
     } else {
       box.dataset.eventId = event.id;
       el("bEventYear").textContent = item.sub.year;
       el("bEventHeadline").textContent = event.headline;
       el("bEventBody").textContent = event.body;
+      /* ★ 돌발상황은 전부 만들어낸 상황입니다. 바로 다음 화면이 ACTUAL DRB 라서
+           여기서 밝히지 않으면 방금 본 사건이 회사 연표로 기억됩니다.
+           실제 연표와 헷갈릴 만한 사건에는 events.js 의 factNote 가 붙습니다. */
+      el("bEventSource").textContent =
+        "이 상황은 당시 업계 환경을 재구성한 교육용 가정입니다. DRB의 실제 기록은 ACTUAL DRB 화면에서 봅니다." +
+        (event.factNote ? "  " + event.factNote : "");
     }
 
     el("bEventTeams").innerHTML = teams.map(function (team) {
