@@ -164,10 +164,6 @@ body.fac-body {
   flex-wrap: wrap;
 }
 
-.team-card--rival {
-  background: var(--bg-inset);
-  border-left-style: dashed;
-}
 
 /* ---------- 큰 지도 ---------- */
 .bigmap {
@@ -303,7 +299,6 @@ body.fac-body {
 }
 
 .news-item--team   { border-left-color: var(--info); }
-.news-item--rival  { border-left-color: var(--text-3); }
 .news-item--event  { border-left-color: var(--warn); background: var(--warn-soft); }
 .news-item--milestone { border-left-color: var(--drb-red); }
 

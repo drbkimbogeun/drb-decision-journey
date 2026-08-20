@@ -630,8 +630,6 @@ button, .btn, .policy, .alloc, .teampick__btn { touch-action: manipulation; }
 .whylist li.is-muted::before { background: var(--accent-track); }
 
 .breakdown__row { background: var(--bg-2); border-radius: var(--r-sm); }
-.standing__item, .rival-row, .rival { border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--bg-2); }
-.rival--ours { border-color: var(--accent); background: var(--accent-tint); }
 .delta--up { color: var(--accent); }
 .delta--down { color: var(--coral); }
 .delta--flat { color: var(--text-3); }
@@ -753,7 +751,6 @@ button, .btn, .policy, .alloc, .teampick__btn { touch-action: manipulation; }
 .replay__row { border: 0; border-left: 2px solid var(--accent-track); border-radius: 0; background: none; }
 .replay__row::before { background: var(--accent); }
 .replay__year { color: var(--accent); }
-
 
 
 /* ============================================================

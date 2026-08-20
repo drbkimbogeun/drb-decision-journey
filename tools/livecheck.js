@@ -65,9 +65,10 @@ function step(title) { console.log("\n" + "─".repeat(70) + "\n" + title); }
     await fac.waitForTimeout(600);
     /* 모달에서 조 수를 고르고 만듭니다 */
     const made = await fac.evaluate(async () => {
-      const rivals = document.getElementById("sessionRivalCount");
-      if (!rivals) return { error: "AI 경쟁사 수 항목이 없습니다" };
-      rivals.value = "2";                       // 교촌치킨 · 엽기떡볶이
+      /* ★ AI 경쟁사 항목이 있으면 안 됩니다. 경쟁은 조들끼리만 합니다. */
+      if (document.getElementById("sessionRivalCount")) {
+        return { error: "세션 만들기에 AI 경쟁사 수 항목이 남아 있습니다" };
+      }
       const go = document.querySelector("#modalBody button.btn--primary");
       if (!go) return { error: "세션 만들기 버튼을 찾지 못했습니다" };
       go.click();
@@ -128,10 +129,9 @@ function step(title) { console.log("\n" + "─".repeat(70) + "\n" + title); }
         const screen = await play.evaluate(() => document.getElementById("app").dataset.screen);
         expect(screen === "invest", "참가자 첫 화면이 자원 배분 (" + screen + ")");
 
-        /* 진행자가 고른 경쟁사 수가 조 노트북까지 왔는가 —
-           조마다 다르면 같은 결정에도 매출이 갈립니다 */
-        const rivals = await play.evaluate(() => window.DRBState.rivals().map((r) => r.name));
-        expect(rivals.length === 2, "경쟁사 2개가 조 노트북에 반영됨 (" + rivals.join(", ") + ")");
+        /* 경쟁사는 없습니다 — 남아 있으면 예전 코드가 살아 있는 것입니다 */
+        const noRivals = await play.evaluate(() => !window.DRBState.rivals);
+        expect(noRivals, "조 노트북에 경쟁사가 없음 (경쟁은 조들끼리만)");
 
         step("4. 배분 + 정책 확정이 진행자 화면에 도착하는가");
         await play.evaluate(() => {

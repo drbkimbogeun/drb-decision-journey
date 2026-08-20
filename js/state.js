@@ -71,37 +71,24 @@ window.DRBState = (function () {
     };
   }
 
-  /* 경쟁사 수는 진행자가 세션을 만들 때 1~3 중에서 고릅니다.
-     ★ 모든 조가 같은 수를 써야 합니다 — 경쟁사는 수요를 나눠 갖기 때문에
-       조마다 수가 다르면 같은 결정에도 매출이 갈립니다. */
-  function newGame(teamCount, rivalCount) {
+  /* ★ AI 경쟁사는 없습니다. 경쟁은 참여한 조들끼리만 합니다.
+       예전에는 교촌치킨·엽기떡볶이·도미노피자 세 곳이 같은 엔진으로 같이 경영했습니다.
+       그런데 재보니 숫자를 하나도 바꾸지 못했습니다 — 조들이 늘 생산능력에 막혀
+       있어서(24번 중 20번), 경쟁사가 수요를 깎아도 sold = min(수요, 생산능력) 에서
+       통째로 흡수됐습니다. 경쟁사 3곳/1곳/0곳의 최종 매출이 완전히 같았습니다.
+       화면에만 있고 게임에는 없는 것이라 뺐습니다. */
+  function newGame(teamCount) {
     var names = CFG.teamNames.slice(0, teamCount);
     var teams = {};
     names.forEach(function (n) { teams[n] = createTeam(n); });
-
-    var howManyRivals = Math.max(1, Math.min(3, Number(rivalCount) || 3));
-
-    /* AI 경쟁사도 같은 조건에서 출발합니다 */
-    var rivals = {};
-    activeRivalDefs(howManyRivals).forEach(function (r) {
-      var st = window.DRBEngine.createState();
-      Object.keys(r.start || {}).forEach(function (k) { st[k] = r.start[k]; });
-      rivals[r.id] = {
-        id: r.id, name: r.name, state: st,
-        prevPolicyId: null, history: [], moves: []
-      };
-    });
 
     data = {
       version: 2,
       startedAt: new Date().toISOString(),
       teamCount: teamCount,
-      rivalCount: howManyRivals,
       teamNames: names,
       activeTeam: names[0],
       adminMode: false,
-      rivals: rivals,
-      rivalTurn: 0,        // 경쟁사가 어디까지 진행했는가
       turnRoles: {},       // { turnIndex: [role, ...] } — 어느 분야에 몰렸는지
       awards: {}           // { turnIndex: { 기회id: [딴 조 이름] } } — 한 곳만 딸 수 있는 기회
     };
@@ -124,78 +111,6 @@ window.DRBState = (function () {
     return { roundIndex: last, subIndex: window.DRB_ROUNDS[last].subrounds.length - 1 };
   }
 
-  /* ============================================================
-     AI 경쟁사를 해당 턴까지 진행시킨다
-
-     ★ 경쟁사는 미래를 모릅니다. 그 턴 시점의 시대 정보와
-       그때까지 공개된 참여 조들의 움직임만 보고 판단합니다.
-     ============================================================ */
-  /* 지금 판에 들어와 있는 경쟁사만. 목록 앞에서부터 잘라 씁니다. */
-  function activeRivalDefs(count) {
-    var many = Math.max(1, Math.min(3, Number(count != null ? count : (data && data.rivalCount)) || 3));
-    return (window.DRB_RIVALS || []).slice(0, many);
-  }
-
-  function advanceRivals(uptoTurn) {
-    if (!data.rivals) return;
-    var Engine = window.DRBEngine;
-
-    while (data.rivalTurn <= uptoTurn) {
-      var turn = data.rivalTurn;
-      var pos = turnToPosition(turn);
-      var round = window.DRB_ROUNDS[pos.roundIndex];
-      var sub = round.subrounds[pos.subIndex];
-      var era = window.DRB_ERAS[round.era];
-      var investments = window.DRB_INVESTMENTS[era.investSet];
-
-      /* 이 턴에 이미 공개된 참여 조들의 선택 (아직 안 한 조는 보이지 않는다) */
-      var known = (data.turnRoles[turn] || []).slice();
-
-      var picked = [];
-      activeRivalDefs().forEach(function (r) {
-        var rv = data.rivals[r.id];
-        if (!rv) return;
-
-        var unit = CFG.tokenUnit;
-        var budget = rv.state.cash >= sub.budget
-          ? sub.budget
-          : Math.max(unit, Math.floor(Math.max(0, rv.state.cash) / unit) * unit);
-
-        var crowdByRole = Engine.computeCrowding(known.concat(picked));
-        var decision = Engine.decideRival(r, rv.state, era, investments, {
-          budget: budget, crowdByRole: crowdByRole, turnIndex: turn
-        });
-        picked.push(decision.topRole);
-
-        var out = Engine.runSubround({
-          state: rv.state, era: era, investments: investments,
-          policy: decision.policy, policyId: decision.policyId,
-          prevPolicyId: rv.prevPolicyId,
-          allocation: decision.allocation, choices: decision.choices,
-          subround: sub, turnIndex: turn,
-          crowding: (crowdByRole[decision.topRole] || 0)
-        });
-
-        rv.state = out.state;
-        rv.prevPolicyId = decision.policyId;
-        rv.history.push({
-          turn: turn, year: sub.year,
-          role: decision.topRole,
-          move: decision.moveText,
-          revenue: out.report.kpi.revenue,
-          profit: out.report.kpi.profit,
-          tech: out.state.tech,
-          capacity: out.state.capacity
-        });
-        rv.moves.push({ turn: turn, year: sub.year, text: decision.moveText });
-      });
-
-      /* 경쟁사가 고른 분야도 '공개된 움직임'에 합류 */
-      data.turnRoles[turn] = known.concat(picked);
-      data.rivalTurn++;
-    }
-    save();
-  }
 
   /* 우리 조가 이번 턴에 가장 많이 넣은 분야 */
   function topRoleOf(allocation, investments) {
@@ -378,10 +293,8 @@ window.DRBState = (function () {
     var turn = turnIndex();
     var Engine = window.DRBEngine;
 
-    /* 1) 경쟁사를 이 턴까지 움직인다 (우리보다 먼저 판단하고 먼저 움직입니다) */
-    advanceRivals(turn);
-
-    /* 2) 같은 분야에 몇 곳이 몰렸는가 — 경쟁강도로 반영된다 */
+    /* 같은 분야에 몇 조가 몰렸는가 — 경쟁강도로 반영된다.
+       먼저 확정한 조만 보입니다. 우리 뒤에 확정하는 조는 아직 판에 없습니다. */
     var myRole = topRoleOf(allocation, investments());
     var known = (data.turnRoles[turn] || []).slice();
     var crowdMap = Engine.computeCrowding(known.concat([myRole]));
@@ -425,7 +338,6 @@ window.DRBState = (function () {
       report:     result.report,
       before:     before,
       after:      JSON.parse(JSON.stringify(result.state)),
-      rivalMoves: rivalMovesAt(turn),
       year:       subround().year,
       crowding:   crowding
     });
@@ -547,45 +459,6 @@ window.DRBState = (function () {
     return true;
   }
 
-  /* 그 턴에 경쟁사들이 무엇을 했는지 (타임랩스·진행자 화면용) */
-  function rivalMovesAt(turn) {
-    var out = [];
-    Object.keys(data.rivals || {}).forEach(function (id) {
-      var mv = (data.rivals[id].moves || []).filter(function (m) { return m.turn === turn; })[0];
-      if (mv) out.push({ id: id, name: data.rivals[id].name, text: mv.text, year: mv.year });
-    });
-    return out;
-  }
-
-  function rivals() {
-    return Object.keys(data.rivals || {}).map(function (id) { return data.rivals[id]; });
-  }
-
-  /* 우리 회사가 경쟁사들과 견줘 어디쯤 있는가 (상대적 경쟁력) */
-  function relativeStanding() {
-    var mine = team().state;
-    var rs = rivals();
-    if (!rs.length) return null;
-
-    function avg(key) {
-      var sum = 0;
-      rs.forEach(function (r) { sum += (r.state[key] || 0); });
-      return sum / rs.length;
-    }
-
-    return ["tech", "capacity", "quality", "trust", "cash"].map(function (k) {
-      var a = avg(k);
-      var diff = mine[k] - a;
-      return {
-        key: k,
-        mine: Math.round(mine[k]),
-        rivalAvg: Math.round(a),
-        diff: Math.round(diff),
-        ahead: diff >= 0
-      };
-    });
-  }
-
   function advance() {
     var t = team();
     if (!isLastSubround()) {
@@ -679,14 +552,12 @@ window.DRBState = (function () {
     investmentDecisionContext: investmentDecisionContext,
     policies: policies, actual: actual,
     turnIndex: turnIndex, totalTurns: totalTurns, subroundSpan: subroundSpan,
-    activeRivalDefs: activeRivalDefs,
     isLastSubround: isLastSubround, isLastRound: isLastRound,
     budget: budget, budgetIsTight: budgetIsTight,
     plannedBudget: plannedBudget, budgetBreakdown: budgetBreakdown,
     applyAwards: applyAwards, awaitingAward: awaitingAward,
     setPhase: setPhase, switchTeam: switchTeam,
     commitSubround: commitSubround, advance: advance, lastHistory: lastHistory,
-    rivals: rivals, relativeStanding: relativeStanding, advanceRivals: advanceRivals,
     turnToPosition: turnToPosition,
     exportTeamCode: exportTeamCode, decodeTeamCode: decodeTeamCode,
     toggleAdmin: toggleAdmin

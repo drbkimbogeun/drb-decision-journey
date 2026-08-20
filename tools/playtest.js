@@ -286,8 +286,6 @@ const server = http.createServer((req, res) => {
   if ($("fiReplay").children.length !== S.totalTurns()) {
     bad(`80년 Replay 가 ${$("fiReplay").children.length}줄 (예상 ${S.totalTurns()}줄)`);
   } else ok("80년 Replay " + S.totalTurns() + "줄");
-  if (!$("fiStanding").children.length) bad("최종 경쟁사 비교가 비어 있습니다");
-  else ok("경쟁사 대비 위치 표시");
 
   /* ---------- 회사 상태는 상단 [상태] 모달에서만 봅니다 ---------- */
   click("btnDetail");

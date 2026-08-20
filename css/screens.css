@@ -348,49 +348,6 @@
   margin-bottom: var(--sp-2);
 }
 
-/* ------------------------------------------------------------
-   같은 산업, 다른 선택 (경쟁사 비교)
-   ------------------------------------------------------------ */
-.rivals {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: var(--sp-3);
-  margin-top: var(--sp-3);
-}
-
-.rival {
-  padding: var(--sp-4);
-  border-radius: var(--r-md);
-  border: 1px solid var(--line);
-  background: var(--bg-2);
-}
-
-.rival--ours {
-  border-color: var(--info);
-  background: var(--info-soft);
-}
-
-.rival__name {
-  font-weight: 700;
-  margin-bottom: 2px;
-}
-
-.rival__country {
-  font-size: var(--fs-tiny);
-  color: var(--text-3);
-  margin-bottom: var(--sp-2);
-}
-
-.rival__choice {
-  font-size: var(--fs-small);
-  color: var(--text-2);
-  line-height: 1.6;
-}
-
-.rival__choice--empty {
-  color: var(--text-3);
-  font-style: italic;
-}
 
 /* ------------------------------------------------------------
    대표이사에게 가져갈 결정 카드

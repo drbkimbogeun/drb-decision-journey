@@ -3,7 +3,6 @@
 
    실행 :  node tools/playthrough.js            (2개 조)
            TEAMS=4 node tools/playthrough.js    (4개 조)
-           TEAMS=4 RIVALS=3 node tools/playthrough.js
    결과 :  export/플레이 기록 4조.html   (스크린샷까지 파일 안에 들어 있습니다)
 
    ★ tools/report.js 와 다릅니다.
@@ -16,6 +15,8 @@
      3조  버티는 회사        현금과 사람을 남깁니다. 느리지만 무너지지 않습니다
      4조  고객을 따라가는 회사  고객이 가는 곳으로 갑니다. 판로와 해외에 겁니다
    3국면 자동차 공동개발은 한 곳만 계약하므로, 여기서 조들이 정면으로 부딪힙니다.
+
+   ★ AI 경쟁사는 없습니다. 경쟁은 참여한 조들끼리만 합니다.
 
    ⚠ 회사 보안정책이 공유폴더에 .png / .jpg 쓰기를 막습니다.
      그래서 이미지 파일을 따로 만들지 않고 HTML 안에 넣습니다.
@@ -37,7 +38,6 @@ try {
 const ROOT = path.join(__dirname, "..");
 /* 몇 조로 돌릴지는 실행할 때 정합니다 — TEAMS=4 node tools/playthrough.js */
 const TEAM_COUNT = Math.max(1, Math.min(4, Number(process.env.TEAMS) || 2));
-const RIVALS = Math.max(1, Math.min(3, Number(process.env.RIVALS) || 1));
 const OUT = path.join(ROOT, "export", `플레이 기록 ${TEAM_COUNT}조.html`);
 const PORT = 8817;
 const MIME = {
@@ -150,7 +150,7 @@ function esc(s) {
     shots.push({ who, turn, name, note: note || "", data: buf.toString("base64") });
   }
 
-  /* ---------- 판 만들기 : 2개 조 + 경쟁사 1개 ---------- */
+  /* ---------- 판 만들기 ---------- */
   const ctx = await browser.newContext({ viewport: TEAM_VIEW, deviceScaleFactor: SCALE });
   const page = await ctx.newPage();
   page.on("pageerror", e => errors.push("참가자: " + e.message));
@@ -161,24 +161,24 @@ function esc(s) {
   await page.waitForTimeout(700);
   await snap(page, "team", -1, "표지", "참가 코드를 넣고 들어옵니다.");
 
-  /* 조 수와 경쟁사 수는 진행자가 세션을 만들 때 정합니다.
-     연습 모드에는 경쟁사 수 고르는 자리가 없어 여기서 직접 만듭니다. */
-  await page.evaluate(([names, rivals]) => {
-    window.DRBState.newGame(names.length, rivals);
-  }, [TEAMS, RIVALS]);
+  /* 조 수는 진행자가 세션을 만들 때 정합니다. 연습 모드에서는 여기서 직접 만듭니다. */
+  await page.evaluate((names) => {
+    window.DRBState.newGame(names.length);
+  }, TEAMS);
   await page.reload();
   await page.waitForTimeout(800);
   await page.click("#btnPractice");
   await page.waitForTimeout(300);
-  await snap(page, "team", -1, "우리 조", `이번 판은 ${TEAMS.length}개 조 · 경쟁사 ${RIVALS}곳입니다.`);
+  await snap(page, "team", -1, "우리 조", `이번 판은 ${TEAMS.length}개 조입니다. 경쟁은 조들끼리만 합니다.`);
   await page.click("#btnContinue").catch(async () => { await page.click("#btnStart"); });
   await page.waitForTimeout(700);
 
   const setup = await page.evaluate(() => {
     const g = window.DRBState.g();
-    return { teams: g.teamNames, rivals: Object.keys(g.rivals).map(k => g.rivals[k].name) };
+    return { teams: g.teamNames };
   });
-  console.log(`\n판 구성 : ${setup.teams.join(" · ")}  |  경쟁사 ${setup.rivals.join(", ")}`);
+  console.log(`
+판 구성 : ${setup.teams.join(" · ")}`);
 
   /* 조를 바꿉니다.
      ★ 상단 [조 전환] 은 배분·대기 화면에서만 열립니다. 엔딩·최종 화면에서는
@@ -645,7 +645,7 @@ dialog img{display:block;width:100%;height:auto}
     <span class="top__kicker">${esc(CFG.subtitle)}</span>
     <h1 class="top__title">두 회사의 80년</h1>
     <p class="top__lead">
-      성격이 다른 두 조와 경쟁사 한 곳으로 1945년부터 2026년까지 실제로 한 판을 끝까지 플레이하고,
+      성격이 다른 조들이 1945년부터 2026년까지 실제로 한 판을 끝까지 플레이하고,
       국면마다 빔에 뜬 화면과 두 조의 노트북 화면을 그대로 담았습니다.
       기계적으로 눌러본 것이 아니라 <b>조마다 정해둔 전략대로</b> 결정했습니다.
     </p>
@@ -658,7 +658,6 @@ dialog img{display:block;width:100%;height:auto}
         </div>`;
       }).join("")}
       <div class="who__card">
-        <div><span class="who__name">경쟁사</span> <span class="who__label">${esc(setup.rivals.join(", "))}</span></div>
         <p class="who__note">조들이 고민하는 동안에도 움직입니다. 같은 분야에 몰리면 수요를 나눠 갖습니다.</p>
       </div>
     </div>
@@ -674,7 +673,7 @@ dialog img{display:block;width:100%;height:auto}
     <header class="phase__head">
       <span class="phase__no">시작</span><span class="phase__year">준비</span>
       <span class="phase__title">들어오기</span>
-      <span class="phase__era">${esc(setup.teams.join(" · "))} · 경쟁사 ${setup.rivals.length}곳</span>
+      <span class="phase__era">${esc(setup.teams.join(" · "))}</span>
     </header>
     <div class="grid">${intro.map(card).join("")}</div>
   </section>

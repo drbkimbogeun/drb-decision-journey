@@ -159,58 +159,7 @@ window.DRBUI = (function () {
   }
 
   /* ============================================================
-     경쟁사 목록 (최종 화면)
-     ============================================================ */
-  function renderRivalList(node, opts) {
-    if (!node) return;
-    opts = opts || {};
-    clearNode(node);
-
-    var defs = S.activeRivalDefs ? S.activeRivalDefs() : (window.DRB_RIVALS || []);
-    var live = S.rivals();
-
-    defs.forEach(function (def) {
-      var rv = live.filter(function (r) { return r.id === def.id; })[0];
-      var row = document.createElement("div");
-      row.className = "rival-row";
-
-      var lastMove = rv && rv.moves.length ? rv.moves[rv.moves.length - 1] : null;
-      var moveText = opts.showMove && lastMove
-        ? lastMove.year + " · " + lastMove.text
-        : def.desc;
-
-      row.innerHTML =
-        "<span class='rival-row__name'>" +
-        "<span class='rival-row__badge' style='background:" + def.color + "'></span>" +
-        escapeHtml(def.name) + "</span>" +
-        "<span class='rival-row__move'>" + escapeHtml(moveText) + "</span>" +
-        "<span class='rival-row__type'>" + escapeHtml(def.type) + "</span>";
-      node.appendChild(row);
-    });
-  }
-
-  /* 우리 vs 경쟁사 평균 */
-  var STANDING_NAMES = { tech: "기술력", capacity: "생산능력", quality: "품질", trust: "고객신뢰", cash: "현금" };
-
-  function renderStanding(node) {
-    if (!node) return;
-    clearNode(node);
-    var rows = S.relativeStanding();
-    if (!rows) return;
-
-    rows.forEach(function (r) {
-      var box = document.createElement("div");
-      box.className = "standing__item";
-      box.innerHTML =
-        "<div class='standing__name'>" + (STANDING_NAMES[r.key] || r.key) + "</div>" +
-        "<div class='standing__diff delta " + deltaClass(r.diff) + "'>" + signed(r.diff) + "</div>" +
-        "<div class='standing__sub'>우리 " + r.mine + " / 평균 " + r.rivalAvg + "</div>";
-      node.appendChild(box);
-    });
-  }
-
-  /* ============================================================
-     세계지도 — 우리 거점과 경쟁사 거점
+     세계지도 — 우리가 만든 거점
      ============================================================ */
   function renderWorldMap(node, legendNode) {
     if (!node || !window.DRB_GLOBAL) return;
@@ -251,29 +200,11 @@ window.DRBUI = (function () {
       addNode(c.map.x, c.map.y - 6, stage, null, label);
     });
 
-    /* 경쟁사 거점 */
-    S.rivals().forEach(function (rv, idx) {
-      var def = (window.DRB_RIVALS || []).filter(function (d) { return d.id === rv.id; })[0];
-      var seen = {};
-      (rv.state.sites || []).forEach(function (site) {
-        if (seen[site.country]) return;
-        seen[site.country] = true;
-        var c = G.countries.filter(function (x) { return x.id === site.country; })[0];
-        if (!c) return;
-        addNode(c.map.x + (idx - 1) * 5, c.map.y + 8, "map-node--rival",
-                def ? def.color : null, rv.name);
-      });
-    });
-
     if (legendNode) {
       legendNode.innerHTML =
         "<span class='map-legend__item'><span class='map-legend__dot' style='background:var(--drb-red)'></span>본사</span>" +
         "<span class='map-legend__item'><span class='map-legend__dot' style='background:var(--info)'></span>우리 거점(가동)</span>" +
-        "<span class='map-legend__item'><span class='map-legend__dot' style='background:var(--warn)'></span>건설 중</span>" +
-        (S.activeRivalDefs ? S.activeRivalDefs() : (window.DRB_RIVALS || [])).map(function (d) {
-          return "<span class='map-legend__item'><span class='map-legend__dot' style='background:" +
-                 d.color + "'></span>" + escapeHtml(d.name) + "</span>";
-        }).join("");
+        "<span class='map-legend__item'><span class='map-legend__dot' style='background:var(--warn)'></span>건설 중</span>";
     }
   }
 
@@ -811,11 +742,6 @@ window.DRBUI = (function () {
         lines.push({ who: "우리", kind: "ours", text: text, order: i });
       });
 
-    /* 경쟁사가 한 일 */
-    (hist.rivalMoves || []).forEach(function (m, i) {
-      lines.push({ who: m.name, kind: "rival", text: m.text, order: i + 1 });
-    });
-
     /* 시장에서 벌어진 일 — 이건 속보 알림으로도 뜹니다 */
     (hist.report.events || []).forEach(function (ev, i) {
       var full = window.DRB_EVENTS[ev.id] || ev;
@@ -975,16 +901,9 @@ window.DRBUI = (function () {
     var box = el("endMarket");
     clearNode(box);
 
+    /* ★ 경쟁사 줄이 있던 자리입니다. 이제 시장과 고객만 남습니다 —
+         멈추지 않는 것은 남의 회사가 아니라 시장 자체라는 말이 더 맞습니다. */
     var lines = [];
-    S.rivals().forEach(function (rv) {
-      var def = (window.DRB_RIVALS || []).filter(function (d) { return d.id === rv.id; })[0];
-      var moves = (window.DRB_RIVAL_MOVES || {});
-      var pool = moves[(rv.history[rv.history.length - 1] || {}).role] || moves.future || ["다음 수를 준비"];
-      lines.push({
-        who: rv.name,
-        text: pool[(rv.state.tech + rv.state.capacity) % pool.length] + " 검토"
-      });
-    });
     lines.push({ who: "시장", text: "새로운 기술이 또 나왔습니다" });
     lines.push({ who: "고객", text: "요구가 다시 바뀌었습니다" });
 
@@ -1086,10 +1005,6 @@ window.DRBUI = (function () {
       chip.innerHTML = escapeHtml(p.name) + "<b class='num'>" + signed(p.value, 0) + "</b>";
       ap.appendChild(chip);
     });
-
-    /* 경쟁사와의 위치 */
-    renderStanding(el("fiStanding"));
-    renderRivalList(el("fiRivals"), { showMove: true });
 
     /* 우리가 만든 지도 */
     var sites = t.state.sites || [];

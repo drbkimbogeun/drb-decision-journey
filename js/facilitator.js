@@ -1187,17 +1187,6 @@
       });
     });
 
-    /* 경쟁사는 어느 조 기록에서든 같습니다 — 하나만 가져옵니다 */
-    var withMoves = teams.filter(function (t) {
-      var h = historyAt(t, turn);
-      return h && h.rivalMoves && h.rivalMoves.length;
-    })[0];
-    if (withMoves) {
-      historyAt(withMoves, turn).rivalMoves.forEach(function (move, i) {
-        lines.push({ kind: "rival", order: 10 + i, who: move.name, text: move.text });
-      });
-    }
-
     /* 시장에서 벌어진 일 — 모든 조에게 온 사건만 (조건부 사건은 그 조 것이라 뺍니다) */
     var sub = timeline[turn].sub;
     if (sub.event && window.DRB_EVENTS[sub.event]) {
@@ -1907,12 +1896,7 @@
       "<p class='hint'>조별 노트북이 서로 다른 PC여도 5초 이내에 결정과 돌발상황 반응을 모읍니다.</p>" +
       "<label class='field-label' for='sessionTeamCount'>참가 조 수</label>" +
       "<select class='select' id='sessionTeamCount'>" +
-      "<option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option></select>" +
-      "<label class='field-label' for='sessionRivalCount' style='margin-top:var(--sp-4)'>AI 경쟁사 수</label>" +
-      "<select class='select' id='sessionRivalCount'>" +
-      "<option value='1'>1개 — 교촌치킨</option>" +
-      "<option value='2'>2개 — 교촌치킨 · 엽기떡볶이</option>" +
-      "<option value='3' selected>3개 — 교촌치킨 · 엽기떡볶이 · 도미노피자</option></select>" +
+      "<option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select>" +
       "<div class='sessionfail hidden' id='sessionFail'></div>" +
       "<div class='row' style='margin-top:var(--sp-4)'>" +
       "<button class='btn btn--primary btn--lg' id='sessionCreate'>세션 코드 만들기</button></div>");
@@ -1924,8 +1908,7 @@
       el("sessionCreate").disabled = true;
       el("sessionCreate").textContent = "만드는 중…";
       window.DRBLive.create({
-        teamCount: Number(el("sessionTeamCount").value),
-        rivalCount: Number(el("sessionRivalCount").value),
+        teamCount: Number(el("sessionTeamCount").value)
       }).then(function (created) {
         showSessionDetails(created);
         startLivePolling();

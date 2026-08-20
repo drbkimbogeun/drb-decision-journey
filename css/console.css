@@ -630,7 +630,6 @@ body.fac-body {
   font-size: 23px;
   animation: fac-lapse-in 320ms ease;
 }
-.fac-lapse__line--rival  { background: transparent; border: 1px dashed var(--line); }
 .fac-lapse__line--market { border-left: 4px solid var(--coral); background: var(--coral-tint); }
 .fac-lapse__year {
   flex: 0 0 auto;
@@ -646,7 +645,6 @@ body.fac-body {
   font-weight: var(--fw-strong);
   letter-spacing: -0.02em;
 }
-.fac-lapse__line--rival  .fac-lapse__who { color: var(--text-3); }
 .fac-lapse__line--market .fac-lapse__who { color: var(--coral); }
 .fac-lapse__what { min-width: 0; }
 .fac-lapse__note {

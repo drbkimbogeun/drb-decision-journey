@@ -629,7 +629,9 @@ export class GameSession extends DurableObject {
         if (!SESSION_CODE.test(body.sessionId) || !/^\d{4}$/.test(body.pin) ||
             typeof body.facilitatorSecret !== "string" || body.facilitatorSecret.length < 24 ||
             !Number.isInteger(body.teamCount) || body.teamCount < 1 || body.teamCount > 6 ||
-            !Number.isInteger(body.rivalCount) || body.rivalCount < 1 || body.rivalCount > 3 || !validClaims) {
+            !validClaims) {
+          /* rivalCount 는 검사하지 않습니다 — AI 경쟁사를 없앴습니다.
+             표(session)의 rival_count 는 NOT NULL 이라 값만 채워 넣습니다. */
           throw new ApiError(400, "세션 생성 정보가 올바르지 않습니다.", "INVALID_SESSION");
         }
         const now = Date.now();
@@ -640,7 +642,7 @@ export class GameSession extends DurableObject {
           await sha256(body.pin),
           await sha256(body.facilitatorSecret),
           body.teamCount,
-          body.rivalCount,
+          body.rivalCount ?? 3,
           JSON.stringify(control),
           now,
           now,
@@ -893,7 +895,12 @@ async function handleApi(request, env) {
     ]);
     const body = await readJson(request, 16 * 1024);
     const teamCount = body.teamCount ?? 6;
-    /* 경쟁사 수는 조마다 같아야 합니다 — 다르면 같은 결정에도 매출이 달라집니다 */
+    /* ★ rivalCount 는 이제 쓰이지 않습니다. AI 경쟁사를 없앴습니다 —
+         경쟁은 참여한 조들끼리만 합니다. 화면도 게임도 이 값을 보지 않습니다.
+
+         그래도 필드를 남겨둡니다. 이미 만들어져 돌아가는 세션의 표(session)에
+         rival_count 가 NOT NULL 로 들어 있어서, 지우려면 저장소 마이그레이션이
+         필요합니다. 값이 없으면 3으로 채우고 그냥 흘려보냅니다. */
     const rivalCount = body.rivalCount ?? 3;
     if (!Number.isInteger(teamCount) || teamCount < 1 || teamCount > 6 ||
         Object.keys(body).some((key) => key !== "teamCount" && key !== "rivalCount")) {
