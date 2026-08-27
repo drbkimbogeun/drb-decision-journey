@@ -598,9 +598,15 @@
     try { return window.DRBEngine.judgeStyle(team.state).name; }
     catch (err) { return ""; }
   }
+  /* ★ 값이 하나라도 없으면 adaptiveCapacity 는 NaN 을 냅니다 (undefined/420 = NaN).
+       아직 결정하지 않은 조·이제 막 들어온 조가 그렇습니다. NaN 이 하나 섞이면
+       그 조가 낀 정렬이 통째로 어긋납니다 — 실제로 시상에서 모든 조의 점수가
+       같아져 그냥 1조가 '최우수 경영' 으로 떴습니다. 숫자가 아니면 0 으로 잡습니다. */
   function adaptiveOf(team) {
-    try { return window.DRBEngine.adaptiveCapacity(team.state).score; }
-    catch (err) { return 0; }
+    try {
+      var score = window.DRBEngine.adaptiveCapacity(team.state || {}).score;
+      return Number.isFinite(score) ? score : 0;
+    } catch (err) { return 0; }
   }
   /* 현재 경쟁력 — 참가자 최종 화면과 같은 식으로 계산합니다 */
   function powerOf(team) {
@@ -1283,15 +1289,37 @@
                "</span><b class='num'>" + a.amount + "</b></div>";
       }).join("") || "<div class='phasecard__row is-none'><span>투자 없음 · 전액 보유</span></div>";
 
+      /* ★ 매출 한 줄만 띄우면 "누가 컸나" 만 보입니다. 그 조가 이번 국면에
+           무엇을 겪고 어떻게 됐는지가 같이 있어야 조별 비교가 대화가 됩니다.
+           조 노트북이 보는 것과 같은 내용입니다 (ui.js renderLiveWait). */
+      var kpi = r.h.report.kpi || {};
+      var cashLine = (r.h.before && r.h.after)
+        ? fmt(r.h.before.cash) + " → " + fmt(r.h.after.cash)
+        : (r.h.beforeCash !== undefined ? fmt(r.h.beforeCash) + " → " + fmt(r.h.afterCash) : "");
+      var hit = ((r.h.report.events) || []).map(function (ev) {
+        var texts = (ev.reactions || []).map(function (x) { return x.text || ""; }).filter(Boolean);
+        return (ev.conditional ? "우리 상태 · " : "돌발 · ") + (texts[0] || ev.title || "");
+      }).slice(0, 2);
+
       return "<div class='phasecard" + (i === 0 ? " phasecard--first" : "") + "'>" +
         "<div class='phasecard__head'>" +
           "<span class='phasecard__no num'>" + (CFG.teamNames.indexOf(r.name) + 1) + "</span>" +
           "<span class='phasecard__name'>" + esc(r.name) + "</span>" +
           "<span class='phasecard__rank'>" + (i + 1) + "위</span>" +
         "</div>" +
-        "<div class='phasecard__alloc'>" + alloc + "</div>" +
+        "<div class='phasecard__alloc'>" + alloc +
+          "<div class='phasecard__row'><span>영업이익</span><b class='num'>" +
+            signed(kpi.profit) + "억</b></div>" +
+          (cashLine ? "<div class='phasecard__row'><span>현금</span><b class='num'>" +
+            esc(cashLine) + "</b></div>" : "") +
+          hit.map(function (line) {
+            return "<div class='phasecard__row is-none'><span>" + esc(line) + "</span></div>";
+          }).join("") +
+        "</div>" +
         "<div class='phasecard__value num'>" + fmt(r.revenue) + "</div>" +
         "<div class='phasecard__unit'>매출 · 억</div>" +
+        (r.h.report.headline
+          ? "<div class='phasecard__unit'>" + esc(r.h.report.headline) + "</div>" : "") +
         "<div class='phasecard__tags'><span class='phasetag'>" +
           esc(policyName(r.h.policyId, r.h.policyName)) + "</span>" +
           "<span class='phasetag phasetag--style'>" + esc(styleOf(

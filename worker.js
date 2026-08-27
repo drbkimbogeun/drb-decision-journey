@@ -264,11 +264,22 @@ function sanitizeSite(value) {
   };
 }
 
+/* 조가 보내오는 회사 상태 숫자. js/live.js 의 STATE_NUMBERS 와 같아야 합니다 —
+   여기서 빠뜨린 항목은 진행자 화면에 영영 도착하지 않습니다. */
+const STATE_NUMBERS = ["cash", "capacity", "tech", "quality", "trust", "people",
+                       "reach", "flex", "rigidity", "fatigue", "rdStock",
+                       "globalReach", "experiments"];
+
 function sanitizeState(value) {
   const source = value && typeof value === "object" && !Array.isArray(value) ? value : {};
-  return {
+  const out = {
     sites: (Array.isArray(source.sites) ? source.sites : []).slice(0, 24).map(sanitizeSite).filter(Boolean),
   };
+  for (const key of STATE_NUMBERS) {
+    const n = Number(source[key]);
+    if (Number.isFinite(n)) out[key] = Math.max(-100000, Math.min(100000, Math.round(n * 10) / 10));
+  }
+  return out;
 }
 
 function sanitizeHistoryEntry(value, index) {

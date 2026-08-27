@@ -154,9 +154,24 @@
     };
   }
 
+  /* ★ 회사 상태 숫자를 같이 보냅니다. worker.js 의 STATE_NUMBERS 와 같아야 합니다.
+
+       예전에는 sites(해외 거점)만 보냈습니다. 그래서 진행자 화면은 조의 현금·기술·
+       품질을 하나도 모른 채 경쟁력을 계산했고, 전부 0 이나 NaN 이 나왔습니다.
+       마지막 시상에서 모든 조의 점수가 같아져 정렬이 되지 않았고, 그냥 1조가
+       '최우수 경영' 으로 떴습니다 — 실제로는 2조가 더 앞서 있었는데도. */
+  var STATE_NUMBERS = ["cash", "capacity", "tech", "quality", "trust", "people",
+                       "reach", "flex", "rigidity", "fatigue", "rdStock",
+                       "globalReach", "experiments"];
+
   function stateView(value) {
     var source = value && typeof value === "object" && !Array.isArray(value) ? value : {};
-    return { sites: (Array.isArray(source.sites) ? source.sites : []).slice(0, 24).map(siteEntry).filter(Boolean) };
+    var out = { sites: (Array.isArray(source.sites) ? source.sites : []).slice(0, 24).map(siteEntry).filter(Boolean) };
+    STATE_NUMBERS.forEach(function (key) {
+      var n = Number(source[key]);
+      if (Number.isFinite(n)) out[key] = Math.max(-100000, Math.min(100000, Math.round(n * 10) / 10));
+    });
+    return out;
   }
 
   function historyEntry(value, index) {

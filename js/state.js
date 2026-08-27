@@ -228,17 +228,14 @@ window.DRBState = (function () {
     if (revenue <= 0) return fixed;
 
     var B = CFG.budget || {};
-    var perPoint = B.perPoint === undefined ? 1.5 : B.perPoint;
-    var maxUp    = B.maxUp    === undefined ? 0.40 : B.maxUp;
-    var maxDown  = B.maxDown  === undefined ? 0.10 : B.maxDown;
-    var base     = B.baseMargin === undefined ? 0.10 : B.baseMargin;
-
-    var adjust = ((st.lastProfit || 0) / revenue - base) * perPoint;
-    if (adjust >  maxUp)   adjust =  maxUp;
-    if (adjust < -maxDown) adjust = -maxDown;
-
+    var rate     = B.reinvestRate === undefined ? 0.35 : B.reinvestRate;
+    var maxTotal = B.maxTotal     === undefined ? 2.5  : B.maxTotal;
     var unit = CFG.tokenUnit;
-    return Math.max(unit, Math.round(fixed * (1 + adjust) / unit) * unit);
+
+    /* 고정예산 + 지난 국면 영업이익의 일부. 많이 번 조가 더 쓸 수 있습니다.
+       손실을 냈어도 고정예산은 받습니다 — 따라잡을 길을 남겨둡니다. */
+    var raw = fixed + Math.max(0, st.lastProfit || 0) * rate;
+    return Math.max(unit, Math.round(Math.min(raw, fixed * maxTotal) / unit) * unit);
   }
 
   /* 이번 턴에 실제로 쓸 수 있는 예산
@@ -269,6 +266,8 @@ window.DRBState = (function () {
       planned: planned,
       final:   budget(),
       bonus:   planned - fixed,
+      profit:  st.lastProfit || 0,          // 재투자의 재원 — 화면에 그대로 적습니다
+      rate:    (CFG.budget || {}).reinvestRate,
       margin:  revenue > 0 ? (st.lastProfit || 0) / revenue : null,
       tight:   budgetIsTight()
     };

@@ -354,11 +354,11 @@ window.DRBUI = (function () {
       sub = "현금이 부족해 예산이 " + bd.planned + "에서 " + bd.final + "으로 줄었습니다";
       warn = true;
     } else if (bd.bonus > 0) {
-      sub = "지난 국면 영업이익률 " + Math.round(bd.margin * 100) + "% → 고정 예산 "
-          + bd.fixed + "에 " + bd.bonus + " 더해졌습니다";
+      /* 왜 이 숫자인지 — 번 돈에서 얼마가 다시 들어왔는지 그대로 적습니다 */
+      sub = "지난 국면 영업이익 " + fmt(bd.profit) + "억의 " + Math.round((bd.rate || 0) * 100)
+          + "%를 재투자 → 고정 " + bd.fixed + "억에 " + bd.bonus + "억 더해졌습니다";
     } else if (bd.bonus < 0) {
-      sub = "지난 국면 영업이익률 " + Math.round(bd.margin * 100) + "% → 고정 예산 "
-          + bd.fixed + "에서 " + (-bd.bonus) + " 줄었습니다";
+      sub = "지난 국면에 이익을 내지 못해 고정 예산 " + bd.fixed + "억만 배정됐습니다";
       warn = true;
     }
     el("inSub").textContent = sub;
