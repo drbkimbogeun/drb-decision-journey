@@ -402,7 +402,7 @@ window.DRBUI = (function () {
       var val = document.createElement("div");
       val.className = "alloc__amount num";
       val.textContent = amt;
-      val.setAttribute("aria-label", item.name + " " + amt + ", 토큰 " + (amt / CFG.tokenUnit) + "개");
+      val.setAttribute("aria-label", item.name + " " + amt + "억");
       card.appendChild(val);
 
       var level = document.createElement("div");
@@ -642,9 +642,10 @@ window.DRBUI = (function () {
     v.classList.toggle("is-over", remain < 0);
 
     el("inBudget").textContent = budget;
-    el("inTokens").textContent = "남은 토큰 " + leftTokens + " / " + totalTokens;
+    /* 왼쪽 라벨이 "남은 투자금" 이므로 여기는 금액만 — "30억 / 80억" */
+    el("inTokens").textContent = remain + "억 / " + budget + "억";
 
-    /* 아직 테이블 위에 남아 있는 토큰을 그림으로 */
+    /* 아직 남아 있는 투자금을 한 칸 10억짜리 그림으로 */
     var dots = el("inTokenDots");
     clearNode(dots);
     for (var i = 0; i < totalTokens; i++) {
@@ -829,26 +830,75 @@ window.DRBUI = (function () {
     }
     el("tlFill").style.width = "100%";
 
-    var who = "결정 잠금 완료";
-    var copy = "결정은 전송됐습니다. 앞을 보세요 — 결과는 진행자 화면에서 함께 봅니다.";
-    if (kind === "event") {
-      el("tlCaption").textContent = "돌발상황 · 진행자 화면을 보세요";
-      who = "돌발상황";
-      copy = "모든 조에게 같은 일이 일어났습니다. 우리가 무엇을 쌓아뒀는지에 따라 다르게 맞습니다.";
-    } else {
-      el("tlCaption").textContent = "다음 국면 공개 대기 · 진행자 화면을 보세요";
+    /* ★ 우리 조에 무엇이 적용됐는지 여기에 적습니다.
+         예전에는 "진행자 화면을 보세요" 한 줄뿐이었습니다. 그런데 같은 사건이
+         조마다 다르게 온다는 것이 이 게임의 핵심인데, 정작 우리 조에 무엇이
+         붙었는지는 빔의 작은 글씨 한 줄에만 있었습니다 — 뒷자리에서는 안 보이고,
+         자기 조 줄을 찾는 사이 진행자는 다음으로 넘어갑니다.
+
+         남의 조 것은 나오지 않습니다. 이 노트북은 우리 조 기록만 갖고 있습니다.
+         (순위도 여전히 안 나옵니다 — 등수를 매기지 않는 원칙은 그대로입니다) */
+    function line(who, text, cls) {
+      if (!text) return;
+      var row = document.createElement("div");
+      row.className = "timelapse__line timelapse__line--" + (cls || "ours");
+      var label = document.createElement("span");
+      label.className = "timelapse__who";
+      label.textContent = who;
+      var body = document.createElement("span");
+      body.textContent = text;
+      row.appendChild(label);
+      row.appendChild(body);
+      feed.appendChild(row);
     }
 
-    var card = document.createElement("div");
-    card.className = "timelapse__line timelapse__line--market";
-    var label = document.createElement("span");
-    label.className = "timelapse__who";
-    label.textContent = who;
-    var body = document.createElement("span");
-    body.textContent = copy;
-    card.appendChild(label);
-    card.appendChild(body);
-    feed.appendChild(card);
+    var report = hist && hist.report ? hist.report : null;
+    var events = (report && report.events) || [];
+    /* 밖에서 온 돌발과 우리 상태가 불러온 일은 다른 것입니다 (engine.js 참고) */
+    var outside = events.filter(function (ev) { return !ev.conditional; });
+    var inside = events.filter(function (ev) { return ev.conditional; });
+
+    el("tlCaption").textContent = kind === "event"
+      ? "돌발상황 · 우리 회사에는 이렇게 왔습니다"
+      : "다음 국면 공개 대기 · 진행자 화면을 보세요";
+    /* 여기는 계산이 이미 끝난 자리입니다. 예전에는 직전 연출의
+       "결정의 결과를 계산하는 중" 이 그대로 남아 있었습니다. */
+    el("tlNote").textContent = report ? "이번 국면 결과" : "결정 전송 완료";
+
+    if (kind === "event" && !outside.length) {
+      line("돌발상황", "모든 조에게 같은 일이 일어났습니다. 우리가 무엇을 쌓아뒀는지에 따라 다르게 맞습니다.", "market");
+    }
+
+    outside.forEach(function (ev) {
+      line("돌발상황", ev.title || "", "market");
+      if (!ev.reactions || !ev.reactions.length) {
+        line("우리 조", "완화할 조건이 없었습니다. 공통 충격을 그대로 받았습니다.", "ours");
+        return;
+      }
+      ev.reactions.forEach(function (r) {
+        line(r.positive === false ? "우리 조 ▼" : "우리 조 ▲", r.text || "", "ours");
+      });
+    });
+
+    inside.forEach(function (ev) {
+      line("우리 상태", ev.title || "", "market");
+      (ev.reactions || []).forEach(function (r) {
+        line(r.positive === false ? "우리 조 ▼" : "우리 조 ▲", r.text || "", "ours");
+      });
+    });
+
+    /* 결과 — 이번 국면에 우리 회사가 어떻게 됐는가 */
+    if (report && report.kpi) {
+      line("매출", fmt(report.kpi.revenue) + "억", "ours");
+      line("영업이익", signed(report.kpi.profit) + "억", "ours");
+      if (hist.before && hist.after) {
+        line("현금", fmt(hist.before.cash) + " → " + fmt(hist.after.cash) + "억  " +
+                     signed(Math.round((hist.after.cash - hist.before.cash) * 10) / 10), "ours");
+      }
+      line("한 줄 정리", report.headline || "", "market");
+    } else {
+      line("결정 잠금 완료", "결정은 전송됐습니다. 앞을 보세요 — 다음 국면은 진행자가 엽니다.", "market");
+    }
   }
   function renderTimelapse(hist, onDone) {
     el("btnSkipLapse").classList.remove("hidden");
@@ -989,7 +1039,9 @@ window.DRBUI = (function () {
     var adapt = window.DRBEngine.adaptiveCapacity(t.state);
     var power = Math.round(
       (t.state.capacity * 0.3 + t.state.tech * 0.25 + t.state.quality * 0.2 +
-       t.state.trust * 0.15 + clamp01(t.state.cash / 200) * 100 * 0.1)
+       /* 현금 기준선 500 — 200 은 현금이 100~200 을 오가던 시절 값이라,
+          투자가 회수되게 고친 뒤에는 모든 조가 이 항목에서 만점이었습니다 */
+       t.state.trust * 0.15 + clamp01(t.state.cash / 500) * 100 * 0.1)
     );
 
     el("fiPowerScore").textContent = power;

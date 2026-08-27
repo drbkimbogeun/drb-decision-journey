@@ -127,8 +127,13 @@ window.DRB_ERAS = {
       ]
     },
 
+    /* ★ priceIndex 는 materialCost 를 따라 올라야 합니다.
+         예전에는 원가만 1.00 → 1.14 로 오르고 판가는 1.03 에 묶여 있었습니다.
+         원가를 한 푼도 전가하지 못하는 회사가 되어, 국면이 갈수록 영업이익률이
+         혼자 무너졌습니다 (30% → 11%). 실제로는 원가가 오르면 납품가에 반영합니다.
+         전부는 못 넘기므로 원가 상승분보다 조금 낮게 잡습니다 — 그만큼이 압박입니다. */
     market: {
-      demand: 138, priceIndex: 1.03, materialCost: 1.14, laborCost: 1.20,
+      demand: 138, priceIndex: 1.10, materialCost: 1.14, laborCost: 1.20,
       techRequirement: 52, competition: 0.40, interest: 1.20
     },
 
@@ -193,8 +198,9 @@ window.DRB_ERAS = {
       ]
     },
 
+    /* 원가 1.30 에 대해 판가 1.20 — 상승분의 약 2/3만 넘깁니다 (era2 머리말 참고) */
     market: {
-      demand: 186, priceIndex: 1.00, materialCost: 1.30, laborCost: 1.60,
+      demand: 186, priceIndex: 1.20, materialCost: 1.30, laborCost: 1.60,
       techRequirement: 74, competition: 0.58, interest: 1.15
     },
 

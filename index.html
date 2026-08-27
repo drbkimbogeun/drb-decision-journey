@@ -164,9 +164,12 @@
                 <h2 class="page__q">어디에 넣을 것인가</h2>
                 <span class="spacer"></span>
                 <span class="tokenrow">
-                  <span class="tokenrow__label">남은 토큰</span>
+                  <!-- ★ '토큰' 이라고 부르지 않습니다. 조가 다루는 것은 회사 돈입니다.
+                       화면의 숫자 1 = 1억원, 한 칸 = 10억원입니다. -->
+                  <span class="tokenrow__label">남은 투자금</span>
                   <span class="tokenrow__dots" id="inTokenDots"></span>
-                  <span class="sr-only" id="inTokens"></span>
+                  <!-- 점만 세고 있으면 얼마인지 모릅니다. 금액을 같이 적습니다 -->
+                  <span class="tokenrow__label num" id="inTokens"></span>
                   <span class="sr-only" id="inTokenUnit">10</span>
                 </span>
               </div>

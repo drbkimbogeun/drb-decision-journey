@@ -952,34 +952,8 @@ body.fac-body {
 .phasetag--style { border-style: dashed; color: var(--text-3); }
 .phasecard--first .phasetag { border-color: var(--accent-line); color: var(--accent-deep); }
 
-/* ★ 순위는 진행자 화면 전용입니다. 참가자에게는 절대 보내지 않습니다. */
-.fac-rank { flex: 0 0 auto; margin-top: var(--sp-4); padding-top: var(--sp-4); border-top: 1px solid var(--line); }
-.fac-rank:empty { display: none; }
-.fac-rank__head { display: flex; align-items: baseline; gap: var(--sp-3); margin-bottom: var(--sp-3); }
-.fac-rank__title { font-size: var(--fs-body); font-weight: var(--fw-strong); }
-.fac-rank__note { color: var(--coral); font-size: var(--fs-tiny); font-weight: var(--fw-strong); }
-.fac-rank__list { display: flex; flex-direction: column; gap: 5px; }
-.fac-rank__row {
-  display: grid;
-  grid-template-columns: 48px 110px minmax(0, 1fr) 66px 46px;
-  gap: var(--sp-3);
-  align-items: center;
-  padding: 6px var(--sp-3);
-  border-radius: var(--r-sm);
-  background: var(--bg-1);
-  font-size: var(--fs-small);
-}
-.fac-rank__row.is-first { background: var(--accent-tint); }
-.fac-rank__pos { color: var(--text-3); font-weight: var(--fw-strong); }
-.fac-rank__row.is-first .fac-rank__pos { color: var(--accent-deep); }
-.fac-rank__name { font-weight: var(--fw-strong); }
-.fac-rank__track { height: 8px; border-radius: var(--r-pill); background: var(--accent-track); overflow: hidden; }
-.fac-rank__fill { display: block; height: 100%; border-radius: var(--r-pill); background: var(--accent); }
-.fac-rank__value { text-align: right; font-weight: var(--fw-strong); }
-.fac-rank__move { text-align: right; font-size: var(--fs-tiny); font-weight: var(--fw-strong); }
-.fac-rank__move.is-up { color: var(--accent); }
-.fac-rank__move.is-down { color: var(--coral); }
-.fac-rank__move.is-flat { color: var(--text-3); }
+/* ★ '지금 순위' 띠(.fac-rank)의 스타일이 여기 있었습니다. 띠를 없애서 함께 뺐습니다.
+     이 화면은 빔프로젝터로 참가자 전원이 봅니다 — 순위는 마지막 시상에서 한 번만. */
 
 
 /* ============================================================================

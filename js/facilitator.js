@@ -607,7 +607,8 @@
     var s = team.state || {};
     return Math.round(
       (s.capacity || 0) * 0.3 + (s.tech || 0) * 0.25 + (s.quality || 0) * 0.2 +
-      (s.trust || 0) * 0.15 + Math.max(0, Math.min(1, (s.cash || 0) / 200)) * 100 * 0.1
+      /* 500 은 ui.js 의 참가자 최종 화면과 같은 값이어야 합니다 */
+      (s.trust || 0) * 0.15 + Math.max(0, Math.min(1, (s.cash || 0) / 500)) * 100 * 0.1
     );
   }
   /* 종합 = 현재 경쟁력 + 변화 대응력.
@@ -653,47 +654,17 @@
 
 
   /* ============================================================
-     순위 — 이 화면에만 나옵니다
+     ★ 여기에 '지금 순위' 띠(renderRank)가 있었습니다. 없앴습니다.
 
-     ★ 참가자 화면에는 순위를 절대 보내지 않습니다.
-       참가자는 마지막까지 "순위를 매기지 않습니다" 를 봅니다.
+       국면이 끝날 때마다 조별 점수와 순위 변동(▲▼)을 띄웠고, 옆에
+       "진행자 화면 전용 · 참가자에게 보이지 않습니다" 라고 적어뒀습니다.
+       그런데 이 화면은 빔프로젝터로 나갑니다 — 그 문구를 포함해서
+       방 전체가 보고 있었습니다.
+
+       매 국면 순위를 보여주면 남은 국면이 순위 따라잡기가 됩니다.
+       이 게임은 등수를 매기지 않는 것이 원칙입니다. 순위는 마지막
+       시상(renderAward)에서 한 번만 공개합니다.
      ============================================================ */
-  function renderRank(teams) {
-    var box = el("bRank");
-    var played = teams.filter(function (team) { return team.turns > 0; });
-    if (played.length < 2) { box.innerHTML = ""; return; }
-
-    var rows = played.map(function (team) {
-      return { name: team.name, total: totalScore(team), power: powerOf(team), adapt: adaptiveOf(team), turns: team.turns };
-    }).sort(function (a, b) { return b.total - a.total; });
-
-    var max = rows[0].total || 1;
-    var prevOrder = readJson(FAC_KEY + "_rankorder", []);
-
-    box.innerHTML =
-      "<div class='fac-rank__head'>" +
-        "<span class='fac-rank__title'>지금 순위</span>" +
-        "<span class='fac-rank__note'>진행자 화면 전용 · 참가자에게 보이지 않습니다</span>" +
-      "</div>" +
-      "<div class='fac-rank__list'>" +
-      rows.map(function (r, i) {
-        var was = prevOrder.indexOf(r.name);
-        var move = was < 0 ? 0 : was - i;
-        var moveCls = move > 0 ? "is-up" : move < 0 ? "is-down" : "is-flat";
-        var moveText = move > 0 ? "▲" + move : move < 0 ? "▼" + Math.abs(move) : "—";
-        return "<div class='fac-rank__row" + (i === 0 ? " is-first" : "") + "'>" +
-          "<span class='fac-rank__pos num'>" + (i + 1) + "위</span>" +
-          "<span class='fac-rank__name'>" + esc(r.name) + "</span>" +
-          "<span class='fac-rank__track'><span class='fac-rank__fill' style='width:" +
-            Math.round(r.total / max * 100) + "%'></span></span>" +
-          "<span class='fac-rank__value num'>" + r.total + "</span>" +
-          "<span class='fac-rank__move " + moveCls + "'>" + moveText + "</span>" +
-        "</div>";
-      }).join("") +
-      "</div>";
-
-    writeJson(FAC_KEY + "_rankorder", rows.map(function (r) { return r.name; }));
-  }
 
 
   /* ============================================================
@@ -1770,7 +1741,6 @@
     renderPhaseResult(teams);
     renderStandings(teams);
     renderCrowd(teams);
-    renderRank(teams);
     renderAward(teams);
     renderReflection(teams);
     renderDrive(teams);

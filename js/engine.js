@@ -84,7 +84,7 @@ window.DRBEngine = (function () {
      ============================================================ */
   function adaptiveCapacity(s) {
     var parts = [
-      { name: "현금 여력",     value: clamp(s.cash / 170, 0, 1) * 18 },
+      { name: "현금 여력",     value: clamp(s.cash / 420, 0, 1) * 18 },
       { name: "기술 옵션",     value: clamp((s.tech + s.rdStock * 0.5) / 95, 0, 1) * 18 },
       { name: "고객 다변화",   value: clamp(s.reach / 100, 0, 1) * 12 },
       { name: "공급망 유연성", value: clamp(s.flex / 90, 0, 1) * 22 },

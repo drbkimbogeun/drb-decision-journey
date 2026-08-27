@@ -380,7 +380,8 @@
 
     if (waitingBriefing && !liveNextBriefingOpen()) {
       showScreen('timelapse');
-      UI.renderLiveWait('briefing');
+      /* 진행자가 돌발상황을 열어둔 중이면 그 화면으로 돌아옵니다 */
+      UI.renderLiveWait(lastControlStage === 'event' ? 'event' : 'briefing');
       return;
     }
 
@@ -547,7 +548,8 @@
     if (liveControl() && !liveNextBriefingOpen()) {
       waitingBriefing = true;
       showScreen("timelapse");
-      UI.renderLiveWait("briefing");
+      /* 우리가 연출을 보는 사이 진행자가 이미 돌발상황을 열었을 수 있습니다 */
+      UI.renderLiveWait(lastControlStage === "event" ? "event" : "briefing");
       return;
     }
     waitingBriefing = false;
