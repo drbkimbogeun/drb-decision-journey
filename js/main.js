@@ -256,7 +256,12 @@
 
     window.DRBLive.joinWithCode(code).then(function (joined) {
       assignedLiveTeam = joined.teamName;
-      assignedLiveTeamCount = Number(joined.teamCount || setupTeamCount);
+      /* ★ 배정된 조가 판에 반드시 있어야 합니다.
+           세션의 조 수를 못 받으면 기본값(4조)으로 판을 깔았는데, 그 상태에서
+           5조·6조가 배정되면 switchTeam 이 조용히 실패해 1조 화면이 떴습니다.
+           배정된 번호까지는 무조건 판을 만듭니다. */
+      var teamNo = Number(String(assignedLiveTeam).replace(/\D/g, "")) || 1;
+      assignedLiveTeamCount = Math.max(Number(joined.teamCount) || 0, teamNo, 1);
       setupTeamCount = assignedLiveTeamCount;
       setupTeamName = assignedLiveTeam;
       liveUrl = true;                       /* 지금부터 진행자 화면에 전송합니다 */
@@ -265,7 +270,12 @@
       warpToPast(function () {
         S.clearAll();
         S.newGame(assignedLiveTeamCount);
-        S.switchTeam(assignedLiveTeam);
+        /* 여기서 실패하면 1조 화면이 뜹니다. 조용히 넘기지 않습니다. */
+        if (!S.switchTeam(assignedLiveTeam)) {
+          el("btnJoin").disabled = false;
+          setJoinMessage(assignedLiveTeam + " 판을 열지 못했습니다. 새로고침한 뒤 코드를 다시 넣어주세요.", "wrong");
+          return;
+        }
         enterGame();
       });
     }).catch(function (error) {
@@ -320,7 +330,7 @@
   /* 소리는 있으면 내고 없으면 조용히 넘어갑니다 */
   function sfx(name) { if (window.DRBAudio) window.DRBAudio.play(name); }
 
-  /* 배경음악은 지금 무엇을 하는 중인가를 따라갑니다 — 평상시 / 시대흐름 / 엔딩.
+  /* 배경음악은 두 곡뿐입니다 — 평상시 / 엔딩곡.
      어느 화면이 어느 곡인지는 config 의 musicByScreen 에 있습니다.
      돌발상황은 이제 빔에서 뜨므로, 음악을 낮추는 것은 진행자 단계를 보고 합니다. */
   function musicForScreen(name) {

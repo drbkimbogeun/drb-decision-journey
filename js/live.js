@@ -192,8 +192,27 @@
     };
   }
 
+  /* ★ 조 인증 정보는 sessionStorage 에 둡니다 — 탭마다 따로입니다.
+       localStorage 에 두면 한 브라우저에서 두 조를 띄울 수 없습니다.
+       2조 탭이 참가하는 순간 1조 탭의 토큰까지 덮어쓰고, 그러면 1조 탭은
+       publishLiveState 의 "내 조가 아니면 보내지 않는다" 검사에 걸려
+       아무 말 없이 전송을 멈춥니다. 진행자 화면에서는 그 조가 그냥 비어 보입니다.
+
+       sessionStorage 는 같은 탭에서 새로고침해도 남습니다. 탭을 아예 닫았다
+       다시 연 경우를 위해 localStorage 에도 사본을 둡니다 — 다만 그 사본은
+       '넣은 참가 코드가 그때 그 코드일 때만' 꺼내 씁니다. */
   function teamCredentials() {
-    return getStore(window.localStorage, TEAM_KEY);
+    return getStore(window.sessionStorage, TEAM_KEY);
+  }
+
+  /* 탭을 닫았다 온 경우까지 포함해서 찾습니다. 참가 코드를 대조한 뒤에만 씁니다. */
+  function recoverableCredentials() {
+    return teamCredentials() || getStore(window.localStorage, TEAM_KEY);
+  }
+
+  function storeTeamCredentials(value) {
+    setStore(window.sessionStorage, TEAM_KEY, value);
+    setStore(window.localStorage, TEAM_KEY, value);
   }
 
   function facilitatorCredentials() {
@@ -346,7 +365,7 @@
     sessionId = normalizeSessionId(sessionId);
     teamName = cleanText(teamName, 8);
     if (!/^[1-6]조$/u.test(teamName)) throw new Error("팀 이름은 1조~6조 형식이어야 합니다.");
-    var prior = teamCredentials();
+    var prior = recoverableCredentials();
     var reconnecting = prior && prior.sessionId === sessionId && prior.teamName === teamName && prior.teamToken;
     if (!reconnecting && !/^\d{4}$/.test(String(pin || ""))) throw new Error("PIN은 4자리 숫자입니다.");
     if (!reconnecting && !/^\d{4}$/.test(String(claimSecret || ""))) throw new Error("이 조의 참가 코드가 필요합니다.");
@@ -363,8 +382,9 @@
       headers: joinHeaders,
       body: joinBody,
     });
-    var credentials = { sessionId: sessionId, teamName: payload.teamName, teamToken: payload.teamToken };
-    setStore(window.localStorage, TEAM_KEY, credentials);
+    var credentials = { sessionId: sessionId, teamName: payload.teamName, teamToken: payload.teamToken,
+                        joinCode: prior && prior.teamName === payload.teamName ? prior.joinCode || null : null };
+    storeTeamCredentials(credentials);
     setStore(window.localStorage, META_KEY, { sessionId: sessionId, role: "team", teamName: payload.teamName });
     latestSnapshot = snapshotFromState({}, payload.teamName);
     startHeartbeat();
@@ -402,16 +422,21 @@
       throw new Error("코드는 숫자 4자리입니다. 진행자 화면의 우리 조 코드를 확인하세요.");
     }
 
-    /* 새로고침으로 돌아온 경우에는 갖고 있던 토큰으로 다시 붙습니다 */
-    var prior = teamCredentials();
-    if (prior && prior.sessionId === sessionId && prior.teamToken) {
+    /* 새로고침으로 돌아온 경우에는 갖고 있던 토큰으로 다시 붙습니다.
+
+       ★ 넣은 코드가 '그 조가 들어올 때 쓴 코드' 일 때만 그렇게 합니다.
+         이 조건이 없으면 코드를 아예 보지 않고 앞서 들어간 조로 되돌아갑니다 —
+         1조로 한 번 들어갔던 브라우저에 2조 코드를 넣으면 그대로 1조가 되고,
+         2조는 서버에 참가한 적이 없으니 진행자 화면에 영영 뜨지 않습니다. */
+    var prior = recoverableCredentials();
+    if (prior && prior.sessionId === sessionId && prior.teamToken && prior.joinCode === code) {
       try {
         var back = await api("/api/session/" + sessionId + "/join", {
           method: "POST",
           headers: authHeader(prior.teamToken),
           body: { teamName: prior.teamName },
         });
-        return afterJoin(sessionId, back);
+        return afterJoin(sessionId, back, code);
       } catch (e) { /* 안 되면 아래에서 코드로 새로 들어갑니다 */ }
     }
 
@@ -419,12 +444,13 @@
       method: "POST",
       body: { joinCode: code },
     });
-    return afterJoin(sessionId, payload);
+    return afterJoin(sessionId, payload, code);
   }
 
-  function afterJoin(sessionId, payload) {
-    var credentials = { sessionId: sessionId, teamName: payload.teamName, teamToken: payload.teamToken };
-    setStore(window.localStorage, TEAM_KEY, credentials);
+  function afterJoin(sessionId, payload, joinCode) {
+    var credentials = { sessionId: sessionId, teamName: payload.teamName, teamToken: payload.teamToken,
+                        joinCode: joinCode || null };
+    storeTeamCredentials(credentials);
     setStore(window.localStorage, META_KEY, { sessionId: sessionId, role: "team", teamName: payload.teamName });
     latestSnapshot = snapshotFromState({}, payload.teamName);
     startHeartbeat();
@@ -559,7 +585,7 @@
     stopHeartbeat();
     latestSnapshot = null;
     publishInFlight = null;
-    setStore(window.localStorage, TEAM_KEY, null);
+    storeTeamCredentials(null);
     setStore(window.sessionStorage, FACILITATOR_KEY, null);
     setStore(window.localStorage, META_KEY, null);
     emit("drb-live-status", { connected: false });

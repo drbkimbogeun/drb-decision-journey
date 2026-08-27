@@ -282,10 +282,15 @@ window.DRBState = (function () {
     save();
   }
 
+  /* ★ 없는 조로는 바꾸지 않습니다. 예전에는 조용히 돌아섰는데, 그러면 화면은
+       첫 조(1조)에 그대로 머무릅니다 — 코드로 3조에 들어왔는데 판에 3조가
+       없으면 아무 말 없이 1조가 됐고, 조는 자기가 1조인 줄 알았습니다.
+       이제 실패를 돌려주고, 부르는 쪽에서 화면에 드러냅니다. */
   function switchTeam(name) {
-    if (!data.teams[name]) return;
+    if (!data.teams[name]) return false;
     data.activeTeam = name;
     save();
+    return true;
   }
 
   function commitSubround(allocation, policyId, choices) {

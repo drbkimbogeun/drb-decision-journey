@@ -114,7 +114,8 @@ function step(title) { console.log("\n" + "─".repeat(70) + "\n" + title); }
         await play.waitForTimeout(3000);
         const joinMsg = (await play.locator("#joinMsg").textContent()) || "";
         const assigned = await play.evaluate(() => {
-          try { return JSON.parse(localStorage.getItem("drb.live.team.v1") || "null"); }
+          /* 조 인증 정보는 탭마다 따로입니다 (sessionStorage). 한 브라우저에서 두 조를 띄우기 위해서입니다. */
+          try { return JSON.parse(sessionStorage.getItem("drb.live.team.v1") || "null"); }
           catch (e) { return null; }
         });
         expect(!!assigned, "조 참가 성공" + (assigned ? " — " + assigned.teamName : " (메시지: " + joinMsg.trim() + ")"));

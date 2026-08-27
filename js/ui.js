@@ -108,17 +108,28 @@ window.DRBUI = (function () {
 
     renderTimeline();
 
-    /* ---------- 조 전환 ---------- */
+    /* ---------- 조 전환 ----------
+       ★ 참가 코드로 들어온 조에게는 이 칸이 아예 없습니다.
+         코드가 곧 조인데 옆에 남의 조로 넘어가는 칸이 붙어 있으면,
+         조가 자기 조를 확신하지 못하고 실제로 다른 조를 열어보게 됩니다.
+         (예전에는 disabled 로만 두어서, 회색으로 보이지만 계속 붙어 있었습니다)
+         코드 없이 혼자 해보는 연습 모드에서만 남깁니다. */
     var sel = el("tbTeam");
-    if (sel.options.length !== g.teamNames.length) {
-      clearNode(sel);
-      g.teamNames.forEach(function (n) {
-        var o = document.createElement("option");
-        o.value = n; o.textContent = n;
-        sel.appendChild(o);
-      });
+    var live = window.DRBLive && window.DRBLive.credentials ? window.DRBLive.credentials() : null;
+    var joinedByCode = !!(live && live.role === "team");
+    sel.classList.toggle("hidden", joinedByCode);
+    sel.disabled = joinedByCode;
+    if (!joinedByCode) {
+      if (sel.options.length !== g.teamNames.length) {
+        clearNode(sel);
+        g.teamNames.forEach(function (n) {
+          var o = document.createElement("option");
+          o.value = n; o.textContent = n;
+          sel.appendChild(o);
+        });
+      }
+      sel.value = g.activeTeam;
     }
-    sel.value = g.activeTeam;
 
     el("btnAdmin").classList.toggle("btn--primary", !!g.adminMode);
   }
