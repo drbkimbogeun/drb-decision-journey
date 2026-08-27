@@ -71,17 +71,16 @@ const server = http.createServer((req, res) => {
   expect(fs.existsSync(path.join(ROOT, CFG.audio.shock)), `shock → ${CFG.audio.shock}`);
 
   console.log("\n2. 챕터와 곡의 짝");
-  expect(Object.keys(music).length === 4, "배경음악이 네 곡임 (" + Object.keys(music).join(" · ") + ")");
+  expect(Object.keys(music).length === 2, "배경음악이 두 곡임 (" + Object.keys(music).join(" · ") + ")");
   const unknown = Object.keys(byScreen).filter(s => !music[byScreen[s]]);
   expect(unknown.length === 0, "musicByScreen 이 없는 곡을 가리키지 않음" + (unknown.length ? " — " + unknown.join(", ") : ""));
   /* ★ 음악은 진행자 빔에서만 납니다. 그래서 짝을 맞춰야 하는 것은 진행자 챕터입니다.
-     설명하는 동안은 평상시, 결과가 흐르는 동안은 시대흐름, 시상부터는 엔딩. */
-  expect(byScreen.briefing === "normal" && byScreen.decisions === "normal",
-    "시대 설명 · 조별 결정은 평상시 곡");
-  expect(byScreen.event === "lapse" && byScreen.phase === "lapse",
-    "돌발상황 · 국면 결과는 시대흐름 곡");
-  expect(byScreen.award === "ending" && byScreen.reflect === "ending",
-    "시상과 회고는 엔딩 곡");
+     회고까지는 평상시 곡 하나, 회사 사진부터 맺음말까지는 엔딩곡. */
+  const beforeFinale = ["intro", "howto", "briefing", "decisions", "lapse", "event",
+                        "phase", "actual", "map", "standings", "award", "reflect"];
+  const strays = beforeFinale.filter(s => (byScreen[s] || "normal") !== "normal");
+  expect(strays.length === 0,
+    "표지부터 회고까지는 전부 평상시 곡" + (strays.length ? " — " + strays.join(", ") : ""));
   /* 사진이 흐르는 동안 시작해서 맺음말까지 끊기지 않아야 합니다 —
      두 챕터가 같은 곡을 가리켜야 넘어갈 때 다시 시작하지 않습니다 */
   expect(byScreen.finale === "finale" && byScreen.closing === "finale",

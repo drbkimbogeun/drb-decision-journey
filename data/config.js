@@ -75,19 +75,18 @@ window.DRB_CONFIG = {
        그래서 파일을 .m4a 로 넣어두고, 게임이 내용을 보고 알아서 재생합니다.
        (확장자와 실제 형식이 달라도 됩니다)
 
-     배경음악은 딱 세 곡입니다. 시대가 아니라 '무엇을 하는 중인가' 로 갈립니다.
-       music-normal.m4a  평상시   국면 시작부터 선택이 끝날 때까지 (6개 국면 모두 같은 곡)
-       music-lapse.m4a   시대흐름 선택이 끝나고 연도가 넘어가는 구간
-       music-ending.m4a  엔딩     2026 이후 엔딩 · 최종 · 회고
+     배경음악은 딱 두 곡입니다. 시대가 아니라 '어디까지 왔는가' 로 갈립니다.
+       music-normal.m4a  평상시  표지부터 회고까지 — 6개 국면 전부 같은 곡입니다.
+                                 국면이 넘어가도 곡이 바뀌지 않으므로 끊기지 않습니다.
+       music-finale.m4a  엔딩곡  "우리는 이렇게 걸어왔습니다"(회사 사진)부터
+                                 "그리고 2026년부터는"(맺음말)까지
        shock.m4a         Alarm Clock (돌발상황 효과음, 한 번만)
 
      곡을 바꾸려면 파일만 같은 이름으로 덮어쓰면 됩니다.
-     ★ 세 곡 다 무한 반복입니다. 2분짜리 곡이라도 5분 국면 내내 끊기지 않습니다. */
+     ★ 두 곡 다 무한 반복입니다. 2분짜리 곡이라도 5분 국면 내내 끊기지 않습니다. */
   audio: {
     music: {
       normal: "assets/audio/music-normal.m4a",
-      lapse:  "assets/audio/music-lapse.m4a",
-      ending: "assets/audio/music-ending.m4a",
       /* 회사 사진이 흐르는 챕터부터 맺음말까지 끊기지 않고 이어집니다.
          두 챕터가 같은 곡을 가리키므로 넘어갈 때 다시 시작하지 않습니다. */
       finale: "assets/audio/music-finale.m4a"
@@ -99,17 +98,20 @@ window.DRB_CONFIG = {
        ★ 음악은 진행자 빔에서만 납니다. 그래서 실제로 쓰이는 것은 아래 챕터 이름들입니다.
          (참가자 노트북에는 <html data-music> 이 없어 음악이 나오지 않습니다) */
     musicByScreen: {
-      /* 진행자 화면의 챕터 */
+      /* 진행자 화면의 챕터 — 회고까지 전부 평상시 곡 하나로 갑니다.
+         (돌발상황·결과라고 곡을 바꾸지 않습니다. 국면마다 곡이 갈리면
+          같은 진행인데도 방 분위기가 매번 달라집니다) */
       intro:     "normal",  howto:     "normal",  briefing:  "normal",  decisions: "normal",
-      lapse:     "lapse",   event:     "lapse",   phase:     "lapse",   actual:    "lapse",
-      map:       "lapse",   standings: "lapse",
-      award:     "ending",  reflect:   "ending",
+      lapse:     "normal",  event:     "normal",  phase:     "normal",  actual:    "normal",
+      map:       "normal",  standings: "normal",  award:     "normal",  reflect:   "normal",
+
+      /* 여기서부터 엔딩곡 */
       finale:    "finale",  closing:   "finale",
 
       /* 참가자 화면 (연습 모드에서 소리를 켜고 볼 때만 쓰입니다) */
       roundOpen: "normal",  situation: "normal",  invest: "normal",  policy: "normal",
-      timelapse: "lapse",   result:    "lapse",
-      ending:    "ending",  final:     "ending"
+      timelapse: "normal",  result:    "normal",
+      ending:    "finale",  final:     "finale"
     },
 
     shock: "assets/audio/shock.m4a",   // 돌발상황이 뜨는 순간 한 번
