@@ -135,9 +135,10 @@ function step(title) { console.log("\n" + "─".repeat(70) + "\n" + title); }
         expect(noRivals, "조 노트북에 경쟁사가 없음 (경쟁은 조들끼리만)");
 
         step("4. 배분 + 정책 확정이 진행자 화면에 도착하는가");
+        /* 예산은 남김없이 배분해야 확정이 열립니다 — 남길 돈도 '현금' 칸에 직접 넣습니다 */
         await play.evaluate(() => {
-          for (let i = 0; i < 12; i += 1) {
-            if (parseInt(document.getElementById("inRemain").textContent, 10) <= 0) break;
+          for (let i = 0; i < 40; i += 1) {
+            if (Number(document.getElementById("inRemain").dataset.remain) <= 0) break;
             const plus = document.querySelector("#inList .alloc .btn--plus:not([disabled])");
             if (!plus) break;
             plus.click();
@@ -146,7 +147,7 @@ function step(title) { console.log("\n" + "─".repeat(70) + "\n" + title); }
         });
         await play.waitForTimeout(400);
         const locked = await play.locator("#btnInvestGo").isDisabled();
-        expect(!locked, "정책을 고르면 확정이 열림");
+        expect(!locked, "정책을 고르고 예산을 다 배분하면 확정이 열림");
         await play.click("#btnInvestGo");
         await play.waitForTimeout(4000);
 

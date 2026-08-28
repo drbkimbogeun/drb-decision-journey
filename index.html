@@ -175,6 +175,10 @@
               </div>
 
               <p class="page__warn hidden" id="inSub"></p>
+
+              <!-- 지금 우리 회사에서 감지된 위기 — 가장 급한 것 하나만 (ui.js renderRiskWatch) -->
+              <div class="riskwatch hidden" id="inRisk" aria-live="polite"></div>
+
               <div class="decision-scope hidden" id="inDecisionScope" aria-live="polite"></div>
 
               <div class="alloc-list" id="inList"></div>
@@ -360,7 +364,10 @@
   <div class="modal__panel">
     <div class="row row--between" style="margin-bottom:var(--sp-4)">
       <h3 class="card__title" id="modalTitle">상세</h3>
-      <button class="btn btn--sm btn--ghost" id="modalClose">닫기</button>
+      <div class="row">
+        <button class="btn btn--sm btn--primary" id="modalConfirm">확정</button>
+        <button class="btn btn--sm btn--ghost" id="modalClose">닫기</button>
+      </div>
     </div>
     <div id="modalBody"></div>
   </div>

@@ -839,43 +839,86 @@ body.fac-body {
 /* ---------- 한 곳만 딸 수 있는 기회 ----------
    조건을 넘긴 조가 여럿이어도 계약은 한 곳입니다.
    누가 왜 가져갔는지 이 자리에서 선언합니다 — 진행자가 소리 내어 읽습니다. */
-.fac-event__awards { margin-top: var(--sp-5); }
-.fac-award {
-  padding: var(--sp-4) var(--sp-5);
+/* ★ 여백을 좁게 씁니다. 이 위로 헤드라인(52px)·본문(34px)·출처가 이미 740px 을
+     먹어서, 평가표가 들어갈 자리는 340px 남짓입니다. 넘치면 빔에서 잘립니다. */
+.fac-event__awards { margin-top: var(--sp-3); }
+.fac-bidaward {
+  padding: 10px var(--sp-4);
   border: 1px solid var(--accent);
   border-left: 5px solid var(--accent);
   border-radius: var(--r-lg);
   background: var(--accent-soft);
 }
-.fac-award__head { display: flex; align-items: baseline; gap: var(--sp-3); }
-.fac-award__label {
+.fac-bidaward__head { display: flex; align-items: baseline; gap: var(--sp-3); }
+.fac-bidaward__label {
   color: var(--accent-deep); font-size: var(--fs-tiny);
   font-weight: var(--fw-strong); letter-spacing: 0.1em;
 }
-.fac-award__title { font-size: 23px; font-weight: var(--fw-strong); letter-spacing: -0.03em; }
-.fac-award__winner {
+.fac-bidaward__title { font-size: 20px; font-weight: var(--fw-strong); letter-spacing: -0.03em; }
+.fac-bidaward__winner {
   padding: 4px 14px; border-radius: var(--r-pill);
   background: var(--accent); color: var(--text-on-accent);
   font-size: 19px; font-weight: var(--fw-strong);
 }
-.fac-award__rows {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: var(--sp-2); margin-top: var(--sp-4);
-}
-.fac-award-row {
-  display: flex; align-items: baseline; gap: var(--sp-3);
-  padding: 9px var(--sp-4);
+/* 입찰 평가표 — 진행자가 빔에서 소리 내어 읽는 표입니다.
+   항목 이름은 왼쪽에 붙이고 점수는 전부 오른쪽 정렬 — 조끼리 세로로 대볼 수 있어야 합니다. */
+.bidsheet {
+  margin-top: var(--sp-2);
   border: 1px solid var(--line); border-radius: var(--r-md);
   background: var(--bg-2);
+  overflow: hidden;
+}
+/* 배점 줄 — 만점이 얼마인지 한 번만 깔고, 그 아래로 조들이 붙습니다 */
+.bidsheet__allot {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-2) var(--sp-4);
+  padding: 5px var(--sp-4);
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--text-3); font-size: var(--fs-tiny);
+}
+.bidsheet__allot-label { font-weight: var(--fw-strong); letter-spacing: 0.08em; }
+.bidsheet__allot-sum { margin-left: auto; font-weight: var(--fw-strong); }
+
+.bidsheet__row {
+  display: flex; align-items: baseline; gap: var(--sp-3);
+  padding: 7px var(--sp-4);
+  border-bottom: 1px solid var(--line);
   font-size: 17px;
 }
-.fac-award-row.is-won  { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-.fac-award-row.is-lost { border-style: dashed; color: var(--text-3); }
-.fac-award-row__state { margin-left: auto; font-size: var(--fs-small); font-weight: var(--fw-mid); }
-.fac-award-row.is-won  .fac-award-row__state { color: var(--accent-deep); }
-.fac-award-row.is-lost .fac-award-row__state { color: var(--coral); }
-.fac-award-row__score { min-width: 44px; text-align: right; color: var(--text-3); font-size: var(--fs-small); }
-.fac-award__note { margin-top: var(--sp-3); color: var(--text-2); font-size: var(--fs-small); }
+.bidsheet__row:last-child { border-bottom: 0; }
+.bidsheet__row.is-won { background: var(--accent-soft); }
+
+.bidsheet__team { min-width: 44px; font-weight: var(--fw-strong); }
+.bidsheet__verdict { min-width: 34px; font-size: var(--fs-small); font-weight: var(--fw-strong); }
+.bidsheet__row.is-won  .bidsheet__verdict { color: var(--accent-deep); }
+.bidsheet__row.is-lost .bidsheet__verdict { color: var(--coral); }
+/* 합계는 이 줄에서 제일 큰 숫자입니다 — 눈이 여기부터 갑니다 */
+.bidsheet__score {
+  min-width: 58px; text-align: right;
+  font-size: 21px; font-weight: var(--fw-strong);
+}
+.bidsheet__row.is-lost .bidsheet__score { color: var(--text-2); }
+/* 합계가 어디서 나왔는지 — 항목별 점수를 한 줄로 */
+.bidsheet__parts {
+  display: flex; flex-wrap: wrap; gap: 2px var(--sp-3);
+  margin-left: var(--sp-2); padding-left: var(--sp-3);
+  border-left: 1px solid var(--line);
+  color: var(--text-2); font-size: var(--fs-small);
+}
+/* 항목의 실제 값 — 점수 옆에 작게. "37.5점은 투자 30에서 나왔다" 가 읽혀야 합니다 */
+.bidsheet__raw {
+  margin-left: 3px; color: var(--text-3);
+  font-size: var(--fs-tiny); font-style: normal;
+}
+.bidsheet__raw::before { content: "("; }
+.bidsheet__raw::after  { content: ")"; }
+.fac-bidaward__tie {
+  margin-top: var(--sp-2); padding: 4px var(--sp-3);
+  border-left: 3px solid var(--coral); border-radius: var(--r-sm);
+  background: var(--bg-2); color: var(--coral);
+  font-size: var(--fs-small); font-weight: var(--fw-mid);
+}
+.fac-bidaward__note { margin-top: 6px; color: var(--text-3); font-size: var(--fs-tiny); }
 
 .fac-event__delivery { display: block; margin-top: auto; padding-top: 30px; }
 .fac-event__impact {

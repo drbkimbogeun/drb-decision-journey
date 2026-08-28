@@ -122,10 +122,12 @@ const server = http.createServer((req, res) => {
     }[screen];
 
     if (screen === "invest") {
-      /* 예산을 다 쓰고, 같은 화면 아래 띠에서 정책까지 고른 뒤 확정합니다 */
-      for (let k = 0; k < 12; k++) {
+      /* 예산을 다 쓰고, 같은 화면 아래 띠에서 정책까지 고른 뒤 확정합니다.
+         한 푼이라도 남으면 확정이 잠긴 채 열리지 않으므로 넉넉히 돕니다
+         (예산은 최대 200억 = 20번). */
+      for (let k = 0; k < 40; k++) {
         const done = await page.evaluate(() => {
-          if (parseInt(document.getElementById("inRemain").textContent, 10) <= 0) return true;
+          if (Number(document.getElementById("inRemain").dataset.remain) <= 0) return true;
           const btn = document.querySelector("#inList .alloc .btn--plus:not([disabled])");
           if (!btn) return true;
           btn.click(); return false;

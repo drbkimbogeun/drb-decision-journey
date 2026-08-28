@@ -256,7 +256,7 @@ function esc(s) {
       const times = Math.round(want / 10);
       for (let k = 0; k < times; k++) {
         const done = await page.evaluate((itemId) => {
-          if (parseInt(document.getElementById("inRemain").textContent, 10) <= 0) return true;
+          if (Number(document.getElementById("inRemain").dataset.remain) <= 0) return true;
           const card = [...document.querySelectorAll("#inList .alloc")]
             .filter(n => n.dataset.id === itemId)[0];
           if (!card) return true;
@@ -268,7 +268,32 @@ function esc(s) {
         if (done) break;
       }
     }
-    /* 남은 예산이 있으면 아무 데나 밀어넣지 않고 현금으로 둡니다 — 그것도 전략입니다 */
+    /* 남은 예산은 아무 데나 밀어넣지 않고 '현금' 칸에 직접 넣습니다 — 그것도 전략입니다.
+       예전에는 확정하는 순간 남은 예산이 저절로 현금으로 넘어갔습니다. 지금은
+       남길 돈도 손으로 넣어야 확정이 열립니다 (main.js updateGoButton). */
+    for (let k = 0; k < 40; k++) {
+      const done = await page.evaluate(() => {
+        if (Number(document.getElementById("inRemain").dataset.remain) <= 0) return true;
+        const cash = (window.DRBState.availableInvestments()
+          .filter(i => i.keepCash)[0] || {}).id;
+        const card = [...document.querySelectorAll("#inList .alloc")]
+          .filter(n => n.dataset.id === cash)[0];
+        if (!card) return true;
+        const plus = card.querySelector(".btn--plus:not([disabled])");
+        if (!plus) return true;
+        plus.click();
+        return false;
+      });
+      if (done) break;
+    }
+    /* 여기서 못 채우면 확정 버튼이 영원히 잠겨 30초 뒤 타임아웃으로 죽습니다.
+       무엇 때문에 멈췄는지 알 수 있게 먼저 소리를 냅니다. */
+    const leftover = await page.evaluate(
+      () => Number(document.getElementById("inRemain").dataset.remain));
+    if (leftover !== 0) {
+      errors.push(`${teamName} 가 ${turn + 1}국면(${at.year})에 예산 ${leftover}억을 배분하지 못했습니다 — ` +
+                  `현금 칸이 이 국면에 열려 있는지 확인하세요`);
+    }
 
     await page.evaluate((policyId) => {
       const list = [...document.querySelectorAll("#poList .policy")];
@@ -282,7 +307,7 @@ function esc(s) {
       const items = S.investments();
       const out = [];
       document.querySelectorAll("#inList .alloc").forEach(n => {
-        const v = parseInt((n.querySelector(".alloc__amount") || {}).textContent || "0", 10);
+        const v = Number(n.dataset.amount || 0);
         if (v > 0) {
           const item = items.filter(i => i.id === n.dataset.id)[0];
           out.push((item ? item.name : n.dataset.id) + " " + v);

@@ -138,9 +138,10 @@ function esc(s) {
 
     if (screen === "invest") {
       await snap(page, "team", turn, "자원 배분");
-      for (let k = 0; k < 20; k++) {
+      /* 예산을 남김없이 배분해야 확정이 열립니다 (예산은 최대 200억 = 20번) */
+      for (let k = 0; k < 40; k++) {
         const done = await page.evaluate(() => {
-          if (parseInt(document.getElementById("inRemain").textContent, 10) <= 0) return true;
+          if (Number(document.getElementById("inRemain").dataset.remain) <= 0) return true;
           const btn = document.querySelector("#inList .alloc .btn--plus:not([disabled])");
           if (!btn) return true;
           btn.click(); return false;

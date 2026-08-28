@@ -763,9 +763,21 @@ function checkParticipantScreenIsAllocationOnly() {
     "배분과 정책이 한 화면에 같이 있음");
   expect(/<button[^>]*id="btnInvestGo"[^>]*disabled/.test(invest),
     "정책을 고르기 전에는 확정 버튼이 잠겨 있음");
-  expect(/el\("btnInvestGo"\)\.disabled = !pickedPolicy/.test(mainSource) &&
-    /el\("btnInvestGo"\)\.disabled = false/.test(functionSource(mainSource, "pickPolicy")),
-    "정책을 고르면 확정이 열림");
+  /* ★ 확정이 열리는 조건은 두 가지입니다 — 정책을 골랐고, 예산을 남김없이 배분했을 때.
+       예전에는 남긴 예산이 확정하는 순간 저절로 현금 보유로 넘어갔습니다. 그러면
+       현금을 쥐는 것이 결정이 아니라 '덜 쓰다 만 결과' 가 됩니다. 조는 자기가 얼마를
+       남겼는지 모른 채 넘어갔습니다. 이제 남길 돈도 현금 칸에 직접 넣어야 합니다. */
+  const goButton = functionSource(mainSource, "updateGoButton");
+  expect(/\.disabled = !pickedPolicy \|\| remain !== 0/.test(goButton),
+    "확정은 정책을 고르고 예산을 다 배분해야 열림");
+  ["pickPolicy", "changeAlloc", "resetAlloc", "pickChoice"].forEach(function (name) {
+    expect(/updateGoButton\(\)/.test(functionSource(mainSource, name)),
+      name + " 뒤에 확정 버튼 상태를 다시 계산함");
+  });
+  expect(!/keepCash/.test(functionSource(mainSource, "commit")),
+    "확정할 때 남은 예산을 몰래 현금으로 넘기지 않음");
+  expect(!/isCash\s*\)/.test(functionSource(uiSource, "buildAllocationCard")),
+    "현금 칸도 다른 칸처럼 눌러서 넣음 (잠긴 칸이 아님)");
 
   /* 사라진 화면의 렌더러가 남아 있으면 다음 사람이 되살립니다 */
   ["renderRoundOpen", "renderSituation", "renderResult", "renderActual", "renderEvent"].forEach(function (name) {

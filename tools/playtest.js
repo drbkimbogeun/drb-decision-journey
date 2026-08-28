@@ -142,14 +142,14 @@ const server = http.createServer((req, res) => {
       const budget = S.budget();
       let pressed = 0;
       for (let round = 0; round < 20; round++) {
-        const remain = parseInt($("inRemain").textContent, 10);
+        const remain = Number($("inRemain").dataset.remain);
         if (remain <= 0) break;
         const card = $("inList").children[pressed % Math.min(3, cards.length)];
         const plus = card.querySelectorAll("button")[1];
         plus.click();
         pressed++;
       }
-      const remainAfter = parseInt($("inRemain").textContent, 10);
+      const remainAfter = Number($("inRemain").dataset.remain);
       if (remainAfter < 0) bad("예산보다 많이 배분되었습니다 (남은 예산 " + remainAfter + ")");
 
       /* 해외 진출 항목이 열렸다면 '어디에/어떻게' 도 실제로 눌러본다 */
@@ -169,10 +169,10 @@ const server = http.createServer((req, res) => {
       log.push(`  자원 배분 — 예산 ${budget}, 남은 ${remainAfter}`);
 
       /* 예산 초과 방지가 동작하는지 확인 */
-      const before = $("inRemain").textContent;
+      const before = $("inRemain").dataset.remain;
       if (remainAfter === 0) {
         $("inList").children[0].querySelectorAll("button")[1].click();
-        if ($("inRemain").textContent !== before) {
+        if ($("inRemain").dataset.remain !== before) {
           bad("예산이 0인데 더 투자할 수 있었습니다");
         }
       }

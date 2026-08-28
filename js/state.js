@@ -132,6 +132,10 @@ window.DRBState = (function () {
   function subround()      { return round().subrounds[team().subIndex]; }
   function era()           { return window.DRB_ERAS[round().era]; }
   function investments()   { return window.DRB_INVESTMENTS[era().investSet]; }
+
+  /* 이번 국면의 화폐 규모 — 1게임단위가 몇 억인가 (rounds.js moneyScale).
+     엔진 계산에는 안 들어갑니다. 화면에 억으로 적을 때만 곱합니다. */
+  function moneyScale()    { return Number(subround().moneyScale) || 1; }
   function availableInvestments() {
     var step = team().subIndex;
     return investments().filter(function (item) {
@@ -297,6 +301,15 @@ window.DRBState = (function () {
     var turn = turnIndex();
     var Engine = window.DRBEngine;
 
+    /* 이번 국면에 쓸 수 있었던 예산 — 기록에 남깁니다.
+       국면 고정예산에 지난 실적이 얹히므로 조마다 다릅니다. 진행자 화면이
+       고정예산으로 '남긴 현금'을 계산하면 잘 번 조일수록 크게 틀립니다.
+       state 는 아래에서 결과 상태로 갈아치우므로 반드시 여기서 읽습니다. */
+    var turnBudget = budget();
+    /* 그 국면의 화폐 규모도 함께 남깁니다. 지난 국면 기록을 나중에 다시 그릴 때
+       '지금' 배율을 쓰면 1945년 매출이 2026년 자릿수로 찍힙니다. */
+    var turnScale = moneyScale();
+
     /* 같은 분야에 몇 조가 몰렸는가 — 경쟁강도로 반영된다.
        먼저 확정한 조만 보입니다. 우리 뒤에 확정하는 조는 아직 판에 없습니다. */
     var myRole = topRoleOf(allocation, investments());
@@ -343,7 +356,9 @@ window.DRBState = (function () {
       before:     before,
       after:      JSON.parse(JSON.stringify(result.state)),
       year:       subround().year,
-      crowding:   crowding
+      crowding:   crowding,
+      budget:     turnBudget,
+      moneyScale: turnScale
     });
 
     /* 한 대로 여러 조를 돌리는 연습 모드에서는 여기서 판정합니다 —
@@ -502,6 +517,8 @@ window.DRBState = (function () {
           r: h.roundNo,
           sr: h.subroundId,
           a: h.allocation,
+          bg: h.budget,
+          ms: h.moneyScale,
           pol: h.policyName,
           rev: h.report.kpi.revenue,
           pro: h.report.kpi.profit,
@@ -553,6 +570,7 @@ window.DRBState = (function () {
     g: g, team: team, teamNames: teamNames,
     round: round, subround: subround, era: era, phase: phase,
     investments: investments, availableInvestments: availableInvestments,
+    moneyScale: moneyScale,
     investmentDecisionContext: investmentDecisionContext,
     policies: policies, actual: actual,
     turnIndex: turnIndex, totalTurns: totalTurns, subroundSpan: subroundSpan,

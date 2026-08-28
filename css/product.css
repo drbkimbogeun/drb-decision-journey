@@ -743,8 +743,46 @@ button, .btn, .policy, .alloc, .teampick__btn { touch-action: manipulation; }
 .adaptwhy__col[data-side="down"] .adaptwhy__head { color: var(--coral); }
 .adaptwhy__list { display: grid; gap: 7px; }
 
-.adaptrow { display: grid; grid-template-columns: 128px minmax(0, 1fr); align-items: center; gap: var(--sp-3); }
+/* ---------- 위기 감시 (자원 배분 화면 맨 위) ----------
+   가장 급한 것 하나만 뜹니다. 배분 카드보다 먼저 눈에 들어와야 하지만,
+   화면을 잡아먹으면 정작 결정할 칸이 밀리므로 한 줄 높이로 묶어둡니다. */
+.riskwatch {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-3);
+  padding: 10px var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--bg-2);
+}
+.riskwatch__badge {
+  padding: 3px 10px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-tiny);
+  font-weight: var(--fw-strong);
+  letter-spacing: 0.02em;
+  color: #fff;
+}
+.riskwatch__body { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px var(--sp-3); min-width: 0; }
+.riskwatch__title { font-size: var(--fs-small); font-weight: var(--fw-strong); }
+.riskwatch__reason { font-size: var(--fs-tiny); color: var(--text-2); }
+.riskwatch__fix { font-size: var(--fs-tiny); color: var(--text-3); }
+
+.riskwatch.is-danger { border-color: var(--coral); background: rgba(255, 122, 92, 0.10); }
+.riskwatch.is-danger .riskwatch__badge { background: var(--coral); }
+.riskwatch.is-danger .riskwatch__title { color: var(--coral); }
+
+.riskwatch.is-watch { border-color: var(--accent); background: var(--accent-soft, rgba(139, 92, 214, 0.08)); }
+.riskwatch.is-watch .riskwatch__badge { background: var(--accent); }
+.riskwatch.is-watch .riskwatch__title { color: var(--accent); }
+
+/* 이름 · 점수 · 막대 — 점수 칸은 오른쪽 정렬이라 자릿수가 달라도 막대 시작점이 흔들리지 않습니다 */
+.adaptrow { display: grid; grid-template-columns: 128px 34px minmax(0, 1fr); align-items: center; gap: var(--sp-3); }
 .adaptrow__name { font-size: var(--fs-small); font-weight: var(--fw-mid); letter-spacing: -0.02em; }
+.adaptrow__value { text-align: right; font-size: var(--fs-small); font-weight: var(--fw-strong); color: var(--accent); }
+.adaptrow.is-down .adaptrow__value { color: var(--coral); }
 .adaptrow__bar { height: 10px; border-radius: var(--r-pill); background: var(--accent-track); overflow: hidden; }
 .adaptrow__bar i { display: block; height: 100%; border-radius: var(--r-pill); background: var(--accent); }
 .adaptrow.is-down .adaptrow__bar i { background: var(--coral); }
@@ -1345,7 +1383,41 @@ button, .btn, .policy, .alloc, .teampick__btn { touch-action: manipulation; }
   cursor: pointer;
 }
 
-.rfitem__body { display: grid; gap: 4px; min-width: 0; }
+.rfitem__body { display: grid; gap: 4px; min-width: 0; flex: 1 1 auto; }
+
+/* 그때 결정과 결과를 창으로 — 카드의 '고르기' 와 겹치지 않게 따로 둡니다 */
+.rfitem__more {
+  flex: none;
+  align-self: flex-start;
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--bg-2);
+  color: var(--text-3);
+  font-size: var(--fs-tiny);
+  font-weight: var(--fw-mid);
+  cursor: pointer;
+}
+.rfitem__more:hover { border-color: var(--accent); color: var(--accent); }
+
+/* 창 안 — 그 국면에 벌어진 일과 우리 조에 붙은 것 */
+.rfdetail__event {
+  margin-top: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg-1);
+}
+.rfdetail__event.is-picked { border-color: var(--accent); background: var(--accent-tint); }
+.rfdetail__kind {
+  margin-left: var(--sp-2);
+  color: var(--text-3);
+  font-size: var(--fs-tiny);
+  font-weight: var(--fw-mid);
+}
+.rfdetail__reaction { margin-top: 6px; color: var(--text-2); font-size: var(--fs-small); }
+.rfdetail__reaction.is-down { color: var(--coral); }
+.rfdetail__reaction.is-none { color: var(--text-3); }
 .rfitem__head { display: flex; align-items: baseline; gap: var(--sp-2); }
 .rfitem__tag {
   color: var(--text-3);

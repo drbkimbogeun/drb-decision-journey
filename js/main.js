@@ -391,7 +391,7 @@
       case "invest":
         UI.renderInvest(alloc, changeAlloc, choices, pickChoice);
         UI.renderPolicy(pickedPolicy, pickPolicy);
-        el("btnInvestGo").disabled = !pickedPolicy;
+        updateGoButton();
         showScreen("invest");
         break;
 
@@ -422,6 +422,33 @@
   /* ============================================================
      투자 배분
      ============================================================ */
+  /* 이번 국면 예산에서 아직 배분하지 않은 금액 */
+  function allocRemain() {
+    return S.budget() - UI.allocSum(alloc);
+  }
+
+  /* 남길 돈을 넣는 칸의 이름 — 시대마다 다릅니다 (창업기 '현금 보유' / 이후 '현금 확보') */
+  function cashName() {
+    var items = S.availableInvestments ? S.availableInvestments() : S.investments();
+    var item = items.filter(function (i) { return i.keepCash; })[0];
+    return item ? item.name : "현금";
+  }
+
+  /* ★ 확정은 '정책을 골랐고' + '예산을 남김없이 배분했을 때' 만 열립니다.
+       예전에는 남긴 예산이 확정하는 순간 저절로 현금 보유로 넘어갔습니다.
+       그러면 현금을 쥐는 것이 결정이 아니라 덜 쓰다 만 결과가 됩니다 —
+       조는 자기가 얼마를 남겼는지 모른 채 넘어갔습니다.
+       이제 남길 돈도 '현금 보유' 칸에 직접 넣어야 합니다. */
+  function updateGoButton() {
+    var remain = allocRemain();
+    var button = el("btnInvestGo");
+    button.disabled = !pickedPolicy || remain !== 0;
+    button.title = !pickedPolicy ? "정책을 먼저 고르세요"
+      : remain > 0 ? "예산 " + UI.won(remain) + "억이 남았습니다 — 남길 돈은 '" + cashName() + "'에 넣으세요"
+      : remain < 0 ? "예산을 " + UI.won(-remain) + "억 넘겼습니다"
+      : "";
+  }
+
   function changeAlloc(id, delta) {
     var budget = S.budget();
     var cur = alloc[id] || 0;
@@ -440,12 +467,14 @@
     sfx(delta > 0 ? "tokenUp" : "tokenDown");
     if (next === 0) delete choices[id];
     UI.renderInvest(alloc, changeAlloc, choices, pickChoice);
+    updateGoButton();
   }
 
   function resetAlloc() {
     alloc = {};
     choices = {};
     UI.renderInvest(alloc, changeAlloc, choices, pickChoice);
+    updateGoButton();
   }
 
   /* 어디에 / 어떤 방식으로 */
@@ -453,6 +482,7 @@
     if (!choices[itemId]) choices[itemId] = {};
     choices[itemId][dim] = value;
     UI.renderInvest(alloc, changeAlloc, choices, pickChoice);
+    updateGoButton();
   }
 
   /* ============================================================
@@ -462,7 +492,7 @@
     pickedPolicy = id;
     sfx("pick");
     UI.renderPolicy(pickedPolicy, pickPolicy);
-    el("btnInvestGo").disabled = false;
+    updateGoButton();
   }
 
   /* ============================================================
@@ -474,13 +504,16 @@
       return;
     }
 
-    /* 남긴 예산은 자동으로 현금 보유로 넘긴다 */
-    var budget = S.budget();
-    var used = UI.allocSum(alloc);
-    var leftover = budget - used;
-    if (leftover > 0) {
-      var cashItem = S.investments().filter(function (i) { return i.keepCash; })[0];
-      if (cashItem) alloc[cashItem.id] = (alloc[cashItem.id] || 0) + leftover;
+    /* 예산은 남김없이 배분해야 넘어갑니다. 남길 돈은 '현금 보유' 칸에 직접 넣습니다.
+       (버튼은 이미 잠겨 있지만, 키보드로 눌리는 경우까지 여기서 막습니다) */
+    var remain = allocRemain();
+    if (remain > 0) {
+      UI.toast("예산이 " + UI.won(remain) + "억 남았습니다. 남길 돈은 '" + cashName() + "'에 넣으세요.");
+      return;
+    }
+    if (remain < 0) {
+      UI.toast("예산을 " + UI.won(-remain) + "억 넘겼습니다. 어딘가를 줄이세요.");
+      return;
     }
 
     lastResult = S.commitSubround(alloc, pickedPolicy, choices);
@@ -748,6 +781,7 @@
     el("btnReset").onclick = resetGame;
     el("btnDetail").onclick = UI.showDetail;
     el("modalClose").onclick = UI.closeModal;
+    el("modalConfirm").onclick = UI.closeModal;
     el("modal").onclick = function (e) { if (e.target === this) UI.closeModal(); };
 
     document.addEventListener("keydown", function (e) {

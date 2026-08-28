@@ -46,6 +46,30 @@ window.DRBUI = (function () {
     t._timer = setTimeout(function () { t.classList.remove("is-show"); }, 2200);
   }
 
+  /* ============================================================
+     금액 표시 — 게임 단위를 그 국면의 억으로
+
+     엔진은 모든 돈을 게임 단위 하나로 굴립니다(예산 50~80). 그대로 화면에 적으면
+     1945년 창업기와 2026년이 같은 자릿수라 "회사가 컸다" 가 느껴지지 않습니다.
+     rounds.js 의 moneyScale 을 곱해 그 시대의 규모로 적습니다.
+
+     ⚠ 지난 국면 기록에는 그때의 배율(h.moneyScale)을 씁니다. '지금' 배율을 쓰면
+       1945년 매출이 2026년 자릿수로 찍힙니다.
+     ============================================================ */
+  function won(value, scale) {
+    var v = (Number(value) || 0) * (Number(scale) || S.moneyScale());
+    if (!v) return "0";          /* 아무것도 안 넣은 칸은 "0.00" 이 아니라 "0" 입니다 */
+    var abs = Math.abs(v);
+    /* 창업기는 소수점까지 봐야 차이가 보이고, 조 단위에서는 소수점이 방해가 됩니다 */
+    var digits = abs >= 100 ? 0 : abs >= 10 ? 1 : 2;
+    return fmt(v, digits);
+  }
+  function wonSigned(value, scale) {
+    var v = (Number(value) || 0) * (Number(scale) || S.moneyScale());
+    var abs = Math.abs(v);
+    return signed(v, abs >= 100 ? 0 : abs >= 10 ? 1 : 2);
+  }
+
   function openModal(title, html) {
     el("modalTitle").textContent = title;
     el("modalBody").innerHTML = html;
@@ -130,6 +154,13 @@ window.DRBUI = (function () {
       }
       sel.value = g.activeTeam;
     }
+
+    /* ★ 결과 화면에서는 [상태]·[관리자] 를 내립니다.
+         80년을 마무리하고 회고를 쓰러 가는 자리입니다. 회사 상태는 이미 이 화면에
+         전부 펼쳐져 있고, 계산 근거를 들여다보는 칸까지 옆에 붙어 있을 이유가 없습니다. */
+    var wrapUp = phase === "final";
+    el("btnDetail").classList.toggle("hidden", wrapUp);
+    el("btnAdmin").classList.toggle("hidden", wrapUp);
 
     el("btnAdmin").classList.toggle("btn--primary", !!g.adminMode);
   }
@@ -235,7 +266,9 @@ window.DRBUI = (function () {
     var rows = CFG.detailMetrics.map(function (m) {
       return "<div class='breakdown__row'><span class='breakdown__label'>" + m.name +
              "<br><span style='color:var(--text-3);font-size:var(--fs-tiny)'>" + m.desc + "</span></span>" +
-             "<span class='breakdown__value'>" + fmt(t.state[m.key], 1) + "</span></div>";
+             "<span class='breakdown__value'>" +
+             (m.key === "cash" ? won(t.state.cash) + "억" : fmt(t.state[m.key], 1)) +
+             "</span></div>";
     }).join("");
 
     var pend = (t.state.pending || []).map(function (p) {
@@ -250,6 +283,106 @@ window.DRBUI = (function () {
       "<div class='breakdown'>" + pend + "</div>");
   }
 
+
+  /* ============================================================
+     위기 감시 — 배분 화면 맨 위 한 줄
+
+     조건부 사건은 그 조의 상태 때문에만 터집니다. 그런데 지금까지는 터진 뒤에야
+     빔에서 알게 됐습니다. 손을 쓸 수 있는 자리는 여기(자원 배분)인데, 정작
+     여기에는 아무 신호가 없었습니다.
+
+     ★ 가장 급한 것 하나만 띄웁니다. 여럿을 늘어놓으면 "다 위험하네" 로 뭉개져서
+       오히려 아무것도 안 고칩니다. 판정은 engine.js riskWatch 가 합니다.
+     ============================================================ */
+  var RISK_FIELD = {
+    quality:  "품질",
+    fatigue:  "조직피로도",
+    rigidity: "경직성",
+    idleRate: "설비 놀리는 비율",
+    cash:     "현금",
+    trust:    "신뢰",
+    reach:    "영업·거래처",
+    flex:     "공급망 유연성"
+  };
+
+  /* idleRate 만 비율이라 % 로 적습니다 */
+  function riskAmount(field, value) {
+    return field === "idleRate" ? Math.round(value * 100) + "%" : fmt(value, 0);
+  }
+
+  /* "이렇게 하면 덜 맞습니다" — 사건 데이터의 reactions.when 을 그대로 옮깁니다.
+     여기서 문구를 지어내면 실제 완화 조건과 어긋납니다. */
+  function riskRemedy(when) {
+    if (!when || !when.field) return "";
+    if (when.field === "policy") {
+      var pol = S.policies().filter(function (p) { return p.id === when.value; })[0];
+      return pol ? "‘" + pol.name + "’ 정책" : "";
+    }
+    if (when.field.indexOf("invest.") === 0) {
+      /* 이 국면에 아직 열리지 않은 항목은 적지 않습니다 — 할 수 없는 일을 시키는 셈입니다 */
+      var id = when.field.slice(7);
+      var item = S.availableInvestments().filter(function (i) { return i.id === id; })[0];
+      return item ? item.name + "에 " + when.value + " 이상" : "";
+    }
+    var cur = S.team().state[when.field];
+    return (RISK_FIELD[when.field] || when.field) + " " + when.value + " 이상" +
+           (cur === undefined ? "" : " (지금 " + fmt(cur, 0) + ")");
+  }
+
+  /* 왜 위험한가 — 지금 값과 터지는 선을 나란히 놓습니다.
+     ★ "62 을 넘었습니다" 처럼 숫자 뒤에 조사를 붙이지 않습니다. 을/를 은 숫자를
+       읽는 소리에 따라 갈리는데(62 는 '를', 30 은 '을') 임계값은 데이터에서 오므로
+       어느 쪽이 맞는지 미리 알 수 없습니다. 조사가 필요 없는 꼴로 적습니다.
+     위험인지 주의인지는 옆의 배지가 이미 말하므로, 이 줄은 규칙만 알려줍니다. */
+  function riskReason(risk) {
+    var name = RISK_FIELD[risk.field] || risk.field;
+    var now = riskAmount(risk.field, risk.current);
+    var line = riskAmount(risk.field, risk.threshold);
+
+    if (risk.id === "cash_squeeze") {
+      return risk.level === "danger"
+        ? "현금 " + won(risk.current) + "억 · 이번 국면 예산 " + won(risk.threshold) + "억에 못 미쳐 예산이 깎였습니다"
+        : "현금 " + won(risk.current) + "억 · 이번 국면 예산 " + won(risk.threshold) + "억에 거의 닿았습니다";
+    }
+    if (risk.op === "<" || risk.op === "<=") {
+      return name + " " + now + " · " + line + " 아래로 내려가면 벌어집니다";
+    }
+    return name + " " + now + " · " + line + " 넘으면 벌어집니다";
+  }
+
+  function renderRiskWatch() {
+    var box = el("inRisk");
+    var t = S.team();
+    var risks = window.DRBEngine.riskWatch(t.state, {
+      allowConditional: !!S.subround().allowConditional,
+      cash: t.state.cash,
+      plannedBudget: S.plannedBudget()
+    });
+
+    clearNode(box);
+    var risk = risks[0];
+    if (!risk) { box.classList.add("hidden"); return; }
+    box.classList.remove("hidden");
+    box.className = "riskwatch is-" + risk.level;
+
+    var fix = risk.reactions.map(riskRemedy).filter(Boolean);
+    fix = fix.length ? fix.join(" · ") + " → 덜 맞습니다" : "";
+    if (risk.id === "cash_squeeze") {
+      /* 현금은 완화 조건이 사건 데이터에 없습니다 — 대신 엔진이 실제로 그렇게 셉니다:
+         keepCash 항목에 넣은 돈은 쓴 것으로 치지 않습니다 (engine.js 투자 처리).
+         "→ 덜 맞습니다" 는 사건에 맞는 말이라 여기에는 붙이지 않습니다. */
+      var cash = S.availableInvestments().filter(function (i) { return i.keepCash; })[0];
+      if (cash) fix = cash.name + "에 넣은 돈은 쓰지 않고 그대로 남습니다";
+    }
+
+    box.innerHTML =
+      "<span class='riskwatch__badge'>" + (risk.level === "danger" ? "위험" : "주의") + "</span>" +
+      "<span class='riskwatch__body'>" +
+        "<b class='riskwatch__title'>" + escapeHtml(risk.title) + "</b>" +
+        "<span class='riskwatch__reason'>" + escapeHtml(riskReason(risk)) + "</span>" +
+        (fix ? "<span class='riskwatch__fix'>" + escapeHtml(fix) + "</span>" : "") +
+      "</span>";
+  }
 
   /* ============================================================
      투자 배분 화면
@@ -344,6 +477,7 @@ window.DRBUI = (function () {
     list.style.gridTemplateColumns = "";
     delete list.dataset.rows;
     renderDecisionScope(decisionContext);
+    renderRiskWatch();
 
     /* 예산이 왜 이 숫자인지 화면에서 바로 읽히게 합니다.
        고정 예산은 국면마다 정해져 있고, 지난 국면 영업이익률이 거기에 얹힙니다. */
@@ -351,14 +485,14 @@ window.DRBUI = (function () {
     var sub = "";
     var warn = false;
     if (bd.tight) {
-      sub = "현금이 부족해 예산이 " + bd.planned + "에서 " + bd.final + "으로 줄었습니다";
+      sub = "현금이 부족해 예산이 " + won(bd.planned) + "억에서 " + won(bd.final) + "억으로 줄었습니다";
       warn = true;
     } else if (bd.bonus > 0) {
       /* 왜 이 숫자인지 — 번 돈에서 얼마가 다시 들어왔는지 그대로 적습니다 */
-      sub = "지난 국면 영업이익 " + fmt(bd.profit) + "억의 " + Math.round((bd.rate || 0) * 100)
-          + "%를 재투자 → 고정 " + bd.fixed + "억에 " + bd.bonus + "억 더해졌습니다";
+      sub = "지난 국면 영업이익 " + won(bd.profit) + "억의 " + Math.round((bd.rate || 0) * 100)
+          + "%를 재투자 → 고정 " + won(bd.fixed) + "억에 " + won(bd.bonus) + "억 더해졌습니다";
     } else if (bd.bonus < 0) {
-      sub = "지난 국면에 이익을 내지 못해 고정 예산 " + bd.fixed + "억만 배정됐습니다";
+      sub = "지난 국면에 이익을 내지 못해 고정 예산 " + won(bd.fixed) + "억만 배정됐습니다";
       warn = true;
     }
     el("inSub").textContent = sub;
@@ -366,21 +500,26 @@ window.DRBUI = (function () {
     /* 예산이 늘어난 것은 좋은 소식입니다 — 코랄(경고)로 쓰면 안 됩니다 */
     el("inSub").classList.toggle("is-good", !!sub && !warn);
 
+    /* 현금 칸의 이름은 시대마다 다릅니다 (창업기 '현금 보유' / 이후 '현금 확보') */
+    var cashName = (items.filter(function (i) { return i.keepCash; })[0] || {}).name || "현금";
     el("inGuide").innerHTML = bd.tight
       ? "현금이 바닥났습니다. 지금은 <b>버티는 것</b>도 전략입니다."
-      : "남긴 예산은 자동으로 <b>현금</b>으로 넘어갑니다. 아끼는 것도 하나의 전략입니다.";
+      : "예산은 <b>남김없이</b> 배분합니다. 쓰지 않을 돈은 <b>" + escapeHtml(cashName) +
+        "</b>에 넣으세요 — 아끼는 것도 하나의 결정입니다.";
 
-    el("inTokenUnit").textContent = CFG.tokenUnit;
+    el("inTokenUnit").textContent = won(CFG.tokenUnit);
 
     function buildAllocationCard(item) {
       var amt = alloc[item.id] || 0;
-      var isCash = !!item.keepCash;
 
       var card = document.createElement("div");
-      card.className = "alloc" + (amt > 0 ? " is-invested" : "") + (isCash ? " is-inactive" : "");
+      card.className = "alloc" + (amt > 0 ? " is-invested" : "");
       /* 어떤 항목인지 화면에 적어둡니다 — 점검 도구가 카드를 이름이 아니라 id 로 집습니다 */
       card.setAttribute("data-id", item.id);
       card.setAttribute("data-strategy", item.strategyGroup || "resilience");
+      /* 화면 글자는 그 시대의 억(0.50억 처럼 소수)이라 숫자로 되읽을 수 없습니다.
+         점검 도구가 '몇 게임단위 넣었나' 를 정확히 알 수 있게 원본을 같이 답니다. */
+      card.setAttribute("data-amount", amt);
 
       /* ---------- 이름 ---------- */
       var name = document.createElement("div");
@@ -401,8 +540,8 @@ window.DRBUI = (function () {
       /* ---------- 지금 넣은 금액 ---------- */
       var val = document.createElement("div");
       val.className = "alloc__amount num";
-      val.textContent = amt;
-      val.setAttribute("aria-label", item.name + " " + amt + "억");
+      val.textContent = won(amt);
+      val.setAttribute("aria-label", item.name + " " + won(amt) + "억");
       card.appendChild(val);
 
       var level = document.createElement("div");
@@ -441,34 +580,31 @@ window.DRBUI = (function () {
       card.appendChild(tos);
 
       /* ---------- 올리고 내리기 ----------
-         현금 보유는 남은 예산이 저절로 오는 칸이라 직접 만지지 않습니다. */
-      if (isCash) {
-        var note = document.createElement("div");
-        note.className = "alloc__note";
-        note.textContent = "남은 예산은 자동으로 현금";
-        card.appendChild(note);
-      } else {
-        var stepper = document.createElement("div");
-        stepper.className = "alloc__stepper";
+         ★ 현금 보유도 다른 칸과 똑같이 눌러서 넣습니다.
+           예전에는 이 칸만 잠겨 있었고, 확정할 때 남은 예산이 저절로 들어왔습니다.
+           그러면 "현금을 남긴다" 가 결정이 아니라 '덜 쓰다 만 것' 의 부산물이 됩니다 —
+           조는 자기가 현금을 얼마나 쥐기로 했는지 모른 채 확정했습니다.
+           이제 예산은 남김없이 배분하고, 쓰지 않을 돈은 여기에 직접 넣습니다. */
+      var stepper = document.createElement("div");
+      stepper.className = "alloc__stepper";
 
-        var minus = document.createElement("button");
-        minus.className = "btn btn--icon btn--minus";
-        minus.textContent = "−";
-        minus.setAttribute("aria-label", item.name + " 줄이기");
-        minus.disabled = amt <= 0;
-        minus.onclick = function (ev) { ev.stopPropagation(); onChange(item.id, -CFG.tokenUnit); };
+      var minus = document.createElement("button");
+      minus.className = "btn btn--icon btn--minus";
+      minus.textContent = "−";
+      minus.setAttribute("aria-label", item.name + " 줄이기");
+      minus.disabled = amt <= 0;
+      minus.onclick = function (ev) { ev.stopPropagation(); onChange(item.id, -CFG.tokenUnit); };
 
-        var plus = document.createElement("button");
-        plus.className = "btn btn--icon btn--plus";
-        plus.textContent = "+";
-        plus.setAttribute("aria-label", item.name + " 늘리기");
-        plus.disabled = allocSum(alloc) + CFG.tokenUnit > budget;
-        plus.onclick = function (ev) { ev.stopPropagation(); onChange(item.id, CFG.tokenUnit); };
+      var plus = document.createElement("button");
+      plus.className = "btn btn--icon btn--plus";
+      plus.textContent = "+";
+      plus.setAttribute("aria-label", item.name + " 늘리기");
+      plus.disabled = allocSum(alloc) + CFG.tokenUnit > budget;
+      plus.onclick = function (ev) { ev.stopPropagation(); onChange(item.id, CFG.tokenUnit); };
 
-        stepper.appendChild(minus);
-        stepper.appendChild(plus);
-        card.appendChild(stepper);
-      }
+      stepper.appendChild(minus);
+      stepper.appendChild(plus);
+      card.appendChild(stepper);
 
       /* 카드에서 잘린 줄은 여기(마우스를 올리면 뜨는 풍선)에 전부 남습니다 */
       card.title = [item.desc || ""].concat(
@@ -638,12 +774,18 @@ window.DRBUI = (function () {
     var leftTokens = Math.max(0, Math.round(remain / unit));
 
     var v = el("inRemain");
-    v.textContent = remain;
+    v.textContent = won(remain);
+    /* ★ 화면 글자는 그 시대의 억(0.25억 처럼 소수)이라 숫자로 되읽을 수 없습니다.
+         점검 도구가 '몇 게임단위 남았나' 를 정확히 알 수 있게 원본을 같이 답니다
+         (카드에 data-id 를 달아둔 것과 같은 이유입니다). */
+    v.dataset.remain = remain;
     v.classList.toggle("is-over", remain < 0);
 
-    el("inBudget").textContent = budget;
-    /* 왼쪽 라벨이 "남은 투자금" 이므로 여기는 금액만 — "30억 / 80억" */
-    el("inTokens").textContent = remain + "억 / " + budget + "억";
+    el("inBudget").textContent = won(budget);
+    /* 왼쪽 라벨이 "남은 투자금" 이므로 여기는 금액만 — "30억 / 80억"
+       예산을 다 쓰기 전에는 확정이 열리지 않으므로, 남아 있을 때만 그 말을 붙입니다. */
+    el("inTokens").textContent = won(remain) + "억 / " + won(budget) + "억"
+      + (remain > 0 ? " · 다 배분해야 확정됩니다" : "");
 
     /* 아직 남아 있는 투자금을 한 칸 10억짜리 그림으로 */
     var dots = el("inTokenDots");
@@ -830,14 +972,13 @@ window.DRBUI = (function () {
     }
     el("tlFill").style.width = "100%";
 
-    /* ★ 우리 조에 무엇이 적용됐는지 여기에 적습니다.
-         예전에는 "진행자 화면을 보세요" 한 줄뿐이었습니다. 그런데 같은 사건이
-         조마다 다르게 온다는 것이 이 게임의 핵심인데, 정작 우리 조에 무엇이
-         붙었는지는 빔의 작은 글씨 한 줄에만 있었습니다 — 뒷자리에서는 안 보이고,
-         자기 조 줄을 찾는 사이 진행자는 다음으로 넘어갑니다.
+    /* ★ 여기에 우리 조 결과를 적어두던 자리입니다. 다시 뺐습니다.
+         돌발상황이 무엇이었는지, 우리 조에 어떻게 붙었는지(설비 처분 같은 것),
+         매출·손익이 얼마였는지 — 전부 진행자 빔에서 다 같이 봅니다.
+         노트북에 먼저 떠 버리면 진행자가 열기도 전에 방이 알아버리고,
+         빔을 볼 이유가 없어집니다. 실제로 참석자 화면에 먼저 떴습니다.
 
-         남의 조 것은 나오지 않습니다. 이 노트북은 우리 조 기록만 갖고 있습니다.
-         (순위도 여전히 안 나옵니다 — 등수를 매기지 않는 원칙은 그대로입니다) */
+         노트북에는 "냈다 · 기다린다" 만 남깁니다. */
     function line(who, text, cls) {
       if (!text) return;
       var row = document.createElement("div");
@@ -852,50 +993,13 @@ window.DRBUI = (function () {
       feed.appendChild(row);
     }
 
-    var report = hist && hist.report ? hist.report : null;
-    var events = (report && report.events) || [];
-    /* 밖에서 온 돌발과 우리 상태가 불러온 일은 다른 것입니다 (engine.js 참고) */
-    var outside = events.filter(function (ev) { return !ev.conditional; });
-    var inside = events.filter(function (ev) { return ev.conditional; });
-
     el("tlCaption").textContent = kind === "event"
-      ? "돌발상황 · 우리 회사에는 이렇게 왔습니다"
+      ? "돌발상황 · 진행자 화면을 보세요"
       : "다음 국면 공개 대기 · 진행자 화면을 보세요";
-    /* 여기는 계산이 이미 끝난 자리입니다. 예전에는 직전 연출의
-       "결정의 결과를 계산하는 중" 이 그대로 남아 있었습니다. */
-    el("tlNote").textContent = report ? "이번 국면 결과" : "결정 전송 완료";
+    el("tlNote").textContent = "결정 전송 완료";
 
-    if (kind === "event" && !outside.length) {
-      line("돌발상황", "모든 조에게 같은 일이 일어났습니다. 우리가 무엇을 쌓아뒀는지에 따라 다르게 맞습니다.", "market");
-    }
-
-    outside.forEach(function (ev) {
-      line("돌발상황", ev.title || "", "market");
-      if (!ev.reactions || !ev.reactions.length) {
-        line("우리 조", "완화할 조건이 없었습니다. 공통 충격을 그대로 받았습니다.", "ours");
-        return;
-      }
-      ev.reactions.forEach(function (r) {
-        line(r.positive === false ? "우리 조 ▼" : "우리 조 ▲", r.text || "", "ours");
-      });
-    });
-
-    inside.forEach(function (ev) {
-      line("우리 상태", ev.title || "", "market");
-      (ev.reactions || []).forEach(function (r) {
-        line(r.positive === false ? "우리 조 ▼" : "우리 조 ▲", r.text || "", "ours");
-      });
-    });
-
-    /* 결과 — 이번 국면에 우리 회사가 어떻게 됐는가 */
-    if (report && report.kpi) {
-      line("매출", fmt(report.kpi.revenue) + "억", "ours");
-      line("영업이익", signed(report.kpi.profit) + "억", "ours");
-      if (hist.before && hist.after) {
-        line("현금", fmt(hist.before.cash) + " → " + fmt(hist.after.cash) + "억  " +
-                     signed(Math.round((hist.after.cash - hist.before.cash) * 10) / 10), "ours");
-      }
-      line("한 줄 정리", report.headline || "", "market");
+    if (kind === "event") {
+      line("돌발상황", "무슨 일이 벌어졌는지, 우리 조에 어떻게 왔는지는 앞 화면에서 함께 봅니다.", "market");
     } else {
       line("결정 잠금 완료", "결정은 전송됐습니다. 앞을 보세요 — 다음 국면은 진행자가 엽니다.", "market");
     }
@@ -927,6 +1031,15 @@ window.DRBUI = (function () {
         clearInterval(timer);
         yearBox.textContent = sp.to;
         el("tlFill").style.width = "100%";
+        /* ★ 국면이 넘어가면 금액의 자릿수가 뜁니다 (1945년 5억 → 1965년 40억).
+             그 사이에 20년이 흘러 회사와 시장이 그만큼 커졌기 때문입니다.
+             말해두지 않으면 "우리 현금이 왜 갑자기 열 배?" 로 읽힙니다. */
+        var next = S.subround();
+        var grew = hist && Number(next && next.moneyScale) > (Number(hist.moneyScale) || 0);
+        if (grew) {
+          el("tlNote").textContent =
+            span + "년이 흐르는 동안 회사도 시장도 커졌습니다 — 이제 금액의 자릿수가 달라집니다";
+        }
         setTimeout(onDone, 700);
         return;
       }
@@ -1060,8 +1173,9 @@ window.DRBUI = (function () {
     el("fiVerdict").textContent = verdictText(power, adapt.score);
 
     /* ★ 화면에 바로 보이는 자리 — 우리 변화 대응력이 왜 이렇게 나왔는가.
-         숫자는 쓰지 않습니다(그 결정은 시상에서 이미 내렸습니다). 이름과 막대 길이로
-         "무엇을 쌓았고 무엇을 깎아먹었는지" 만 보여줍니다. */
+         이름 · 점수 · 막대 순서입니다. 막대만 있으면 "현금 여력이 공급망보다 길다" 까지는
+         읽히지만 "얼마나" 는 읽히지 않아, 조끼리 얘기할 때 숫자를 물어보게 됩니다.
+         (같은 숫자가 아래 '지표 자세히' 칩에도 있습니다 — 여기서는 접지 않고 바로 보여줍니다) */
     var up = el("fiAdaptUp"), down = el("fiAdaptDown");
     if (up && down) {
       clearNode(up); clearNode(down);
@@ -1072,6 +1186,7 @@ window.DRBUI = (function () {
         row.className = "adaptrow" + (p.value < 0 ? " is-down" : "");
         row.innerHTML =
           "<span class='adaptrow__name'>" + escapeHtml(p.name) + "</span>" +
+          "<b class='adaptrow__value num'>" + signed(p.value, 0) + "</b>" +
           "<span class='adaptrow__bar'><i style='width:" +
             Math.round(Math.abs(p.value) / widest * 100) + "%'></i></span>";
         node.appendChild(row);
@@ -1155,7 +1270,7 @@ window.DRBUI = (function () {
       d.textContent = (top ? top + "에 집중" : "투자 없음") + " · " + h.policyName;
       var v = document.createElement("span");
       v.className = "num delta " + deltaClass(h.report.kpi.profit);
-      v.textContent = signed(h.report.kpi.profit) + "억";
+      v.textContent = wonSigned(h.report.kpi.profit, h.moneyScale) + "억";
       row.appendChild(w); row.appendChild(d); row.appendChild(v);
       jbox.appendChild(row);
     });
@@ -1235,9 +1350,14 @@ window.DRBUI = (function () {
       .map(function (k) { return investName(k) + " " + tot[k]; })
       .join(" · ") || "투자 없음";
 
-    var profit = mine.reduce(function (a, h) { return a + h.report.kpi.profit; }, 0);
+    /* ★ 국면마다 화폐 규모가 다릅니다. 게임 단위로 먼저 더하면 1945년 2와
+         2026년 264 가 같은 무게로 섞입니다 — 각각 억으로 바꾼 뒤에 더합니다. */
+    var profit = mine.reduce(function (a, h) {
+      return a + h.report.kpi.profit * (Number(h.moneyScale) || 1);
+    }, 0);
     var resultText = mine.length
-      ? "누적 손익 " + signed(profit) + "억 · " + mine[mine.length - 1].report.headline
+      ? "누적 손익 " + signed(profit, Math.abs(profit) >= 100 ? 0 : 1) + "억 · " +
+        mine[mine.length - 1].report.headline
       : "-";
 
     var rows = [
@@ -1330,6 +1450,7 @@ window.DRBUI = (function () {
       out.push({
         id: "decision:" + h.subroundId,
         kind: "decision",
+        turn: index,
         tag: (index + 1) + "국면",
         year: h.year,
         /* 제목이 "첫 번째 국면 · 고무신인가" 라 왼쪽 태그와 겹칩니다 */
@@ -1347,6 +1468,8 @@ window.DRBUI = (function () {
         out.push({
           id: "event:" + h.subroundId + ":" + event.id,
           kind: inner ? "inner" : "event",
+          turn: index,
+          eventId: event.id,
           tag: inner ? "우리 상태" : "돌발",
           year: h.year,
           title: event.title || "",
@@ -1357,6 +1480,72 @@ window.DRBUI = (function () {
       });
     });
     return out;
+  }
+
+  /* ★ 그 국면에 우리가 무엇을 했고 무엇이 돌아왔는가 — 창 하나로 펼칩니다.
+       회고는 여섯 국면이 다 끝난 자리입니다. 돌발도 결과도 이미 빔에서 다 같이 봤으므로,
+       여기서 다시 보여줘도 진행자보다 먼저 알아버리는 일이 없습니다.
+       (게임 중에는 여전히 노트북에 결과를 띄우지 않습니다 — renderLiveWait 참고)
+
+       남의 조 것은 나오지 않습니다. 이 노트북은 우리 조 기록만 갖고 있습니다. */
+  function showReflectDetail(item) {
+    var t = S.team();
+    var h = (t.history || [])[item.turn];
+    if (!h) return;
+
+    var rows = Object.keys(h.allocation || {})
+      .filter(function (id) { return Number(h.allocation[id]) > 0; })
+      .sort(function (a, b) { return Number(h.allocation[b]) - Number(h.allocation[a]); })
+      .map(function (id) {
+        var choice = (h.choices || {})[id];
+        var where = choice && (choice.where || choice.how)
+          ? " <span class='hint'>" + escapeHtml([choice.where, choice.how].filter(Boolean).join(" · ")) + "</span>"
+          : "";
+        return "<div class='breakdown__row'><span class='breakdown__label'>" +
+               escapeHtml(investName(id)) + where + "</span>" +
+               "<span class='breakdown__value num'>" +
+               won(h.allocation[id], Number(h.moneyScale) || 1) + "억</span></div>";
+      }).join("") || "<div class='breakdown__row'><span class='breakdown__label'>투자 없음</span></div>";
+
+    var kpi = (h.report && h.report.kpi) || {};
+    var sc = Number(h.moneyScale) || 1;      /* 그때의 화폐 규모로 적습니다 */
+    var result =
+      "<div class='breakdown__row'><span class='breakdown__label'>매출</span>" +
+        "<span class='breakdown__value num'>" + won(kpi.revenue, sc) + "억</span></div>" +
+      "<div class='breakdown__row'><span class='breakdown__label'>영업이익</span>" +
+        "<span class='breakdown__value num'>" + wonSigned(kpi.profit, sc) + "억</span></div>" +
+      (h.before && h.after
+        ? "<div class='breakdown__row'><span class='breakdown__label'>현금</span>" +
+          "<span class='breakdown__value num'>" + won(h.before.cash, sc) + " → " +
+          won(h.after.cash, sc) + "억</span></div>"
+        : "");
+
+    /* 그 국면에 벌어진 일 · 우리 조에 어떻게 붙었는가 */
+    var events = ((h.report && h.report.events) || []).map(function (ev) {
+      var reactions = (ev.reactions || []).map(function (r) {
+        return "<div class='rfdetail__reaction" + (r.positive === false ? " is-down" : "") + "'>" +
+               (r.positive === false ? "▼ " : "▲ ") + escapeHtml(r.text || "") + "</div>";
+      }).join("") || "<div class='rfdetail__reaction is-none'>완화할 조건이 없어 그대로 받았습니다</div>";
+      /* 회고에서 고른 것이 이 사건이면 표시해 둡니다 — 어느 줄 이야기인지 헷갈리지 않게 */
+      var mine = item.eventId && item.eventId === ev.id;
+      return "<div class='rfdetail__event" + (mine ? " is-picked" : "") + "'>" +
+             "<b>" + escapeHtml(ev.title || "") + "</b>" +
+             "<span class='rfdetail__kind'>" + (ev.conditional ? "우리 상태" : "돌발") + "</span>" +
+             reactions + "</div>";
+    }).join("");
+
+    openModal(item.tag + " · " + item.year + " · " + item.title,
+      "<div class='section-label'>우리가 넣은 곳</div>" +
+      "<div class='breakdown'>" + rows + "</div>" +
+      "<div class='section-label' style='margin-top:var(--sp-5)'>경영정책</div>" +
+      "<p class='hint'>" + escapeHtml(h.policyName || "-") + "</p>" +
+      "<div class='section-label' style='margin-top:var(--sp-5)'>그래서 어떻게 됐는가</div>" +
+      "<div class='breakdown'>" + result + "</div>" +
+      ((h.report && h.report.headline)
+        ? "<p class='hint' style='margin-top:var(--sp-3)'>" + escapeHtml(h.report.headline) + "</p>" : "") +
+      (events
+        ? "<div class='section-label' style='margin-top:var(--sp-5)'>그 국면에 벌어진 일</div>" + events
+        : ""));
   }
 
   /* draft = { picks: { id: true }, comment: "", submitted: bool } */
@@ -1398,8 +1587,23 @@ window.DRBUI = (function () {
         "<span class='rfitem__title'>" + escapeHtml(item.title) + "</span>" +
         "<span class='rfitem__detail'>" + escapeHtml(item.detail) + "</span>";
 
+      /* ★ 카드 자체는 '고르기' 입니다(label + radio). 그래서 자세히 보기는 따로 답니다 —
+           카드를 누르면 창이 뜨게 하면, 고르려다 창이 뜨고 창을 닫으려다 딴 걸 고릅니다.
+           stopPropagation 이 없으면 이 버튼을 눌러도 label 이 radio 를 켭니다. */
+      var more = document.createElement("button");
+      more.type = "button";
+      more.className = "rfitem__more";
+      more.textContent = "자세히";
+      more.title = item.tag + " " + item.year + " — 그때 결정과 결과";
+      more.onclick = function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        showReflectDetail(item);
+      };
+
       row.appendChild(box);
       row.appendChild(body);
+      row.appendChild(more);
       list.appendChild(row);
     });
 
@@ -1418,6 +1622,7 @@ window.DRBUI = (function () {
 
   return {
     el: el, fmt: fmt, signed: signed, deltaClass: deltaClass,
+    won: won, wonSigned: wonSigned,
     toast: toast, openModal: openModal, closeModal: closeModal,
     renderTopbar: renderTopbar, renderSide: renderSide, showDetail: showDetail,
     renderInvest: renderInvest, updateBudgetBar: updateBudgetBar, allocSum: allocSum,

@@ -790,46 +790,116 @@ window.DRBEngine = (function () {
     return out;
   }
 
-  /* 한 조의 입찰 점수. 돈만 보지 않고 회사 상태를 함께 봅니다.
+  /* 한 조의 입찰을 항목별로 채점합니다. 돈만 보지 않고 회사 상태를 함께 봅니다.
      각 항목을 0~1 로 눌러서 가중치를 곱합니다 — 단위가 다른 값을 그냥 더하면
-     투자액(0~80)이 지표(0~100)를 잡아먹습니다. */
-  function bidScore(offer, state, allocation, policyId) {
+     투자액(0~80)이 지표(0~100)를 잡아먹습니다.
+
+     ★ 화면이 실제 입찰 평가표처럼 보여줄 수 있게 항목을 그대로 내놓습니다.
+       예전에는 합계 하나만 나갔습니다. 그러면 "왜 저 조가 땄나" 에 답할 수가 없고,
+       두 조 점수가 비슷하게 찍히면 진행자도 이유를 설명하지 못합니다.
+       allotted/earned 는 100점 만점으로 환산한 값입니다 (weight 1.0 = 100점). */
+  function bidBreakdown(offer, state, allocation, policyId) {
     var ctx = { allocation: allocation || {}, policyId: policyId };
-    var total = 0;
-    (offer.score || []).forEach(function (part) {
+    return (offer.score || []).map(function (part) {
       var raw = readField(part.field, state, ctx);
-      if (typeof raw !== "number" || !isFinite(raw)) return;
+      var ok = typeof raw === "number" && isFinite(raw);
+      var weight = part.weight === undefined ? 1 : part.weight;
       var max = part.max || 100;
-      total += clamp(raw / max, 0, 1) * (part.weight === undefined ? 1 : part.weight);
+      var ratio = ok ? clamp(raw / max, 0, 1) : 0;
+      return {
+        field:    part.field,
+        raw:      ok ? Math.round(raw * 10) / 10 : 0,
+        max:      max,
+        allotted: weight * 100,          // 이 항목의 배점
+        earned:   ratio * weight * 100   // 받은 점수
+      };
+    });
+  }
+
+  function bidScore(offer, state, allocation, policyId) {
+    var total = 0;
+    bidBreakdown(offer, state, allocation, policyId).forEach(function (p) {
+      total += p.earned / 100;
     });
     return Math.round(total * 1000) / 1000;
   }
 
-  /* bidders = [{ team, state, allocation, policyId }]
-     반환   = { winners: [조 이름], ranking: [{team, score, qualified}] }
+  /* ★ 동점자 처리 — 실제 입찰의 규정과 같은 순서입니다.
 
-     조건(when)을 넘긴 조만 후보입니다. 동점이면 조 이름 순으로 끊습니다 —
-     어느 화면에서 계산해도 같은 답이 나와야 하므로 무작위를 쓰지 않습니다. */
+       1) 총점
+       2) 배점이 큰 평가항목에서 높은 점수를 받은 곳
+          (국가계약법 동점자 처리가 이렇게 합니다. 여기서는 투자액 100 →
+           기술력 55 → 고객신뢰 45 → 인력 30 순으로 내려갑니다)
+       3) 그 분야 누적 투자액 — 동종 실적. 먼저부터 준비해 온 곳이 가져갑니다.
+       4) 조 이름
+
+     ⚠ 추첨을 쓰지 않습니다. 진행자 화면과 조 노트북이 각각 따로 계산하기 때문에,
+       같은 입력에서 반드시 같은 답이 나와야 합니다. 무작위를 넣으면 두 화면이
+       다른 조를 낙찰자로 띄웁니다.
+     그리고 4)까지 내려가면 "조 이름 순" 이라는 근거 없는 이유가 되므로,
+     무엇으로 갈랐는지를 tieBreak 에 담아 화면이 그대로 밝히게 합니다. */
+  var TIE_RULES = { item: "배점이 큰 항목", legacy: "그 분야 누적 투자액", name: "조 이름" };
+
+  function compareBids(a, b) {
+    if (b.score !== a.score) return { diff: b.score - a.score, by: null };
+
+    /* 배점이 큰 항목부터 내려가며 비교합니다 */
+    var parts = a.parts || [];
+    var order = parts.map(function (p, i) { return i; }).sort(function (x, y) {
+      return parts[y].allotted - parts[x].allotted;
+    });
+    for (var k = 0; k < order.length; k++) {
+      var i = order[k];
+      var pa = parts[i].earned;
+      var pb = ((b.parts || [])[i] || {}).earned || 0;
+      if (pa !== pb) return { diff: pb - pa, by: "item", field: parts[i].field };
+    }
+
+    if (a.legacy !== b.legacy) return { diff: b.legacy - a.legacy, by: "legacy" };
+    return { diff: String(a.team).localeCompare(String(b.team), "ko"), by: "name" };
+  }
+
+  /* bidders = [{ team, state, allocation, policyId }]
+     반환   = { winners: [조 이름], ranking: [...], tieBreak: {...}|null }
+     조건(when)을 넘긴 조만 후보입니다. */
   function awardLimited(entry, bidders) {
     var offer = entry.offer;
+    /* 응찰 조건이 걸린 투자 항목 — 누적 실적을 여기서 봅니다 */
+    var betField = String((entry.when && entry.when.field) || "").replace("invest.", "");
+
     var ranking = (bidders || []).map(function (b) {
       var ctx = { allocation: b.allocation || {}, policyId: b.policyId };
       return {
         team: b.team,
         qualified: testCondition(entry.when, b.state, ctx),
         score: bidScore(offer, b.state, b.allocation, b.policyId),
-        bet: (b.allocation || {})[String(entry.when && entry.when.field || "").replace("invest.", "")] || 0
+        /* 항목별 채점 — 진행자 화면이 평가표로 펼칩니다 */
+        parts: bidBreakdown(offer, b.state, b.allocation, b.policyId),
+        bet: (b.allocation || {})[betField] || 0,
+        /* 이번 국면 전까지 이 분야에 넣어 온 누적액 */
+        legacy: ((b.state && b.state.investTotals) || {})[betField] || 0
       };
     });
-    ranking.sort(function (a, b) {
-      if (b.score !== a.score) return b.score - a.score;
-      return String(a.team).localeCompare(String(b.team), "ko");
-    });
-    var winners = ranking
-      .filter(function (r) { return r.qualified; })
-      .slice(0, offer.slots || 1)
-      .map(function (r) { return r.team; });
-    return { id: offer.id, title: offer.title, winners: winners, ranking: ranking };
+    ranking.sort(function (a, b) { return compareBids(a, b).diff; });
+
+    var live = ranking.filter(function (r) { return r.qualified; });
+    var winners = live.slice(0, offer.slots || 1).map(function (r) { return r.team; });
+
+    /* 낙찰선에서 총점이 갈리지 않았다면, 무엇으로 갈랐는지 남깁니다 */
+    var tieBreak = null;
+    var cut = (offer.slots || 1) - 1;
+    if (live.length > cut + 1 && live[cut].score === live[cut + 1].score) {
+      var how = compareBids(live[cut], live[cut + 1]);
+      tieBreak = {
+        rule: how.by,
+        label: TIE_RULES[how.by] || how.by,
+        field: how.field || null,
+        won: live[cut].team,
+        lost: live[cut + 1].team
+      };
+    }
+
+    return { id: offer.id, title: offer.title, winners: winners, ranking: ranking, tieBreak: tieBreak };
   }
 
   function computeCrowding(pickedRoles) {
@@ -841,6 +911,100 @@ window.DRBEngine = (function () {
       out[r] = Math.max(0, (counts[r] - 1) / Math.max(1, total - 1));
     });
     return out;
+  }
+
+  /* ============================================================
+     위기 감시 — 지금 이대로 국면을 넘기면 무엇이 터지는가
+
+     조건부 사건(c_burnout 등)은 그 조의 상태 때문에만 터집니다. 그런데 지금까지는
+     터진 뒤에야 빔에서 알게 됐습니다. 조는 "우리만 왜?" 를 결과로 배웠고,
+     정작 손을 쓸 수 있었던 자원 배분 시점에는 아무 신호가 없었습니다.
+
+     ★ 임계값을 여기 다시 적지 않습니다. events.js 의 trigger 를 그대로 읽습니다.
+       숫자를 두 군데 적으면 반드시 어긋나고, 그때부터 화면이 거짓말을 합니다.
+     ============================================================ */
+
+  /* 임계의 85% 를 넘어서면 '주의'. 넘고 나서 알려주면 이미 늦습니다. */
+  var WATCH_BAND = 0.85;
+
+  /* 지표 하나를 임계선과 대보고 등급을 매깁니다.
+     op 가 ">=" 면 클수록 나쁘고, "<" 면 작을수록 나쁩니다.
+     ratio 는 1 을 넘으면 이미 선을 넘은 것 — 어느 위기가 더 급한지 이걸로 줄 세웁니다. */
+  function gradeAgainst(cur, op, value) {
+    var ratio;
+    if (op === ">=" || op === ">") {
+      ratio = value ? cur / value : 0;
+    } else if (op === "<" || op === "<=") {
+      ratio = cur ? value / cur : 2;
+    } else {
+      return null;                       // 숫자 비교가 아닌 조건은 감시하지 않습니다
+    }
+    if (ratio >= 1) return { level: "danger", ratio: ratio };
+    if (ratio >= WATCH_BAND) return { level: "watch", ratio: ratio };
+    return null;
+  }
+
+  /* opts: { allowConditional, cash, plannedBudget }
+     allowConditional 이 false 인 국면(1국면)에는 조건부 사건이 아예 안 터지므로
+     사건 경고도 내지 않습니다. 자금 경색은 사건이 아니라 늘 봅니다. */
+  function riskWatch(s, opts) {
+    opts = opts || {};
+    var out = [];
+    /* 조건부 사건의 trigger 는 전부 상태값(quality·fatigue·rigidity·idleRate)만 봅니다.
+       invest.* / policy 는 쓰지 않으므로 빈 ctx 로 충분합니다. */
+    var ctx = { allocation: {}, policyId: null };
+
+    if (opts.allowConditional) {
+      Object.keys(window.DRB_EVENTS).forEach(function (key) {
+        var ev = window.DRB_EVENTS[key];
+        if (!ev.conditional || !ev.trigger) return;
+        /* ★ 직전 국면에 터진 사건은 이번 국면에 터질 수 없습니다 (runSubround 6-2).
+             그래도 경고를 띄우면 오지 않는 일로 겁을 주는 셈이라 건너뜁니다. */
+        if (ev.id === s.lastConditional) return;
+
+        var cur = readField(ev.trigger.field, s, ctx);
+        var grade = gradeAgainst(cur, ev.trigger.op, ev.trigger.value);
+        if (!grade) return;
+        out.push({
+          id: ev.id,
+          title: ev.title,
+          level: grade.level,
+          ratio: grade.ratio,
+          field: ev.trigger.field,
+          op: ev.trigger.op,
+          current: Math.round(cur * 100) / 100,
+          threshold: ev.trigger.value,
+          /* 무엇을 하면 덜 맞는지 — 화면에서 읽을 수 있게 조건을 그대로 넘깁니다 */
+          reactions: (ev.reactions || []).map(function (r) { return r.when; }).filter(Boolean)
+        });
+      });
+    }
+
+    /* 자금 경색 — 사건이 아니라 예산 계산에서 나옵니다.
+       현금이 이번 국면 예산보다 적으면 예산이 그만큼 깎입니다 (state.js budget()). */
+    var planned = Number(opts.plannedBudget) || 0;
+    if (planned > 0) {
+      var cashGrade = gradeAgainst(Number(opts.cash) || 0, "<", planned);
+      if (cashGrade) {
+        out.push({
+          id: "cash_squeeze",
+          title: "자금 경색",
+          level: cashGrade.level,
+          ratio: cashGrade.ratio,
+          field: "cash",
+          op: "<",
+          current: Math.round((Number(opts.cash) || 0) * 10) / 10,
+          threshold: planned,
+          reactions: []
+        });
+      }
+    }
+
+    /* 급한 것부터 — 위험이 주의보다 먼저, 같은 등급이면 선을 더 많이 넘은 것부터 */
+    return out.sort(function (a, b) {
+      if (a.level !== b.level) return a.level === "danger" ? -1 : 1;
+      return b.ratio - a.ratio;
+    });
   }
 
   /* ============================================================
@@ -864,9 +1028,11 @@ window.DRBEngine = (function () {
     styleScores: styleScores,
     summarizeInvestments: summarizeInvestments,
     adaptiveCapacity: adaptiveCapacity,
+    riskWatch: riskWatch,
     stars: stars,
     computeCrowding: computeCrowding,
-    limitedOffers: limitedOffers, awardLimited: awardLimited, bidScore: bidScore,
+    limitedOffers: limitedOffers, awardLimited: awardLimited,
+    bidScore: bidScore, bidBreakdown: bidBreakdown,
     testCondition: testCondition,
     clamp: clamp
   };

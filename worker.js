@@ -225,13 +225,18 @@ function sanitizeEvent(value) {
   };
 }
 
+/* ★ 한 곳에 넣을 수 있는 금액의 상한. js/live.js 의 ALLOC_MAX 와 같아야 합니다.
+     한 국면 예산은 고정 50~80 + 지난 국면 영업이익의 일부로 최대 200 까지 갑니다.
+     20 으로 잘라두면 30 을 넣은 조가 진행자 화면에 20 으로 찍힙니다. */
+const ALLOC_MAX = 500;
+
 function sanitizeAllocation(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
   const allocation = {};
-  for (const [rawKey, rawValue] of Object.entries(value).slice(0, 20)) {
+  for (const [rawKey, rawValue] of Object.entries(value).slice(0, 40)) {
     const key = cleanId(rawKey, 48);
     const amount = Number(rawValue);
-    if (key && Number.isFinite(amount)) allocation[key] = Math.max(0, Math.min(20, Math.round(amount)));
+    if (key && Number.isFinite(amount)) allocation[key] = Math.max(0, Math.min(ALLOC_MAX, Math.round(amount)));
   }
   return allocation;
 }
@@ -302,6 +307,13 @@ function sanitizeHistoryEntry(value, index) {
     subroundId: cleanId(value.subroundId ?? value.subId ?? value.subround?.id, 48),
     year: boundedInteger(value.year, 1900, 2100, 0),
     title: cleanText(value.title ?? value.subTitle, 160),
+    /* 이번 국면에 그 조가 쓸 수 있었던 예산. 진행자 화면의 '남긴 현금' 계산에 씁니다. */
+    budget: boundedInteger(Math.round(Number(value.budget)), 0, 1000, 0),
+    /* 그 국면의 화폐 규모. 소수라 정수 검사를 쓰지 않습니다. */
+    moneyScale: (() => {
+      const n = Number(value.moneyScale);
+      return Number.isFinite(n) && n > 0 ? Math.min(1000, Math.round(n * 1000) / 1000) : 1;
+    })(),
     allocation: sanitizeAllocation(value.allocation ?? value.allocations),
     policyId: cleanId(value.policyId, 64),
     choices: sanitizeChoices(value.choices),

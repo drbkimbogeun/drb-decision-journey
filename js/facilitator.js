@@ -102,6 +102,33 @@
   }
   function writeJson(key, value) { localStorage.setItem(key, JSON.stringify(value)); }
 
+  /* ============================================================
+     금액 표시 — 게임 단위를 그 국면의 억으로 (rounds.js moneyScale)
+
+     엔진은 모든 돈을 게임 단위 하나로 굴립니다. 그대로 적으면 1945년 창업기와
+     2026년이 같은 자릿수라 "회사가 컸다" 가 빔에서 보이지 않습니다.
+     ⚠ 지난 국면 기록에는 그때의 배율(h.moneyScale)을 씁니다. '지금' 배율을 쓰면
+       1945년 매출이 2026년 자릿수로 찍힙니다.
+     ============================================================ */
+  function scaleOf(source) {
+    if (source && typeof source === "object") {
+      var n = Number(source.moneyScale);
+      if (Number.isFinite(n) && n > 0) return n;
+    }
+    var t = timeline[selectedTurn];
+    return (t && Number(t.sub.moneyScale)) || 1;
+  }
+  function wonNum(value, source) {
+    var v = (Number(value) || 0) * scaleOf(source);
+    var abs = Math.abs(v);
+    return abs >= 100 ? Math.round(v).toLocaleString("ko-KR")
+                      : (Math.round(v * 10) / 10).toLocaleString("ko-KR");
+  }
+  function wonSigned(value, source) {
+    var v = (Number(value) || 0) * scaleOf(source);
+    return (v > 0 ? "+" : v < 0 ? "-" : "") + wonNum(Math.abs(v), { moneyScale: 1 });
+  }
+
   function investName(id) {
     var name = id;
     Object.keys(window.DRB_INVESTMENTS || {}).some(function (set) {
@@ -134,13 +161,18 @@
   }
 
   /* 많이 넣은 순서대로. topIds 는 { id, amount } 를, topAlloc 은 사람이 읽는 문장을 줍니다.
-     둘을 섞어 쓰면 "undefined" 가 화면에 나옵니다 — 실제로 그랬습니다. */
+     둘을 섞어 쓰면 "undefined" 가 화면에 나옵니다 — 실제로 그랬습니다.
+
+     ★ limit 을 주지 않으면 넣은 곳을 전부 돌려줍니다.
+       예전에는 기본이 4였습니다. 그래서 다섯 곳 이상에 나눠 넣은 조는
+       진행자 화면에서 아래쪽 투자가 조용히 사라졌습니다 — 조 노트북에는
+       여섯 줄이 떠 있는데 빔에는 네 줄만 있으니, 얘기가 어긋납니다. */
   function topIds(allocation, limit) {
-    return Object.keys(allocation || {})
+    var ids = Object.keys(allocation || {})
       .filter(function (id) { return Number(allocation[id]) > 0; })
-      .sort(function (a, b) { return Number(allocation[b]) - Number(allocation[a]); })
-      .slice(0, limit || 4)
-      .map(function (id) { return { id: id, amount: Number(allocation[id]) }; });
+      .sort(function (a, b) { return Number(allocation[b]) - Number(allocation[a]); });
+    if (limit > 0) ids = ids.slice(0, limit);
+    return ids.map(function (id) { return { id: id, amount: Number(allocation[id]) }; });
   }
   function topAlloc(allocation, limit) {
     return topIds(allocation, limit).map(function (a) { return investName(a.id) + " " + a.amount; });
@@ -172,6 +204,8 @@
         subTitle: h.title || (pos && pos.sub.title),
         year: h.y || (pos && pos.sub.year),
         allocation: h.a || {},
+        budget: h.bg,
+        moneyScale: h.ms,
         choices: h.ch || {},
         policyId: h.pid,
         policyName: h.pol,
@@ -355,6 +389,96 @@
        계산은 engine.awardLimited() — 노트북과 같은 코드입니다.
      ============================================================ */
   var awardsSent = {};
+
+  /* ★ 입찰 점수는 소수 첫째 자리까지 적습니다. 공용 fmt() 는 정수로 반올림하는데,
+       그러면 37.5 와 38.4 가 둘 다 38 로 찍혀 "왜 저 조가 땄나" 를 또 설명 못 합니다.
+       실제로 예전 화면이 0.84 · 0.84 로 같아 보였던 것이 이 문제였습니다. */
+  function score1(value) {
+    var n = Number(value);
+    return Number.isFinite(n) ? (Math.round(n * 10) / 10).toFixed(1) : "-";
+  }
+
+  /* 평가 항목 이름 — invest.auto 는 투자 항목, 나머지는 회사 지표입니다 */
+  function bidFieldName(field) {
+    if (String(field).indexOf("invest.") === 0) return investName(String(field).slice(7)) + " 투자액";
+    var m = (CFG.metrics || []).concat(CFG.detailMetrics || [])
+      .filter(function (x) { return x.key === field; })[0];
+    return m ? m.name : field;
+  }
+
+  /* 한 줄에 네 항목이 들어가야 하므로 투자 항목은 '투자액' 으로 줄입니다.
+     무엇에 대한 투자인지는 바로 위 사건 본문이 이미 말하고 있습니다. */
+  function bidShortName(field) {
+    if (String(field).indexOf("invest.") === 0) return "투자액";
+    return bidFieldName(field);
+  }
+
+  /* ★ 입찰 평가표 — 왜 그 조가 가져갔는지를 항목별로 펼칩니다.
+       예전에는 합계 하나만 찍혔습니다. 그러면 두 조가 101 대 99 로 갈렸을 때
+       진행자가 "왜?" 에 답할 수가 없고, 비슷하게 찍히면 아예 설명이 안 됩니다.
+       실제 입찰처럼 배점과 받은 점수를 나란히 놓으면 그 자리에서 읽어줄 수 있습니다.
+       (점수는 engine.bidBreakdown 이 냅니다 — 여기서 다시 계산하지 않습니다) */
+  function awardSheet(result) {
+    var bidders = result.ranking.filter(function (r) { return r.qualified; });
+    var skipped = result.ranking.filter(function (r) { return !r.qualified; });
+
+    if (!bidders.length) {
+      return "<p class='fac-bidaward__note'>응찰한 조가 없습니다 — 조건을 넘긴 조가 하나도 없었습니다.</p>";
+    }
+
+    /* ★ 한 조가 한 줄입니다. 항목을 세로로 쌓은 표도 만들어 봤지만 빔에서 잘렸습니다 —
+         이 화면은 사건 헤드라인이 52px, 본문이 34px 이라 표에 쓸 수 있는 높이가
+         340px 남짓입니다. 진행자가 못 읽는 표는 없는 것과 같습니다.
+         그래서 배점을 맨 윗줄에 한 번 깔고, 조마다 받은 점수를 한 줄로 늘어놓습니다. */
+    var parts = bidders[0].parts || [];
+    var totalAllotted = parts.reduce(function (sum, p) { return sum + p.allotted; }, 0);
+
+    var allot = "<div class='bidsheet__allot'><span class='bidsheet__allot-label'>배점</span>" +
+      parts.map(function (p) {
+        return "<span>" + esc(bidShortName(p.field)) + " <b class='num'>" +
+               Math.round(p.allotted) + "</b></span>";
+      }).join("") +
+      "<span class='bidsheet__allot-sum'>합계 <b class='num'>" + Math.round(totalAllotted) + "</b></span></div>";
+
+    var rows = bidders.map(function (r) {
+      var won = result.winners.indexOf(r.team) >= 0;
+      return "<div class='bidsheet__row " + (won ? "is-won" : "is-lost") + "'>" +
+        "<b class='bidsheet__team' style='color:" + teamColor(r.team) + "'>" + esc(r.team) + "</b>" +
+        "<span class='bidsheet__verdict'>" + (won ? "계약" : "탈락") + "</span>" +
+        "<b class='bidsheet__score num'>" + score1(r.score * 100) + "</b>" +
+        "<span class='bidsheet__parts'>" +
+        parts.map(function (p, i) {
+          var mine = (r.parts || [])[i] || { earned: 0, raw: 0 };
+          return "<span>" + esc(bidShortName(p.field)) + " <b class='num'>" + score1(mine.earned) +
+                 "</b><i class='bidsheet__raw'>" + fmt(mine.raw) + "</i></span>";
+        }).join("") +
+        "</span></div>";
+    }).join("");
+
+    /* ★ 총점이 같아 다른 규정으로 갈린 경우 — 진행자가 그 자리에서 읽어줘야 합니다.
+         "같은 점수인데 왜 저 조?" 에 답이 없으면 방이 납득하지 않습니다. */
+    var tie = result.tieBreak;
+    var tieLine = "";
+    if (tie) {
+      tieLine = "<p class='fac-bidaward__tie'>총점 동점 — " + esc(tie.label);
+      if (tie.rule === "item") {
+        tieLine += "(" + esc(bidShortName(tie.field)) + ")에서 " + esc(tie.won) + "가 앞섰습니다";
+      } else if (tie.rule === "legacy") {
+        tieLine += "으로 갈랐습니다 — " + esc(tie.won) + "가 그 분야를 더 오래 준비해 왔습니다";
+      } else {
+        tieLine += "까지 내려갔습니다 — 네 항목도 누적 실적도 완전히 같았습니다";
+      }
+      tieLine += "</p>";
+    }
+
+    return "<div class='bidsheet'>" + allot + rows + "</div>" + tieLine +
+      /* ★ 한 줄로 끝냅니다. 두 줄이 되면 그만큼 표가 화면 밖으로 밀립니다. */
+      "<p class='fac-bidaward__note'>괄호 안은 그 항목의 실제 값 · 돈만 보지 않고 기술력 · 고객신뢰 · 인력을 함께 봅니다" +
+      (skipped.length
+        ? " · 응찰 안 함 " + skipped.map(function (r) { return esc(r.team); }).join(" ")
+        : "") +
+      "</p>";
+  }
 
   function awardsFor(teams, turn) {
     var offers = window.DRBEngine.limitedOffers(timeline[turn].sub);
@@ -974,7 +1098,9 @@
   function renderDecisions(teams) {
     var box = el("bDecisionRows");
     var subId = timeline[selectedTurn].sub.id;
-    var budget = timeline[selectedTurn].sub.budget || 0;
+    /* 국면 고정예산. 조가 실제로 쓸 수 있었던 예산은 지난 실적만큼 더 크므로
+       기록에 붙어 온 h.budget 을 먼저 씁니다 — 없을 때만 이 값으로 떨어집니다. */
+    var fixedBudget = timeline[selectedTurn].sub.budget || 0;
     var resultOpen = ["event", "phase", "actual", "map", "standings"].indexOf(currentStage) >= 0;
     var open = allDecided(teams, selectedTurn) || forcedTurn >= selectedTurn;
 
@@ -1018,9 +1144,9 @@
         "</div>";
       }
 
-      var allocRows = topIds(h.allocation, 4).map(function (a) {
+      var allocRows = topIds(h.allocation).map(function (a) {
         return "<div class='dcard__row'><span>" + esc(investName(a.id)) +
-               "</span><b class='num'>" + a.amount + "</b></div>";
+               "</span><b class='num'>" + wonNum(a.amount, h) + "억</b></div>";
       }).join("") || "<div class='dcard__row is-none'><span>투자 없음 · 전액 보유</span></div>";
 
       var extra = [];
@@ -1028,15 +1154,15 @@
         var choice = h.choices[id] || {};
         extra.push("진출 " + countryName(choice.where) + " / " + modeName(choice.how));
       });
-      var kept = Math.max(0, budget - allocationSum(h.allocation));
-      if (kept > 0) extra.push("남긴 현금 " + kept);
+      var kept = Math.max(0, (Number(h.budget) > 0 ? Number(h.budget) : fixedBudget) - allocationSum(h.allocation));
+      if (kept > 0) extra.push("남긴 현금 " + wonNum(kept, h) + "억");
 
       var result = "";
       if (resultOpen && h.report && h.report.kpi) {
         var down = Number(h.report.kpi.profit) < 0;
         result = "<div class='dcard__result" + (down ? " is-down" : "") + "'>" +
-          "<span>매출 <b class='num'>" + fmt(h.report.kpi.revenue) + "</b></span>" +
-          "<span>손익 <b class='num'>" + signed(h.report.kpi.profit) + "</b></span>" +
+          "<span>매출 <b class='num'>" + wonNum(h.report.kpi.revenue, h) + "억</b></span>" +
+          "<span>손익 <b class='num'>" + wonSigned(h.report.kpi.profit, h) + "억</b></span>" +
         "</div>";
       }
 
@@ -1098,24 +1224,14 @@
     } else {
       awardBox.classList.remove("hidden");
       awardBox.innerHTML = award.detail.map(function (result) {
-        var rows = result.ranking.map(function (r) {
-          var won = result.winners.indexOf(r.team) >= 0;
-          return "<div class='fac-award-row" + (won ? " is-won" : r.qualified ? " is-lost" : "") + "'>" +
-            "<b style='color:" + teamColor(r.team) + "'>" + esc(r.team) + "</b>" +
-            "<span class='fac-award-row__state'>" +
-            (won ? "계약" : r.qualified ? "탈락" : "응찰 안 함") + "</span>" +
-            "<span class='fac-award-row__score num'>" + (r.qualified ? r.score.toFixed(2) : "—") + "</span>" +
-            "</div>";
-        }).join("");
-        return "<div class='fac-award'>" +
-          "<div class='fac-award__head'>" +
-          "<span class='fac-award__label'>한 곳만 가져갑니다</span>" +
-          "<b class='fac-award__title'>" + esc(result.title) + "</b>" +
+        return "<div class='fac-bidaward'>" +
+          "<div class='fac-bidaward__head'>" +
+          "<span class='fac-bidaward__label'>한 곳만 가져갑니다</span>" +
+          "<b class='fac-bidaward__title'>" + esc(result.title) + "</b>" +
           "<span class='spacer'></span>" +
-          "<span class='fac-award__winner'>" +
+          "<span class='fac-bidaward__winner'>" +
           (result.winners.length ? esc(result.winners.join(" · ")) : "가져간 조 없음") + "</span>" +
-          "</div><div class='fac-award__rows'>" + rows + "</div>" +
-          "<p class='fac-award__note'>투자액만 보지 않습니다. 기술력 · 고객신뢰 · 인력을 함께 봅니다.</p>" +
+          "</div>" + awardSheet(result) +
           "</div>";
       }).join("");
     }
@@ -1284,17 +1400,18 @@
     /* 한 장에 : 어디에 얼마를 걸었나(자원 배분) · 얼마를 벌었나(매출) · 어떤 전략이었나 */
     el("bPhaseCards").style.cssText = cardColumns(played.length);
     el("bPhaseCards").innerHTML = played.map(function (r, i) {
-      var alloc = topIds(r.h.allocation, 3).map(function (a) {
+      var alloc = topIds(r.h.allocation).map(function (a) {
         return "<div class='phasecard__row'><span>" + esc(investName(a.id)) +
-               "</span><b class='num'>" + a.amount + "</b></div>";
+               "</span><b class='num'>" + wonNum(a.amount, r.h) + "억</b></div>";
       }).join("") || "<div class='phasecard__row is-none'><span>투자 없음 · 전액 보유</span></div>";
 
       /* ★ 매출 한 줄만 띄우면 "누가 컸나" 만 보입니다. 그 조가 이번 국면에
            무엇을 겪고 어떻게 됐는지가 같이 있어야 조별 비교가 대화가 됩니다.
-           조 노트북이 보는 것과 같은 내용입니다 (ui.js renderLiveWait). */
+           이 내용은 여기 빔에만 있습니다 — 조 노트북(ui.js renderLiveWait)은
+           돌발상황도 결과도 띄우지 않고 기다립니다. */
       var kpi = r.h.report.kpi || {};
       var cashLine = (r.h.before && r.h.after)
-        ? fmt(r.h.before.cash) + " → " + fmt(r.h.after.cash)
+        ? wonNum(r.h.before.cash, r.h) + " → " + wonNum(r.h.after.cash, r.h)
         : (r.h.beforeCash !== undefined ? fmt(r.h.beforeCash) + " → " + fmt(r.h.afterCash) : "");
       var hit = ((r.h.report.events) || []).map(function (ev) {
         var texts = (ev.reactions || []).map(function (x) { return x.text || ""; }).filter(Boolean);
@@ -1309,7 +1426,7 @@
         "</div>" +
         "<div class='phasecard__alloc'>" + alloc +
           "<div class='phasecard__row'><span>영업이익</span><b class='num'>" +
-            signed(kpi.profit) + "억</b></div>" +
+            wonSigned(kpi.profit, r.h) + "억</b></div>" +
           (cashLine ? "<div class='phasecard__row'><span>현금</span><b class='num'>" +
             esc(cashLine) + "</b></div>" : "") +
           hit.map(function (line) {
@@ -1366,7 +1483,11 @@
 
     /* 지금 앞선 조 — 누적 매출 */
     var cumulative = teams.map(function (team) {
-      var sum = (team.history || []).reduce(function (a, h) { return a + (h.report.kpi.revenue || 0); }, 0);
+      /* ★ 국면마다 화폐 규모가 다릅니다. 게임 단위로 먼저 더하면 1945년과 2026년이
+           같은 무게로 섞입니다 — 각각 억으로 바꾼 뒤에 더합니다. */
+      var sum = (team.history || []).reduce(function (a, h) {
+        return a + (h.report.kpi.revenue || 0) * ((Number(h.moneyScale) || 1));
+      }, 0);
       return { name: team.name, sum: sum };
     }).sort(function (a, b) { return b.sum - a.sum; });
 
@@ -1739,7 +1860,7 @@
     }).join("");
     openModal(name + " · " + styleOf(team),
       "<p class='hint'>" + (h
-        ? esc(topAlloc(h.allocation, 4).join(" · ")) + " · 정책 " + esc(policyName(h.policyId, h.policyName))
+        ? esc(topAlloc(h.allocation).join(" · ")) + " · 정책 " + esc(policyName(h.policyId, h.policyName))
         : "이번 국면은 아직 확정하지 않았습니다") + "</p>" +
       "<div class='breakdown'>" + bars +
       "<div class='breakdown__row'><span class='breakdown__label'><b>변화 대응력</b> · 참가자에게는 마지막에만 보입니다</span>" +
@@ -2119,7 +2240,7 @@
         var h = historyAt(team, selectedTurn);
         return "<div class='breakdown__row'><span class='breakdown__label'><b>" + esc(team.name) + "</b> · " +
           esc(styleOf(team)) + "<br><span class='hint'>" +
-          (h ? esc(topAlloc(h.allocation, 3).join(" · ")) + " · 정책 " + esc(policyName(h.policyId, h.policyName))
+          (h ? esc(topAlloc(h.allocation).join(" · ")) + " · 정책 " + esc(policyName(h.policyId, h.policyName))
              : "이번 국면 미확정") +
           "</span></span><span class='breakdown__value num'>" + totalScore(team) + "</span></div>";
       }).join("") || "<p class='hint'>참가 조가 없습니다.</p>");

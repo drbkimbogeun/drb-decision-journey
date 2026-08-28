@@ -115,13 +115,21 @@
     };
   }
 
+  /* ★ 한 곳에 넣을 수 있는 금액의 상한입니다. worker.js 의 sanitizeAllocation 과 같아야 합니다.
+
+       예전에는 20 이었습니다. 그런데 한 국면 예산은 고정 50~80 에다
+       지난 국면 영업이익의 일부가 얹혀 최대 200(고정 80 × maxTotal 2.5)까지 갑니다.
+       조가 한 곳에 30 을 넣으면 진행자 화면에는 20 으로 찍혔습니다 — 조용히 잘려서,
+       빔에 뜬 숫자가 조 노트북의 숫자와 달랐습니다. */
+  var ALLOC_MAX = 500;
+
   function allocationMap(value) {
     var result = {};
     if (!value || typeof value !== "object" || Array.isArray(value)) return result;
-    Object.keys(value).slice(0, 20).forEach(function (rawKey) {
+    Object.keys(value).slice(0, 40).forEach(function (rawKey) {
       var key = cleanId(rawKey, 48);
       var amount = Number(value[rawKey]);
-      if (key && Number.isFinite(amount)) result[key] = Math.max(0, Math.min(20, Math.round(amount)));
+      if (key && Number.isFinite(amount)) result[key] = Math.max(0, Math.min(ALLOC_MAX, Math.round(amount)));
     });
     return result;
   }
@@ -193,6 +201,15 @@
       subroundId: cleanId(value.subroundId || value.subId || (value.subround && value.subround.id), 48),
       year: integer(value.year, 1900, 2100, 0),
       title: cleanText(value.title || value.subTitle, 160),
+      /* 이번 국면에 쓸 수 있었던 예산. 조마다 다릅니다 —
+         진행자 화면의 '남긴 현금' 이 이 값으로 계산됩니다. */
+      budget: integer(Math.round(Number(value.budget)), 0, 1000, 0),
+      /* 그 국면의 화폐 규모 (rounds.js moneyScale). 진행자 화면이 억으로 적을 때 씁니다.
+         소수(0.025)라 정수 검사에 걸리므로 따로 자릅니다. */
+      moneyScale: (function () {
+        var n = Number(value.moneyScale);
+        return Number.isFinite(n) && n > 0 ? Math.min(1000, Math.round(n * 1000) / 1000) : 1;
+      })(),
       allocation: allocationMap(value.allocation || value.allocations),
       policyId: cleanId(value.policyId, 64),
       choices: decisionChoices(value.choices),
