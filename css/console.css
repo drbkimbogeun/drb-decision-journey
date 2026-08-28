@@ -1636,6 +1636,69 @@ body.fac-body {
 }
 
 
+/* ---------- 운영 방법 (1국면 직전) ----------
+   진행자가 소리 내어 읽는 한 장입니다.
+   네 장면이 세로로 이어지고, 세 번째(시간이 흐른다)만 다르게 보입니다 —
+   그 칸에서는 조가 아무것도 하지 않는데 회사는 움직이기 때문입니다. */
+.fac-rules { display: flex; flex-direction: column; height: 100%; min-height: 0; gap: var(--sp-3); }
+
+.fac-rules__scenes { display: flex; flex-direction: column; gap: var(--sp-2); flex: 0 0 auto; }
+.rulescene {
+  display: flex; align-items: center; gap: var(--sp-4);
+  padding: 13px var(--sp-4);
+  border: 1px solid var(--line); border-left: 4px solid var(--accent);
+  border-radius: var(--r-md); background: var(--bg-2);
+}
+.rulescene__no {
+  flex: none; display: grid; place-items: center;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--accent); color: var(--text-on-accent);
+  font-size: 20px; font-weight: var(--fw-strong);
+}
+.rulescene__body { display: grid; gap: 3px; min-width: 0; flex: 1 1 auto; }
+.rulescene__name { font-size: 23px; font-weight: var(--fw-strong); letter-spacing: -0.02em; }
+.rulescene__desc { color: var(--text-2); font-size: 18px; line-height: 1.5; }
+.rulescene__desc b { color: var(--text-1); }
+.rulescene__min {
+  flex: none; min-width: 62px; text-align: right;
+  color: var(--text-3); font-size: 19px; font-weight: var(--fw-strong);
+}
+/* 시간이 흐르는 칸 — 조는 아무것도 하지 않습니다. 그래서 색을 뺍니다. */
+.rulescene--wait {
+  border-style: dashed; border-left-color: var(--line-strong);
+  background: var(--bg-1);
+}
+.rulescene--wait .rulescene__no { background: var(--line-strong); color: var(--text-1); }
+
+.fac-rules__notes { display: grid; grid-template-columns: 1fr 1.15fr; gap: var(--sp-3); flex: 1 1 auto; min-height: 0; }
+.fac-rules__col {
+  display: flex; flex-direction: column; gap: 6px; min-width: 0;
+  padding: var(--sp-4); border: 1px solid var(--line); border-radius: var(--r-md);
+}
+.fac-rules__label {
+  color: var(--text-3); font-size: var(--fs-tiny);
+  font-weight: var(--fw-strong); letter-spacing: 0.1em;
+}
+.fac-rules__col--delay { border-color: var(--accent-line); background: var(--accent-tint); }
+.fac-rules__col--delay .fac-rules__label { color: var(--accent-deep); }
+.fac-rules__col--no { border-color: var(--fact-line); background: var(--fact-bg); }
+.fac-rules__col--no .fac-rules__label { color: var(--fact-text); }
+
+/* 언제 효과가 오는가 — 시점과 예시를 나란히 */
+.ruletiming {
+  display: flex; align-items: baseline; gap: var(--sp-3);
+  padding: 5px 0; border-bottom: 1px dashed var(--accent-line);
+}
+.ruletiming:last-of-type { border-bottom: 0; }
+.ruletiming__when { min-width: 150px; font-size: 18px; font-weight: var(--fw-strong); }
+.ruletiming__ex { color: var(--accent-deep); font-size: 18px; }
+
+.rulenote { color: var(--text-2); font-size: 18px; line-height: 1.55; }
+.rulenote b { color: var(--text-1); font-weight: var(--fw-strong); }
+.fac-rules__col--no .rulenote b { color: var(--fact-text); }
+
+.fac-rules__pace { flex: 0 0 auto; color: var(--text-3); font-size: var(--fs-small); text-align: right; }
+
 .fac-howto__foot { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); flex: 0 0 auto; margin-top: var(--sp-3); }
 .fac-howto__box { display: flex; align-items: baseline; gap: var(--sp-3); padding: var(--sp-4) var(--sp-5); border: 1px solid var(--line); border-radius: var(--r-md); }
 .fac-howto__box b { font-size: var(--fs-small); font-weight: var(--fw-strong); white-space: nowrap; }

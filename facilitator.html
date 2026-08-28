@@ -117,6 +117,33 @@
         </article>
       </section>
 
+      <!-- ······ 결정 방법 ······
+           ★ 앞의 '진행 방법' 은 한 국면이 어떤 순서로 흐르는지만 보여줍니다.
+             정작 "노트북에서 무엇을 어떻게 눌러야 하는가" 는 어디에도 없었습니다.
+             1국면에 들어가기 직전, 이 한 장을 진행자가 읽어주고 시작합니다. -->
+      <!-- ······ 운영 방법 ······
+           ★ 앞의 '진행 방법' 은 다섯 칸 순서도로 순서만 보여줍니다.
+             여기는 이 게임의 리듬 — 넣고 · 시간이 흐르고 · 그제서야 결과가 오고 ·
+             왜 달랐는지 이야기한다 — 를 1국면 들어가기 직전에 못 박는 자리입니다. -->
+      <section class="fac-stage hidden" id="stageRules" data-stage-panel="rules">
+        <article class="fac-rules">
+          <div class="fac-rules__scenes" id="bRulesScenes"></div>
+
+          <div class="fac-rules__notes">
+            <div class="fac-rules__col fac-rules__col--delay">
+              <div class="fac-rules__label">넣은 돈은 언제 일을 하는가</div>
+              <div id="bRulesDelay"></div>
+            </div>
+            <div class="fac-rules__col fac-rules__col--no">
+              <div class="fac-rules__label">이건 아닙니다</div>
+              <div id="bRulesNots"></div>
+            </div>
+          </div>
+
+          <div class="fac-rules__pace" id="bRulesPace"></div>
+        </article>
+      </section>
+
       <!-- ······ 시대 설명 ······ -->
       <section class="fac-stage hidden" id="stageBriefing" data-stage-panel="briefing">
         <article class="fac-brief" id="bBrief" data-testid="fac-common-context" data-round-id="r1" data-subround-id="r1s1">
@@ -397,6 +424,7 @@
         <nav class="fac-jump" aria-label="화면 바로가기">
           <button class="fac-jump__item" data-stage="intro">표지</button>
           <button class="fac-jump__item" data-stage="howto">진행 방법</button>
+          <button class="fac-jump__item" data-stage="rules">결정 방법</button>
           <button class="fac-jump__item is-active" data-stage="briefing">시대 설명</button>
           <button class="fac-jump__item" data-stage="decisions">조별 결정</button>
           <button class="fac-jump__item" data-stage="lapse">시간 흐름</button>

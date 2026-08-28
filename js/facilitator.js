@@ -25,14 +25,15 @@
   /* 진행자 화면에만 있는 화면. 순위·시상이 들어 있어 절대 공개하지 않습니다.
      lapse(연도 흐름)도 여기 둡니다 — 참가자 노트북은 그동안 대기 화면 그대로입니다.
      연출을 조별로 또 돌리면 방이 흩어집니다. 이건 빔에서 한 번만 돕니다. */
-  var LOCAL_STAGES = ["intro", "howto", "lapse", "phase", "standings", "award", "finale", "closing"];
-  var STAGES = ["intro", "howto", "briefing", "decisions", "lapse", "event", "phase",
+  var LOCAL_STAGES = ["intro", "howto", "rules", "lapse", "phase", "standings", "award", "finale", "closing"];
+  var STAGES = ["intro", "howto", "rules", "briefing", "decisions", "lapse", "event", "phase",
                 "actual", "map", "standings", "award", "reflect", "finale", "closing"];
 
   /* 챕터마다 진행자가 할 말 한 줄. 화면 제목이 곧 대본입니다. */
   var CHAPTER = {
     intro:     { title: "시작합니다",                 tab: "표지" },
     howto:     { title: "오늘은 이렇게 진행합니다",    tab: "진행 방법" },
+    rules:     { title: "결정하고 · 기다리고 · 함께 봅니다",  tab: "운영 방법" },
     briefing:  { title: "이 시대를 설명합니다",        tab: "시대 설명" },
     decisions: { title: "각 조가 결정합니다",          tab: "조별 결정" },
     lapse:     { title: "그리고 시간이 흘렀습니다",     tab: "시간 흐름" },
@@ -1033,6 +1034,156 @@
     }).join("");
   }
 
+  /* ★ 1국면에 들어가기 직전 한 장. 진행자가 그대로 읽어주는 자리입니다.
+
+       앞의 '진행 방법' 은 다섯 칸 순서도로 "이 순서로 흐른다" 만 보여줍니다.
+       정작 이 게임의 리듬 — 넣고, 시간이 흐르고, 그제서야 결과가 오고,
+       왜 달랐는지 이야기한다 — 은 어디에도 없었습니다.
+
+       가장 자주 나오는 오해가 여기서 생깁니다: "우리는 설비에 넣었는데 왜 매출이
+       그대로냐". 설비는 다음 국면에 도착합니다. 그걸 먼저 말해두지 않으면
+       1국면 결과 화면에서 방이 술렁이고, 진행자가 수습에 5분을 씁니다.
+
+     ⚠ 숫자와 예시를 여기 적지 않습니다. 예산·시간·효과 시점은 전부 데이터에서
+       읽습니다 — 두 군데 적으면 어긋나고, 진행자가 틀린 것을 읽게 됩니다. */
+  function renderRules() {
+    var first = timeline[0];
+    var last = timeline[timeline.length - 1];
+    var era1 = window.DRB_ERAS[first.round.era];
+    var invAll = (window.DRB_INVESTMENTS[era1.investSet] || []);
+    var invOpen = invAll.filter(function (i) { return (Number(i.unlockSubround) || 0) === 0; });
+    var polCount = (window.DRB_POLICIES[era1.policySet] || []).length;
+
+    var unit = CFG.tokenUnit;
+    var firstScale = Number(first.sub.moneyScale) || 1;
+    var lastScale = Number(last.sub.moneyScale) || 1;
+    function money(game, scale) {
+      var v = game * scale;
+      return v >= 100 ? Math.round(v).toLocaleString("ko-KR")
+           : v >= 10 ? String(Math.round(v))
+           : String(Math.round(v * 100) / 100);
+    }
+
+    /* 한 국면에 주어지는 시간 — config.js 의 phasePlan 그대로 */
+    var plan = CFG.phasePlan || [];
+    function minutesOf(match) {
+      return plan.filter(function (x) { return match.test(x.name); })
+                 .reduce(function (sum, x) { return sum + x.minutes; }, 0);
+    }
+    var talkMin = minutesOf(/대화|상황/);
+    var decideMin = minutesOf(/배분|정책/);
+    var resultMin = minutesOf(/결과|DRB/);
+    var perMin = plan.reduce(function (sum, x) { return sum + x.minutes; }, 0);
+
+    /* 담당 기간 — 1국면이 몇 년을 건너뛰는지 */
+    var jump = timeline.length > 1 ? (timeline[1].sub.year - first.sub.year) : 0;
+
+    var scenes = [
+      {
+        no: "1",
+        min: talkMin,
+        name: "의논합니다",
+        body: "이 시대에 무엇이 벌어지고 있는지 앞 화면에서 함께 봅니다. " +
+              "조 안에서 <b>어디에 걸 것인지</b> 이야기하세요."
+      },
+      {
+        no: "2",
+        min: decideMin,
+        name: "결정합니다",
+        body: "노트북에서 예산 <b>" + money(first.sub.budget, firstScale) + "억</b>을 " +
+              invOpen.length + "곳에 나누고, 경영정책 " + polCount + "개 중 하나를 고릅니다. " +
+              "예산은 <b>남김없이</b> 배분해야 확정이 열립니다."
+      },
+      {
+        no: "3",
+        min: null,
+        name: (jump > 0 ? jump + "년이 흐릅니다" : "시간이 흐릅니다"),
+        body: "확정하는 순간 시간이 뜁니다. <b>넣은 돈이 일을 하는 것은 이 사이입니다.</b> " +
+              "설비가 지어지고, 연구가 쌓이고, 공장이 돌기 시작합니다."
+      },
+      {
+        no: "4",
+        min: resultMin,
+        name: "결과를 함께 보고 이야기합니다",
+        body: "조별 숫자가 이 화면에 나란히 섭니다. " +
+              "<b>같은 상황이었는데 왜 달라졌는지</b>가 오늘의 본론입니다."
+      }
+    ];
+
+    el("bRulesScenes").innerHTML = scenes.map(function (sc) {
+      return "<div class='rulescene" + (sc.min === null ? " rulescene--wait" : "") + "'>" +
+        "<span class='rulescene__no num'>" + sc.no + "</span>" +
+        "<div class='rulescene__body'>" +
+          "<b class='rulescene__name'>" + esc(sc.name) + "</b>" +
+          "<span class='rulescene__desc'>" + sc.body + "</span>" +
+        "</div>" +
+        "<span class='rulescene__min num'>" + (sc.min === null ? "" : sc.min + "분") + "</span>" +
+        "</div>";
+    }).join("");
+
+    /* ---------- 이 게임에서 가장 자주 나오는 오해 ----------
+       효과 시점은 investments.js 의 perUnit 키(now/next/later/stock)에서 그대로 읽습니다.
+       예시로 드는 항목 이름도 데이터에서 뽑습니다 — 손으로 적으면 항목이 바뀔 때 틀립니다. */
+    /* 한 항목이 여러 줄에 겹쳐 나오면 "이것도 저것도 같은 거네" 로 읽힙니다.
+       이미 쓴 것은 빼고 다음 것을 고릅니다. */
+    var used = {};
+    /* ⚠ 1국면 목록만 보면 예시가 겹칩니다 — ERA1 에서 '두 국면 뒤' 와 '쌓이다 한 번에' 는
+         둘 다 전동벨트 하나뿐입니다. 그래서 전 시대 항목에서 고르되 1국면 것을 먼저 씁니다. */
+    var invEvery = [];
+    Object.keys(window.DRB_INVESTMENTS || {}).forEach(function (set) {
+      (window.DRB_INVESTMENTS[set] || []).forEach(function (i) { invEvery.push(i); });
+    });
+    function example(key) {
+      var pool = invEvery.filter(function (i) { return (i.perUnit || {})[key]; });
+      var first1 = pool.filter(function (i) {
+        return !used[i.name] && invAll.indexOf(i) >= 0 && (Number(i.unlockSubround) || 0) === 0;
+      })[0];
+      var pick = first1 || pool.filter(function (i) { return !used[i.name]; })[0] || pool[0];
+      if (pick) used[pick.name] = true;
+      return pick ? pick.name : "";
+    }
+    var timings = [
+      { when: "이번 국면에 바로",  key: "now" },
+      { when: "다음 국면에 도착",  key: "next" },
+      { when: "두 국면 뒤에 도착", key: "later" },
+      { when: "쌓이다 한 번에",   key: "stock" }
+    ].map(function (t) {
+      var ex = example(t.key);
+      return "<div class='ruletiming'><span class='ruletiming__when'>" + esc(t.when) + "</span>" +
+             "<span class='ruletiming__ex'>" + (ex ? esc(ex) : "—") + "</span></div>";
+    }).join("");
+
+    el("bRulesDelay").innerHTML = timings +
+      "<div class='rulenote' style='margin-top:var(--sp-3)'>" +
+      "그래서 <b>마지막 국면에 ‘쌓이다 한 번에’ 쪽을 넣으면 효과를 못 봅니다.</b> " +
+      "고장이 아니라 규칙입니다 — 실제 회사가 그렇습니다. " +
+      "각 항목이 언제 오는지는 조 노트북 카드에 적혀 있습니다.</div>";
+
+    var nots = [
+      "<b>정답을 맞히는 게임이 아닙니다.</b> 뒤에 나오는 DRB의 실제 선택도 " +
+      "정답이 아니라 비교할 대상입니다.",
+
+      "<b>순위를 매기지 않습니다.</b> 게임 내내 등수는 나오지 않습니다. 마지막에 한 번만.",
+
+      "<b>다 잘할 수는 없습니다.</b> 예산은 늘 모자랍니다. " +
+      "무엇을 <b>포기했는지</b>가 뒤에서 이야기할 거리가 됩니다.",
+
+      "<b>결과는 이 화면에서만 봅니다.</b> 조 노트북에는 뜨지 않습니다. " +
+      "확정하고 나면 앞을 보세요.",
+
+      "<b>금액 단위가 시대마다 다릅니다.</b> 1국면 한 칸 " + money(unit, firstScale) +
+      "억 → 마지막 국면 한 칸 " + money(unit, lastScale) + "억. " +
+      "누르는 칸 수는 같고 회사가 커지는 것입니다."
+    ];
+    el("bRulesNots").innerHTML = nots.map(function (t) {
+      return "<div class='rulenote'>" + t + "</div>";
+    }).join("");
+
+    el("bRulesPace").textContent =
+      "한 국면 " + perMin + "분 · " + timeline.length + "번 · 전체 " +
+      (CFG.totalMinutes || perMin * timeline.length) + "분";
+  }
+
   /* 시대 설명 — 질문 하나, 배경 한 문단, 조건 네 개. 그 이상은 빔에서 안 읽힙니다. */
   function renderBrief() {
     var item = timeline[selectedTurn];
@@ -1887,6 +2038,7 @@
     renderMap(teams);
     renderCover(teams);
     renderHowto();
+    renderRules();
     renderPhaseResult(teams);
     renderStandings(teams);
     renderCrowd(teams);

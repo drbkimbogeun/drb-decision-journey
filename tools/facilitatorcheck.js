@@ -480,9 +480,9 @@ function checkFacilitatorStages() {
   /* 시상·순위는 진행자 화면에만 있습니다. 참가자에게 절대 내보내지 않으므로
      Worker 목록에는 없어야 합니다. */
   /* lapse(시간 흐름) 는 빔에서만 돕니다 — 조별 노트북은 그동안 대기 화면입니다 */
-  const facilitatorOnlyStages = ["intro", "howto", "lapse", "phase", "standings", "award", "finale", "closing"];
+  const facilitatorOnlyStages = ["intro", "howto", "rules", "lapse", "phase", "standings", "award", "finale", "closing"];
   /* 탭 순서는 실제 진행 순서입니다 (진행자 전용 화면이 사이사이 끼어 있습니다) */
-  const allTabStages = ["intro", "howto", "briefing", "decisions", "lapse", "event", "phase",
+  const allTabStages = ["intro", "howto", "rules", "briefing", "decisions", "lapse", "event", "phase",
                         "actual", "map", "standings", "award", "reflect", "finale", "closing"];
   const html = read("facilitator.html");
   const worker = read("worker.js");
