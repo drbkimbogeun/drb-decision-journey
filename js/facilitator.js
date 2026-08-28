@@ -26,6 +26,9 @@
      lapse(연도 흐름)도 여기 둡니다 — 참가자 노트북은 그동안 대기 화면 그대로입니다.
      연출을 조별로 또 돌리면 방이 흩어집니다. 이건 빔에서 한 번만 돕니다. */
   var LOCAL_STAGES = ["intro", "howto", "rules", "lapse", "phase", "standings", "award", "finale", "closing"];
+  /* 국면에 매이지 않고 맨 앞에 한 번만 나오는 챕터. book() 과 상단 배지가 같이 씁니다 —
+     두 군데에 따로 적어두면 한쪽만 고쳐져서 화면이 순서 밖으로 밀려납니다. */
+  var START_STAGES = ["intro", "howto", "rules"];
   var STAGES = ["intro", "howto", "rules", "briefing", "decisions", "lapse", "event", "phase",
                 "actual", "map", "standings", "award", "reflect", "finale", "closing"];
 
@@ -353,7 +356,10 @@
 
   /* 표지 → 진행 방법 → 6개 국면의 챕터들 → 시상 */
   function book() {
-    var out = [{ turn: 0, stage: "intro" }, { turn: 0, stage: "howto" }];
+    /* ★ 시작 챕터는 여기에도 넣어야 [다음] 으로 지나갑니다.
+         STAGES 와 탭에만 넣으면 도구로 뛰어들 때만 보이고, 정작 진행 중에는
+         건너뜁니다 — 화면 왼쪽 번호가 "참고" 로 뜨면 그게 이 증상입니다. */
+    var out = START_STAGES.map(function (stage) { return { turn: 0, stage: stage }; });
     timeline.forEach(function (item, turn) {
       chaptersFor(turn).forEach(function (stage) { out.push({ turn: turn, stage: stage }); });
     });
@@ -631,7 +637,9 @@
     var item = timeline[selectedTurn];
 
     el("bChapTitle").textContent = (CHAPTER[currentStage] || {}).title || "";
-    if (currentStage === "intro" || currentStage === "howto") {
+    /* 국면에 매이지 않는 시작 챕터. 여기 빠뜨리면 배지가 '참고' 로 떠서
+       진행자가 "이 화면은 순서에 없나?" 하고 건너뜁니다 — 실제로 그랬습니다. */
+    if (START_STAGES.indexOf(currentStage) >= 0) {
       el("bChapWhere").textContent = "시작하기 전";
       el("bChapNo").textContent = "준비";
     } else if (currentStage === "award" || currentStage === "reflect" || currentStage === "closing") {

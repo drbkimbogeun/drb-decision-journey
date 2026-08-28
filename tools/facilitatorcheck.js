@@ -511,6 +511,21 @@ function checkFacilitatorStages() {
     "Worker facilitator CONTROL_STAGES match the HTML stages");
   expect(workerStages[0] === "lobby" && workerStages[workerStages.length - 1] === "complete",
     "Worker CONTROL_STAGES begin with lobby and end with complete");
+
+  /* ★ 시작 챕터(국면에 매이지 않는 것)는 book() 에도 있어야 [다음] 으로 지나갑니다.
+       STAGES 와 탭에만 넣으면 도구로 뛰어들 때만 보이고 진행 중에는 건너뜁니다 —
+       실제로 '운영 방법' 을 만들어놓고 한동안 아무도 못 봤습니다. */
+  const facSrc = read("js/facilitator.js");
+  const startBlock = /var\s+START_STAGES\s*=\s*\[([\s\S]*?)\]/.exec(facSrc);
+  const startStages = startBlock
+    ? Array.from(startBlock[1].matchAll(/[\"']([^\"']+)[\"']/g), function (m) { return m[1]; })
+    : [];
+  expect(sameList(startStages, ["intro", "howto", "rules"]),
+    "시작 챕터 목록(START_STAGES)이 표지 · 진행 방법 · 운영 방법");
+  expect(/var out = START_STAGES\.map/.test(facSrc),
+    "book() 이 START_STAGES 를 그대로 씀 ([다음] 으로 지나갑니다)");
+  expect(/START_STAGES\.indexOf\(currentStage\)\s*>=\s*0/.test(facSrc),
+    "상단 배지도 같은 목록을 봄 (시작 챕터가 '참고' 로 밀려나지 않음)");
 }
 
 function checkLiveApi() {
