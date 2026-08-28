@@ -127,20 +127,18 @@
              왜 달랐는지 이야기한다 — 를 1국면 들어가기 직전에 못 박는 자리입니다. -->
       <section class="fac-stage hidden" id="stageRules" data-stage-panel="rules">
         <article class="fac-rules">
-          <div class="fac-rules__scenes" id="bRulesScenes"></div>
-
-          <div class="fac-rules__notes">
-            <div class="fac-rules__col fac-rules__col--delay">
-              <div class="fac-rules__label">넣은 돈은 언제 일을 하는가</div>
-              <div id="bRulesDelay"></div>
-            </div>
-            <div class="fac-rules__col fac-rules__col--no">
-              <div class="fac-rules__label">이건 아닙니다</div>
-              <div id="bRulesNots"></div>
-            </div>
+          <!-- 왼쪽 : 한 국면이 어떻게 흐르는가 -->
+          <div class="fac-rules__side">
+            <div class="fac-rules__label">한 국면의 흐름</div>
+            <div class="fac-rules__scenes" id="bRulesScenes"></div>
           </div>
 
-          <div class="fac-rules__pace" id="bRulesPace"></div>
+          <!-- 오른쪽 : 시작 전에 짚어줄 것 -->
+          <div class="fac-rules__side fac-rules__side--no">
+            <div class="fac-rules__label">이건 아닙니다</div>
+            <div class="fac-rules__notes" id="bRulesNots"></div>
+            <div class="fac-rules__pace" id="bRulesPace"></div>
+          </div>
         </article>
       </section>
 
