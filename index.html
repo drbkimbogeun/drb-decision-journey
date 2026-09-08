@@ -176,10 +176,15 @@
 
               <p class="page__warn hidden" id="inSub"></p>
 
-              <!-- 지금 우리 회사에서 감지된 위기 — 가장 급한 것 하나만 (ui.js renderRiskWatch) -->
-              <div class="riskwatch hidden" id="inRisk" aria-live="polite"></div>
+              <!-- ★ 위기 경고와 판단 범위를 한 줄에 나란히 둡니다.
+                   따로 두면 띠 두 개가 세로로 100px 가까이 먹고, 그만큼 아래 카드가
+                   눌려 +/- 버튼이 화면 밖으로 잘려 나갔습니다. 실제로 그랬습니다. -->
+              <div class="alloc-topline">
+                <!-- 지금 우리 회사에서 감지된 위기 — 가장 급한 것 하나만 (ui.js renderRiskWatch) -->
+                <div class="riskwatch hidden" id="inRisk" aria-live="polite"></div>
 
-              <div class="decision-scope hidden" id="inDecisionScope" aria-live="polite"></div>
+                <div class="decision-scope hidden" id="inDecisionScope" aria-live="polite"></div>
+              </div>
 
               <div class="alloc-list" id="inList"></div>
 

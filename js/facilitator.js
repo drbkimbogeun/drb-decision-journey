@@ -1283,12 +1283,6 @@
     el("bDecisionCount").textContent = decidedCount(teams, selectedTurn) + " / " + teams.length + "조 확정";
   }
 
-  function eventReactionText(history, eventId) {
-    if (!history || !history.report) return [];
-    var event = (history.report.events || []).filter(function (ev) { return ev.id === eventId; })[0];
-    return event ? (event.reactions || []).map(function (reaction) { return reaction.text || reaction; }) : [];
-  }
-
   function renderEvent(teams) {
     var item = timeline[selectedTurn];
     var event = item.sub.event ? window.DRB_EVENTS[item.sub.event] : null;
@@ -1299,25 +1293,12 @@
       el("bEventYear").textContent = item.sub.year;
       el("bEventHeadline").textContent = "이 국면은 사전 돌발상황이 없습니다";
       el("bEventBody").textContent = "시장 자체와 첫 선택의 불확실성에 집중합니다.";
-      el("bEventSource").textContent = "";
     } else {
       box.dataset.eventId = event.id;
       el("bEventYear").textContent = item.sub.year;
       el("bEventHeadline").textContent = event.headline;
       el("bEventBody").textContent = event.body;
-      /* ★ 돌발상황은 전부 만들어낸 상황입니다. 바로 다음 화면이 ACTUAL DRB 라서
-           여기서 밝히지 않으면 방금 본 사건이 회사 연표로 기억됩니다.
-           실제 연표와 헷갈릴 만한 사건에는 events.js 의 factNote 가 붙습니다. */
-      el("bEventSource").textContent =
-        "이 상황은 당시 업계 환경을 재구성한 교육용 가정입니다. DRB의 실제 기록은 ACTUAL DRB 화면에서 봅니다." +
-        (event.factNote ? "  " + event.factNote : "");
     }
-
-    el("bEventTeams").innerHTML = teams.map(function (team) {
-      var delivered = !!historyAt(team, selectedTurn);
-      return "<span class='fac-event__team" + (delivered ? " is-delivered" : "") + "'>" +
-        esc(team.name) + " · " + (delivered ? "적용 확인" : "결정 대기") + "</span>";
-    }).join("") || "<span class='hint'>연결된 조 없음</span>";
 
     /* 한 곳만 딸 수 있는 기회 — 누가 가져갔는지 이 자리에서 선언합니다.
        진행자가 소리 내어 읽는 줄입니다. */
@@ -1340,19 +1321,6 @@
           "</div>";
       }).join("");
     }
-
-    el("bEventImpact").innerHTML = teams.map(function (team) {
-      var history = historyAt(team, selectedTurn);
-      var reactions = event ? eventReactionText(history, event.id) : [];
-      var conditionals = history && history.report ? (history.report.events || []).filter(function (ev) {
-        return ev.id !== (event && event.id);
-      }) : [];
-      var text = !history ? "아직 결정하지 않음" : (reactions.join(" · ") || (event ? "추가 완화 조건 없음 · 공통 기본 충격 적용" : "사건 없음"));
-      if (conditionals.length) text += " · 팀별 추가 사건: " + conditionals.map(function (ev) { return ev.title || ev.id; }).join(", ");
-      return "<div class='fac-event__reaction' data-testid='fac-event-reaction' data-event-id='" +
-        esc(event ? event.id : "none") + "' data-team='" + esc(team.name) + "'>" +
-        "<b style='color:" + teamColor(team.name) + "'>" + esc(team.name) + "</b> · " + esc(text) + "</div>";
-    }).join("") || "<p class='hint'>결정이 들어오면 조별 적용 이유가 표시됩니다.</p>";
   }
 
   /* ============================================================

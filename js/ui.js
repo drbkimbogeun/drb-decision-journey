@@ -260,16 +260,58 @@ window.DRBUI = (function () {
      숫자가 필요하면 상단 [상태] 버튼으로 모달을 엽니다. */
   function renderSide() { /* no-op */ }
 
-  /* 상세 지표 모달 */
+  /* 회사 상태 모달 — "지금 우리 회사가 어떤 상태인가" 를 볼 수 있는 유일한 자리입니다.
+
+     ★ 배분 화면에는 상시 지표 패널이 없고(renderSide 는 no-op), 위험 띠는 가장 급한
+       하나만 띄웁니다. 그래서 여기에는 핵심 지표까지 전부 모읍니다. 예전에는 R&D축적·
+       조직피로도·영업거래처 세 개만 있었는데, 정작 위험 띠가 말하는 품질·신뢰·현금이
+       어디에도 없어서 조가 자기 회사 품질이 몇인지 확인할 방법이 없었습니다. */
   function showDetail() {
     var t = S.team();
-    var rows = CFG.detailMetrics.map(function (m) {
-      return "<div class='breakdown__row'><span class='breakdown__label'>" + m.name +
-             "<br><span style='color:var(--text-3);font-size:var(--fs-tiny)'>" + m.desc + "</span></span>" +
-             "<span class='breakdown__value'>" +
-             (m.key === "cash" ? won(t.state.cash) + "억" : fmt(t.state[m.key], 1)) +
+    var risks = window.DRBEngine.riskWatch(t.state, {
+      allowConditional: !!S.subround().allowConditional,
+      cash: t.state.cash,
+      plannedBudget: S.plannedBudget()
+    });
+
+    /* 어느 지표가 선에 걸려 있는지 — 숫자 바로 옆에 붙여야 눈에 들어옵니다 */
+    var flagged = {};
+    risks.forEach(function (r) { if (!flagged[r.field]) flagged[r.field] = r; });
+
+    function metricRow(m) {
+      var risk = flagged[m.key];
+      var value = m.key === "cash" ? won(t.state[m.key]) + "억" : fmt(t.state[m.key], 1);
+      /* ★ 현금만 금액입니다. 임계값도 같은 자로 재야 합니다 — 엔진의 게임 단위를
+           그대로 적으면 "현금 214억 · 110 아래면 사고" 처럼 둘이 다른 자로 찍힙니다. */
+      var mark = m.key === "cash" ? won(risk && risk.threshold) + "억"
+                                  : riskAmount(m.key, risk && risk.threshold);
+      var line = risk
+        ? "<br><span style='color:" + (risk.level === "danger" ? "var(--coral)" : "var(--accent)") +
+          ";font-size:var(--fs-tiny)'>" +
+          escapeHtml(mark + (risk.op === "<" || risk.op === "<=" ? " 아래면 사고" : " 넘으면 사고")) +
+          "</span>"
+        : "";
+      return "<div class='breakdown__row'><span class='breakdown__label'>" + escapeHtml(m.name) +
+             "<br><span style='color:var(--text-3);font-size:var(--fs-tiny)'>" + escapeHtml(m.desc) +
+             "</span></span>" +
+             "<span class='breakdown__value'>" + value + line + "</span></div>";
+    }
+
+    var core   = CFG.metrics.map(metricRow).join("");
+    var detail = CFG.detailMetrics.map(metricRow).join("");
+
+    /* 위험 띠는 하나만 보여줍니다 — 나머지는 여기서만 볼 수 있습니다 */
+    var riskRows = risks.map(function (r) {
+      var escape = riskEscape(r);
+      return "<div class='breakdown__row'><span class='breakdown__label'>" +
+             "<b style='color:" + (r.level === "danger" ? "var(--coral)" : "var(--accent)") + "'>" +
+             (r.level === "danger" ? "위험" : "주의") + "</b> " + escapeHtml(r.title) +
+             "<br><span style='color:var(--text-3);font-size:var(--fs-tiny)'>" +
+             escapeHtml(riskReason(r)) + "</span>" +
+             (escape ? "<br><span style='color:var(--accent-deep);font-size:var(--fs-tiny)'>" +
+                       escapeHtml(escape) + "</span>" : "") +
              "</span></div>";
-    }).join("");
+    }).join("") || "<p class='hint'>지금 선에 걸려 있는 위험이 없습니다.</p>";
 
     var pend = (t.state.pending || []).map(function (p) {
       return "<div class='breakdown__row'><span class='breakdown__label'>" + p.label +
@@ -277,8 +319,12 @@ window.DRBUI = (function () {
              "<span class='breakdown__value'>" + signed(p.amount, 1) + " " + p.metric + "</span></div>";
     }).join("") || "<p class='hint'>대기 중인 투자 효과가 없습니다.</p>";
 
-    openModal("상세 지표",
-      "<div class='breakdown'>" + rows + "</div>" +
+    openModal("지금 우리 회사",
+      "<div class='breakdown'>" + core + "</div>" +
+      "<div class='section-label' style='margin-top:var(--sp-5)'>상세 지표</div>" +
+      "<div class='breakdown'>" + detail + "</div>" +
+      "<div class='section-label' style='margin-top:var(--sp-5)'>지금 감지된 위험 — 아직 벌어지지 않았습니다</div>" +
+      "<div class='breakdown'>" + riskRows + "</div>" +
       "<div class='section-label' style='margin-top:var(--sp-5)'>아직 도착하지 않은 투자 효과</div>" +
       "<div class='breakdown'>" + pend + "</div>");
   }
@@ -350,6 +396,31 @@ window.DRBUI = (function () {
     return name + " " + now + " · " + line + " 넘으면 벌어집니다";
   }
 
+  /* 이번 국면 안에 선을 되돌릴 수 있는가 — 즉시 효과(perUnit.now)만 셉니다.
+     engine.js 는 투자 집행(2단계)을 조건부 사건 판정(6-2단계)보다 먼저 하므로,
+     지금 넣은 돈은 이번 판정에 반영됩니다. next / later 효과는 늦어서 소용없습니다.
+     ★ '지표가 낮아서 터지는' 위험만 해당합니다. 피로도·경직성처럼 높아서 터지는
+       것은 돈을 넣어 그 자리에서 내릴 방법이 없으므로 아무 말도 하지 않습니다. */
+  function riskEscape(risk) {
+    if (risk.id === "cash_squeeze") return "";
+    if (risk.op !== "<" && risk.op !== "<=") return "";
+    var need = risk.threshold - risk.current;
+    if (need <= 0) return "";
+
+    var budget = S.budget();
+    var best = null;
+    S.availableInvestments().forEach(function (item) {
+      var per = item.perUnit && item.perUnit.now && item.perUnit.now[risk.field];
+      if (!per || per <= 0) return;
+      /* 투자는 tokenUnit 단위로만 오르내립니다 — 실제로 누를 수 있는 수로 올림합니다 */
+      var units = Math.ceil(need / per / CFG.tokenUnit) * CFG.tokenUnit;
+      if (units > budget) return;                 // 예산으로 못 하는 일은 시키지 않습니다
+      if (!best || units < best.units) best = { name: item.name, units: units };
+    });
+    if (!best) return "";
+    return best.name + "에 " + won(best.units) + "억 → 이번 국면은 넘깁니다";
+  }
+
   function renderRiskWatch() {
     var box = el("inRisk");
     var t = S.team();
@@ -375,12 +446,26 @@ window.DRBUI = (function () {
       if (cash) fix = cash.name + "에 넣은 돈은 쓰지 않고 그대로 남습니다";
     }
 
+    /* ★ 제목은 사건 이름 그대로입니다 — "대형 품질 클레임 발생" 처럼 완료형이라
+         이미 터진 것으로 읽힙니다. 실제로 그렇게 읽었습니다.
+         그래서 상태를 먼저 한 마디 적습니다. 자금 경색은 사건이 아니라 예산 계산
+         결과라(이미 깎였습니다) 여기 붙이면 거짓말이 됩니다 — 빼둡니다. */
+    var lead = "";
+    if (risk.id !== "cash_squeeze") {
+      lead = risk.level === "danger"
+        ? "아직 안 터졌습니다 · 이대로 확정하면 이번 국면에 터집니다"
+        : "아직 안 터졌습니다 · 선에 거의 닿았습니다";
+    }
+    var escape = riskEscape(risk);
+
     box.innerHTML =
       "<span class='riskwatch__badge'>" + (risk.level === "danger" ? "위험" : "주의") + "</span>" +
       "<span class='riskwatch__body'>" +
+        (lead ? "<span class='riskwatch__lead'>" + escapeHtml(lead) + "</span>" : "") +
         "<b class='riskwatch__title'>" + escapeHtml(risk.title) + "</b>" +
         "<span class='riskwatch__reason'>" + escapeHtml(riskReason(risk)) + "</span>" +
         (fix ? "<span class='riskwatch__fix'>" + escapeHtml(fix) + "</span>" : "") +
+        (escape ? "<span class='riskwatch__escape'>" + escapeHtml(escape) + "</span>" : "") +
       "</span>";
   }
 
@@ -397,42 +482,15 @@ window.DRBUI = (function () {
     }
     box.classList.remove("hidden");
 
+    /* ★ '확장 선택' 같은 국면 이름표, '전체 8개 중 단계 공개', '판단 복잡도 3/6' 은
+         뺐습니다. 조가 지금 해야 하는 판단과 아무 상관이 없는데 가로 절반을 먹었고,
+         그만큼 위기 경고를 같은 줄에 놓을 자리가 없었습니다. */
     var summary = document.createElement("div");
     summary.className = "decision-scope__summary";
-    var label = document.createElement("span");
-    label.className = "decision-scope__label";
-    label.textContent = context.label;
     var count = document.createElement("strong");
     count.className = "decision-scope__count";
     count.textContent = context.visibleCount + "개 선택지 · " + context.groups.length + "개 전략군";
-    if (context.visibleCount < context.totalCount) {
-      var pending = document.createElement("span");
-      pending.className = "decision-scope__pending";
-      pending.textContent = "전체 " + context.totalCount + "개 중 단계 공개";
-      summary.appendChild(label);
-      summary.appendChild(count);
-      summary.appendChild(pending);
-    } else {
-      summary.appendChild(label);
-      summary.appendChild(count);
-    }
-
-    var meter = document.createElement("div");
-    meter.className = "complexity-meter";
-    meter.setAttribute("aria-label", "의사결정 복잡도 " + context.level + " / " + context.totalLevels);
-    var meterLabel = document.createElement("span");
-    meterLabel.className = "complexity-meter__label";
-    meterLabel.textContent = "판단 복잡도";
-    meter.appendChild(meterLabel);
-    for (var i = 1; i <= context.totalLevels; i++) {
-      var cell = document.createElement("span");
-      cell.className = "complexity-meter__cell" + (i <= context.level ? " is-on" : "");
-      meter.appendChild(cell);
-    }
-    var meterValue = document.createElement("span");
-    meterValue.className = "complexity-meter__value num";
-    meterValue.textContent = context.level + "/" + context.totalLevels;
-    meter.appendChild(meterValue);
+    summary.appendChild(count);
 
     var dimensions = document.createElement("div");
     dimensions.className = "decision-scope__dimensions";
@@ -461,7 +519,6 @@ window.DRBUI = (function () {
     });
 
     box.appendChild(summary);
-    box.appendChild(meter);
     box.appendChild(dimensions);
     box.appendChild(groupLegend);
   }

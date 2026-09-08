@@ -410,7 +410,6 @@ function checkFacilitatorMarkers() {
     "fac-common-context",
     "fac-team-decision",
     "fac-event",
-    "fac-event-reaction",
     "fac-actual-compare",
     "fac-spoiler-lock"
   ];
