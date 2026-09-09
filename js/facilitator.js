@@ -852,26 +852,31 @@
         total: totalScore(team),
         team: team
       };
-    }).sort(function (a, b) { return b.total - a.total; });
+    /* ★ 변화 대응력으로 줄을 세웁니다. 총점(현재 경쟁력+변화 대응력)으로 세우면
+         카드에 찍힌 숫자와 순서가 어긋나 — 2위 숫자가 1위보다 커 보입니다.
+         같은 값이면 총점으로 가릅니다(순서가 매번 흔들리지 않게). */
+    }).sort(function (a, b) { return (b.adapt - a.adapt) || (b.total - a.total); });
 
+    /* ★ 조 이름 앞의 번호 딱지를 뺐습니다. '2조' 옆에 2가 또 붙어 같은 말을 두 번
+         하고 있었고, 1위 카드의 1과 1조의 1이 겹쳐 읽는 사람이 헷갈렸습니다.
+       ★ 여기 적는 점수는 변화 대응력입니다. 오늘 하려던 말이 "매출이 아니라 다시
+         선택할 수 있는 여력" 인데, 정작 시상대에는 현재 경쟁력만 떠 있었습니다. */
     var podium = "<div class='podium'>" + rows.slice(0, 3).map(function (r, i) {
       return "<div class='podium__row" + (i === 0 ? " is-winner" : "") + "'>" +
         "<div class='podium__label'>" + (i === 0 ? "최우수 경영" : (i + 1) + "위") + "</div>" +
         "<div class='podium__team'>" +
-          "<span class='podium__no num'>" + (CFG.teamNames.indexOf(r.name) + 1) + "</span>" +
           "<span class='podium__name'>" + esc(r.name) + "</span>" +
         "</div>" +
         "<div class='podium__style'>" + esc(r.style) + "</div>" +
-        /* 변화 대응력은 숫자로 내놓지 않습니다 — 순서만 아래 시상 카드에서 말합니다 */
         "<div class='podium__scores'>" +
-          "<span><i>현재 경쟁력</i><b class='num'>" + r.power + "</b></span>" +
+          "<span><i>변화 대응력</i><b class='num'>" + r.adapt + "</b></span>" +
         "</div>" +
       "</div>";
     }).join("") + "</div>";
 
+    /* '가장 멀리 본 조' 카드는 뺐습니다 — 시상대가 이미 변화 대응력으로 줄을 세웁니다 */
     body.innerHTML =
       podium +
-      buildAwards(teams, rows) +
       "<p class='fac-award__message'>1등이 정답은 아닙니다.<br>" +
       "잘 맞히는 것이 아니라, 다시 선택할 수 있는 힘입니다.</p>";
   }
@@ -988,45 +993,6 @@
 
        하나만 남깁니다. 그리고 왜 그 조인지를 그 자리에서 펼쳐 보입니다.
      ============================================================ */
-  function buildAwards(teams, rows) {
-    var order = rows.slice().sort(function (a, b) { return b.adapt - a.adapt; });
-    var best = order[0];
-    if (!best) return "";
-
-    /* ★ 점수를 숫자로 내놓지 않습니다.
-         정상적으로 플레이해도 30 언저리라, 숫자를 보면 "우리가 못했나" 로 읽힙니다.
-         이 지표는 잘하고 못하고를 재는 것이 아니라 '어느 회사가 다시 움직일 수
-         있는가' 를 보는 것이라, 필요한 것은 절대값이 아니라 서로의 자리입니다. */
-    var standing = order.map(function (r, i) {
-      return "<span class='farrank" + (i === 0 ? " is-first" : "") + "'>" +
-        "<b class='num'>" + (i + 1) + "</b>" + esc(r.name) + "</span>";
-    }).join("");
-
-    /* 무엇이 그 자리를 만들었는지 — 큰 것부터 이름만 늘어놓습니다.
-       이 줄이 곧 '오늘 하려던 말' 입니다. */
-    var parts = window.DRBEngine.adaptiveCapacity(best.team.state).parts
-      .sort(function (a, b) { return b.value - a.value; });
-    var kept = parts.filter(function (p) { return p.value >= 0.5; }).slice(0, 5);
-    var lost = parts.filter(function (p) { return p.value <= -0.5; });
-
-    return "<div class='faraward'>" +
-      "<div class='faraward__head'>" +
-        "<span class='faraward__label'>오늘 우리가 보고 있던 것</span>" +
-        "<b class='faraward__title'>가장 멀리 본 조</b>" +
-        "<span class='spacer'></span>" +
-        "<span class='faraward__team'>" + esc(best.name) + "</span>" +
-      "</div>" +
-      "<p class='faraward__why'>매출이 아니라 <b>다시 선택할 수 있는 여력</b>을 가장 많이 남긴 조입니다. " +
-        "무엇이 오든 여기서 다시 시작할 수 있습니다.</p>" +
-      "<div class='faraward__parts'>" +
-        kept.map(function (p) { return "<span class='farpart'>" + esc(p.name) + "</span>"; }).join("") +
-        lost.map(function (p) { return "<span class='farpart is-down'>" + esc(p.name) + "</span>"; }).join("") +
-      "</div>" +
-      "<div class='faraward__rank'><span class='faraward__ranklabel'>여력이 남은 순서</span>" + standing + "</div>" +
-      "<p class='faraward__foot'>점수로 줄 세우지 않습니다. 매출이 가장 큰 조와 여력이 가장 많은 조는 다를 수 있습니다.</p>" +
-    "</div>";
-  }
-
   /* 부문상을 하나로 줄이면서 mostLikeDrb() 와 awardCard() 는 쓰이지 않게 되었습니다.
      'DRB와 가장 닮은 조' 는 DRB 실제 챕터에서 이미 조별로 비교해 보여주고 있습니다. */
 
