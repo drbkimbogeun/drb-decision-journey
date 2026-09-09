@@ -872,6 +872,11 @@ window.DRBEngine = (function () {
       return {
         team: b.team,
         qualified: testCondition(entry.when, b.state, ctx),
+        /* ★ 응찰 조건에 걸린 값 그 자체. 화면이 "20 이상 필요한데 지금 0" 을 적으려면
+             조건을 넘겼는지(true/false)만으로는 부족합니다 — 얼마가 모자랐는지를
+             말해줘야 그 조가 다음 국면에 무엇을 할지 압니다. */
+        requireValue: (entry.when && entry.when.field)
+          ? readField(entry.when.field, b.state, ctx) : null,
         score: bidScore(offer, b.state, b.allocation, b.policyId),
         /* 항목별 채점 — 진행자 화면이 평가표로 펼칩니다 */
         parts: bidBreakdown(offer, b.state, b.allocation, b.policyId),
@@ -899,7 +904,10 @@ window.DRBEngine = (function () {
       };
     }
 
-    return { id: offer.id, title: offer.title, winners: winners, ranking: ranking, tieBreak: tieBreak };
+    /* require 를 같이 내보냅니다 — 응찰 조건을 못 넘긴 조에게 이유를 적어주려면
+       화면이 조건을 알아야 합니다. 여기 있는 것을 그대로 씁니다 (다시 적으면 어긋납니다) */
+    return { id: offer.id, title: offer.title, require: entry.when || null,
+             winners: winners, ranking: ranking, tieBreak: tieBreak };
   }
 
   function computeCrowding(pickedRoles) {

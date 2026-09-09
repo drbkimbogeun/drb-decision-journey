@@ -425,19 +425,30 @@
        진행자가 "왜?" 에 답할 수가 없고, 비슷하게 찍히면 아예 설명이 안 됩니다.
        실제 입찰처럼 배점과 받은 점수를 나란히 놓으면 그 자리에서 읽어줄 수 있습니다.
        (점수는 engine.bidBreakdown 이 냅니다 — 여기서 다시 계산하지 않습니다) */
-  function awardSheet(result) {
-    var bidders = result.ranking.filter(function (r) { return r.qualified; });
-    var skipped = result.ranking.filter(function (r) { return !r.qualified; });
+  /* 응찰 조건을 못 넘긴 조에게 왜 못 넘겼는지 — 얼마가 모자랐는지까지 적습니다.
+     조건은 engine.awardLimited 이 result.require 로 그대로 넘겨줍니다. */
+  function bidRequireLine(require, r) {
+    if (!require || !require.field) return "응찰 조건 미달";
+    var op = (require.op === "<" || require.op === "<=") ? " 이하" : " 이상";
+    return bidFieldName(require.field) + " " + fmt(require.value) + op + " 필요 · 지금 " +
+           fmt(r.requireValue);
+  }
 
-    if (!bidders.length) {
-      return "<p class='fac-bidaward__note'>응찰한 조가 없습니다 — 조건을 넘긴 조가 하나도 없었습니다.</p>";
-    }
+  function awardSheet(result) {
+    var ranking = result.ranking || [];
+    if (!ranking.length) return "";
+
+    /* ★ 예전에는 조건을 넘긴 조만 표에 넣고, 못 넘긴 조는 각주에 이름만 흘렸습니다.
+         그러면 빔에서 "우리 조는 왜 아예 안 보이나" 로 끝납니다 — 점수는 이미
+         모든 조 것이 계산돼 있는데도 그렇습니다. 전부 한 줄씩 넣습니다.
+         조건을 넘긴 조가 위, 못 넘긴 조가 아래 — 순서 자체가 판정을 설명합니다. */
+    var bidders = ranking.filter(function (r) { return r.qualified; });
+    var skipped = ranking.filter(function (r) { return !r.qualified; });
+    var shown = bidders.concat(skipped);
 
     /* ★ 한 조가 한 줄입니다. 항목을 세로로 쌓은 표도 만들어 봤지만 빔에서 잘렸습니다 —
-         이 화면은 사건 헤드라인이 52px, 본문이 34px 이라 표에 쓸 수 있는 높이가
-         340px 남짓입니다. 진행자가 못 읽는 표는 없는 것과 같습니다.
          그래서 배점을 맨 윗줄에 한 번 깔고, 조마다 받은 점수를 한 줄로 늘어놓습니다. */
-    var parts = bidders[0].parts || [];
+    var parts = shown[0].parts || [];
     var totalAllotted = parts.reduce(function (sum, p) { return sum + p.allotted; }, 0);
 
     var allot = "<div class='bidsheet__allot'><span class='bidsheet__allot-label'>배점</span>" +
@@ -447,11 +458,13 @@
       }).join("") +
       "<span class='bidsheet__allot-sum'>합계 <b class='num'>" + Math.round(totalAllotted) + "</b></span></div>";
 
-    var rows = bidders.map(function (r) {
+    var rows = shown.map(function (r) {
       var won = result.winners.indexOf(r.team) >= 0;
-      return "<div class='bidsheet__row " + (won ? "is-won" : "is-lost") + "'>" +
+      var cls = !r.qualified ? "is-out" : (won ? "is-won" : "is-lost");
+      var verdict = !r.qualified ? "미응찰" : (won ? "계약" : "탈락");
+      return "<div class='bidsheet__row " + cls + "'>" +
         "<b class='bidsheet__team' style='color:" + teamColor(r.team) + "'>" + esc(r.team) + "</b>" +
-        "<span class='bidsheet__verdict'>" + (won ? "계약" : "탈락") + "</span>" +
+        "<span class='bidsheet__verdict'>" + verdict + "</span>" +
         "<b class='bidsheet__score num'>" + score1(r.score * 100) + "</b>" +
         "<span class='bidsheet__parts'>" +
         parts.map(function (p, i) {
@@ -459,8 +472,16 @@
           return "<span>" + esc(bidShortName(p.field)) + " <b class='num'>" + score1(mine.earned) +
                  "</b><i class='bidsheet__raw'>" + fmt(mine.raw) + "</i></span>";
         }).join("") +
+        (!r.qualified
+          ? "<span class='bidsheet__why'>" + esc(bidRequireLine(result.require, r)) + "</span>"
+          : "") +
         "</span></div>";
     }).join("");
+
+    /* 아무도 조건을 못 넘긴 국면 — 표는 그대로 두고 이유만 위에 붙입니다.
+       점수가 다 0 이어서가 아니라 응찰 자체를 못 한 것이라는 게 읽혀야 합니다. */
+    var none = bidders.length ? "" :
+      "<p class='fac-bidaward__tie'>응찰한 조가 없습니다 — 조건을 넘긴 조가 하나도 없었습니다</p>";
 
     /* ★ 총점이 같아 다른 규정으로 갈린 경우 — 진행자가 그 자리에서 읽어줘야 합니다.
          "같은 점수인데 왜 저 조?" 에 답이 없으면 방이 납득하지 않습니다. */
@@ -478,13 +499,11 @@
       tieLine += "</p>";
     }
 
-    return "<div class='bidsheet'>" + allot + rows + "</div>" + tieLine +
-      /* ★ 한 줄로 끝냅니다. 두 줄이 되면 그만큼 표가 화면 밖으로 밀립니다. */
-      "<p class='fac-bidaward__note'>괄호 안은 그 항목의 실제 값 · 돈만 보지 않고 기술력 · 고객신뢰 · 인력을 함께 봅니다" +
-      (skipped.length
-        ? " · 응찰 안 함 " + skipped.map(function (r) { return esc(r.team); }).join(" ")
-        : "") +
-      "</p>";
+    return none + "<div class='bidsheet'>" + allot + rows + "</div>" + tieLine +
+      /* ★ 한 줄로 끝냅니다. 두 줄이 되면 그만큼 표가 화면 밖으로 밀립니다.
+           못 넘긴 조는 이제 표 안에 이유까지 들어 있으므로 여기 다시 적지 않습니다. */
+      "<p class='fac-bidaward__note'>괄호 안은 그 항목의 실제 값 · 돈만 보지 않고 " +
+      "기술력 · 고객신뢰 · 인력을 함께 봅니다</p>";
   }
 
   function awardsFor(teams, turn) {

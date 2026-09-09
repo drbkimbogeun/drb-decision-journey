@@ -887,11 +887,19 @@ body.fac-body {
 }
 .bidsheet__row:last-child { border-bottom: 0; }
 .bidsheet__row.is-won { background: var(--accent-soft); }
+/* 응찰 조건을 못 넘긴 조 — 점수는 그대로 보이되, 경쟁에 낀 줄과 구분돼야 합니다 */
+.bidsheet__row.is-out { background: var(--bg-1); color: var(--text-3); }
 
 .bidsheet__team { min-width: 44px; font-weight: var(--fw-strong); }
-.bidsheet__verdict { min-width: 34px; font-size: var(--fs-small); font-weight: var(--fw-strong); }
+/* ★ '계약 / 탈락 / 미응찰' 이 다 들어가는 너비로 고정합니다. 좁게 두면 줄마다
+     이 칸의 폭이 달라져 아래 점수 열이 조끼리 어긋나 세로로 대볼 수 없습니다. */
+.bidsheet__verdict {
+  min-width: 52px; white-space: nowrap;
+  font-size: var(--fs-small); font-weight: var(--fw-strong);
+}
 .bidsheet__row.is-won  .bidsheet__verdict { color: var(--accent-deep); }
 .bidsheet__row.is-lost .bidsheet__verdict { color: var(--coral); }
+.bidsheet__row.is-out  .bidsheet__verdict { color: var(--text-3); }
 /* 합계는 이 줄에서 제일 큰 숫자입니다 — 눈이 여기부터 갑니다 */
 .bidsheet__score {
   min-width: 58px; text-align: right;
@@ -912,6 +920,12 @@ body.fac-body {
 }
 .bidsheet__raw::before { content: "("; }
 .bidsheet__raw::after  { content: ")"; }
+/* 왜 응찰을 못 했는가 — 얼마가 모자랐는지까지 그 줄에서 읽힙니다 */
+.bidsheet__why {
+  padding: 1px 8px; border-radius: var(--r-pill);
+  background: var(--bg-1); border: 1px solid var(--line);
+  color: var(--coral); font-size: var(--fs-tiny); font-weight: var(--fw-mid);
+}
 .fac-bidaward__tie {
   margin-top: var(--sp-2); padding: 4px var(--sp-3);
   border-left: 3px solid var(--coral); border-radius: var(--r-sm);
