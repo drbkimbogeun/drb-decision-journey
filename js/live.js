@@ -221,6 +221,12 @@
       headline: cleanText(value.headline || report.headline, 500),
       beforeCash: Number.isFinite(beforeCash) ? Math.max(-100000, Math.min(100000, beforeCash)) : 0,
       afterCash: Number.isFinite(afterCash) ? Math.max(-100000, Math.min(100000, afterCash)) : 0,
+      /* ★ 그 국면을 시작할 때의 회사 상태 전체. 현금만 보내면 안 됩니다 —
+           '한 곳만 딸 수 있는 기회'(자동차 공동개발 파트너)를 진행자 화면이 판정할 때
+           engine.bidBreakdown 이 여기서 기술력·고객신뢰·인력을 읽습니다.
+           현금만 있으면 그 세 항목이 전부 0 점으로 채점돼, 배점을 나눠놓은 의미가
+           없어지고 투자액을 제일 많이 넣은 조가 그냥 가져갑니다. */
+      before: stateView(value.before),
     };
   }
 

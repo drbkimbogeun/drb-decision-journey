@@ -193,8 +193,15 @@
           events: h.events || [],
           headline: h.headline || ""
         };
-        if (!h.before) h.before = { cash: h.beforeCash };
-        if (!h.after) h.after = { cash: h.afterCash };
+        /* ★ 라이브 세션은 이제 before 에 회사 상태를 통째로 실어 보냅니다 —
+             그대로 씁니다. 낙찰 판정이 기술력·고객신뢰·인력을 여기서 읽습니다.
+             다만 옛 판(현금만 오던 것)과 섞여 들어올 수 있으므로,
+             비어 있는 자리만 beforeCash 로 메웁니다. 통째로 갈아치우면
+             방금 받은 상태를 도로 버리게 됩니다. */
+        if (!h.before) h.before = {};
+        if (!h.after) h.after = {};
+        if (h.before.cash === undefined) h.before.cash = h.beforeCash;
+        if (h.after.cash === undefined) h.after.cash = h.afterCash;
         return h;
       }
       var pos = timeline.filter(function (x) { return x.sub.id === h.sr; })[0] || timeline[Math.max(0, (Number(h.r) - 1) * 2)];

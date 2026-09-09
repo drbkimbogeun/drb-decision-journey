@@ -503,6 +503,28 @@ window.DRBState = (function () {
   /* ============================================================
      결과 코드 (진행자 화면으로 옮길 때 사용)
      ============================================================ */
+
+  /* ★ 국면을 시작할 때의 회사 상태 중 낙찰 판정이 읽는 숫자들.
+       예전에는 현금만 실어 보냈습니다. 그래서 결과 코드로 옮겨온 조는
+       engine.bidBreakdown 이 기술력·고객신뢰·인력을 전부 0 으로 채점했고,
+       '한 곳만 딸 수 있는 기회' 가 투자액만 보고 갈렸습니다.
+       ⚠ 목록은 js/live.js 의 STATE_NUMBERS 와 맞춰둡니다 — 한쪽만 늘리면
+         라이브로 들어온 조와 코드로 들어온 조의 점수가 서로 달라집니다. */
+  var BID_NUMBERS = ["cash", "capacity", "tech", "quality", "trust", "people",
+                     "reach", "flex", "rigidity", "fatigue", "rdStock",
+                     "globalReach", "experiments"];
+
+  function bidState(before) {
+    var src = before || {};
+    var out = {};
+    BID_NUMBERS.forEach(function (key) {
+      var n = Number(src[key]);
+      if (Number.isFinite(n)) out[key] = Math.round(n * 10) / 10;
+    });
+    if (Array.isArray(src.sites)) out.sites = src.sites;
+    return out;
+  }
+
   function exportTeamCode(teamName) {
     var t = data.teams[teamName || data.activeTeam];
     var payload = {
@@ -539,7 +561,7 @@ window.DRBState = (function () {
             revenue: h.report.kpi.revenue,
             profit: h.report.kpi.profit
           },
-          before: { cash: h.before && h.before.cash },
+          before: bidState(h.before),
           after: { cash: h.after && h.after.cash }
         };
       })

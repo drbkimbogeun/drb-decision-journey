@@ -576,6 +576,16 @@ function checkLiveApi() {
   expect(/\brevenue\s*:/.test(historySource) && /\bprofit\s*:/.test(historySource),
     "live snapshot history.kpi includes revenue and profit");
 
+  /* ★ '한 곳만 딸 수 있는 기회' 는 진행자 화면이 판정합니다. 그때
+       engine.bidBreakdown 이 history.before 에서 기술력·고객신뢰·인력을 읽습니다.
+       현금만 보내던 시절에는 그 세 항목이 전부 0 점으로 채점돼서, 배점을
+       나눠놓고도 투자액을 제일 많이 넣은 조가 그냥 가져갔습니다. */
+  const workerHistorySource = functionSource(worker, "sanitizeHistoryEntry");
+  expect(/\bbefore:\s*stateView\(/.test(historySource),
+    "live snapshot history 가 before 에 회사 상태를 통째로 실어 보냄 (낙찰 채점용)");
+  expect(/\bbefore:\s*sanitizeState\(/.test(workerHistorySource),
+    "worker 가 history.before 의 회사 상태를 그대로 통과시킴");
+
   /* ★ 회고는 참가자 -> 스냅샷 -> Worker -> 진행자 네 곳을 지납니다.
      한 곳만 바꾸면 조용히 사라집니다 (참가 코드가 그렇게 죽었습니다). */
   const facSource = read("js/facilitator.js");

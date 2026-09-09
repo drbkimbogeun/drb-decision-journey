@@ -325,6 +325,9 @@ function sanitizeHistoryEntry(value, index) {
     headline: cleanText(value.headline ?? value.report?.headline, 500),
     beforeCash: Number.isFinite(beforeCash) ? Math.max(-100000, Math.min(100000, beforeCash)) : 0,
     afterCash: Number.isFinite(afterCash) ? Math.max(-100000, Math.min(100000, afterCash)) : 0,
+    /* 그 국면을 시작할 때의 회사 상태 — 낙찰 판정이 기술력·고객신뢰·인력을 여기서 읽습니다.
+       여기서 빠뜨리면 그 항목들이 0 점으로 채점됩니다 (js/live.js 와 같아야 합니다). */
+    before: sanitizeState(value.before),
   };
 }
 
