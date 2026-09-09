@@ -69,8 +69,16 @@
        국면마다 매출이 게임 단위로 얼마에서 얼마까지 나오는지 재고,
        그 폭이 목표 구간에 맞도록 배율을 맞췄습니다.
        ⚠ 중앙값이 아니라 '폭 전체' 를 맞춥니다. 중앙값만 맞추면 잘한 조와 못한 조가
-         가운데로 몰려서, 2026년이 "4천억에서 1조" 가 아니라 "다들 6천억대" 가 됩니다.
+         가운데로 몰려서, 2026년이 "4천억에서 7천억" 이 아니라 "다들 6천억대" 가 됩니다.
        투자 항목이나 균형 수치를 고쳤다면 배율도 다시 재야 합니다.
+
+     ★ 곡선의 모양 — 앞은 가파르고 뒤는 완만합니다.
+       국면별 매출 중앙값이 40 → 200 → 1,000 → 4,200 → 5,000 → 5,900억,
+       즉 앞 국면 대비 4.9 → 5.1 → 4.2 → 1.20 → 1.19배입니다.
+       ⚠ 배수가 한 번 꺾였다가 다시 뛰면 안 됩니다. 예전 배율이 그랬습니다 —
+         1997년이 1.9배로 멈췄다가 2012년에 4.1배로 튀어서, 빔에서 "왜 갑자기
+         천억, 이천억이 되나" 로 읽혔습니다. 계속 완만해지기만 해야 합니다.
+       회사가 커질수록 성장률이 낮아지는 것이 실제 모습이기도 합니다.
 
    ⚠ 이 숫자는 교육용 가정입니다. DRB의 실제 매출액이 아닙니다.
    ============================================================ */
@@ -94,7 +102,7 @@ window.DRB_ROUNDS = [
         year: 1945,
         title: "첫 번째 국면 · 고무신인가, 벨트인가",
         budget: 50,
-        moneyScale: 0.023,  // 1945 창업기 · 한 칸 0.23억 · 매출 약 5억
+        moneyScale: 0.19,   // 1945 창업기 · 한 칸 1.9억 · 매출 약 40억
         event: null,
         allowConditional: false,
         situation: {
@@ -115,7 +123,7 @@ window.DRB_ROUNDS = [
         year: 1965,
         title: "두 번째 국면 · 원료값이 뛰었다",
         budget: 60,
-        moneyScale: 0.16,   // 1965 벨트 전환기 · 한 칸 1.6억 · 매출 34~51억
+        moneyScale: 0.82,   // 1965 벨트 전환기 · 한 칸 8.2억 · 매출 176~224억
         event: null,   /* 돌발을 두 번만 씁니다 — 아래 머리말 참고 (예전 값 "e1_material") */
         allowConditional: true,
         situation: {
@@ -152,7 +160,7 @@ window.DRB_ROUNDS = [
         year: 1986,
         title: "첫 번째 국면 · 문이 한꺼번에 열렸다",
         budget: 80,
-        moneyScale: 0.96,   // 1986 확장기 · 한 칸 9.6억 · 매출 219~365억
+        moneyScale: 2.9,    // 1986 확장기 · 한 칸 29억 · 매출 705~1,313억
         event: "e2_autoRequest",
         allowConditional: true,
         situation: {
@@ -176,7 +184,7 @@ window.DRB_ROUNDS = [
         year: 1997,
         title: "두 번째 국면 · 돈이 마른다",
         budget: 60,
-        moneyScale: 1.8,    // 1997 IMF · 한 칸 18억 · 매출 411~740억
+        moneyScale: 11,     // 1997 IMF · 한 칸 110억 · 매출 3,355~5,023억
         event: "e2_credit",
         allowConditional: true,
         situation: {
@@ -212,7 +220,7 @@ window.DRB_ROUNDS = [
         year: 2012,
         title: "첫 번째 국면 · 전부 한꺼번에 온다",
         budget: 80,
-        moneyScale: 6.2,    // 2012 글로벌화 · 한 칸 62억 · 매출 1,514~3,017억
+        moneyScale: 11,     // 2012 글로벌화 · 한 칸 110억 · 매출 3,693~6,328억
         event: null,   /* 돌발을 두 번만 씁니다 — 아래 머리말 참고 (예전 값 "e3_supplyBreak") */
         allowConditional: true,
         situation: {
@@ -233,7 +241,7 @@ window.DRB_ROUNDS = [
         year: 2026,
         title: "두 번째 국면 · 마지막 결정",
         budget: 80,
-        moneyScale: 18,     // 2026 현재 · 한 칸 180억 · 매출 4,378~9,194억
+        moneyScale: 13,     // 2026 현재 · 한 칸 130억 · 매출 4,460~7,439억
         event: null,   /* 돌발을 두 번만 씁니다 — 아래 머리말 참고 (예전 값 "e3_transition") */
         allowConditional: true,
         isFinalDecision: true,          // ← 이 결정 뒤에는 '결과'가 없습니다

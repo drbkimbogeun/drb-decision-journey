@@ -1491,7 +1491,11 @@
             return "<div class='phasecard__row is-none'><span>" + esc(line) + "</span></div>";
           }).join("") +
         "</div>" +
-        "<div class='phasecard__value num'>" + fmt(r.revenue) + "</div>" +
+        /* ★ 같은 카드 안의 영업이익·현금은 그 국면 배율(moneyScale)을 곱해 적는데
+             매출만 게임 단위 그대로 찍고 있었습니다. 2026년 카드에 "영업이익
+             +4,334억" 아래 "매출 640억" 이 나란히 떠서, 이익이 매출보다 커
+             보였습니다. 같은 자로 잽니다. */
+        "<div class='phasecard__value num'>" + wonNum(r.revenue, r.h) + "</div>" +
         "<div class='phasecard__unit'>매출 · 억</div>" +
         (r.h.report.headline
           ? "<div class='phasecard__unit'>" + esc(r.h.report.headline) + "</div>" : "") +

@@ -1088,7 +1088,7 @@ window.DRBUI = (function () {
         clearInterval(timer);
         yearBox.textContent = sp.to;
         el("tlFill").style.width = "100%";
-        /* ★ 국면이 넘어가면 금액의 자릿수가 뜁니다 (1945년 5억 → 1965년 40억).
+        /* ★ 국면이 넘어가면 금액의 자릿수가 뜁니다 (1945년 40억 → 1965년 200억).
              그 사이에 20년이 흘러 회사와 시장이 그만큼 커졌기 때문입니다.
              말해두지 않으면 "우리 현금이 왜 갑자기 열 배?" 로 읽힙니다. */
         var next = S.subround();
