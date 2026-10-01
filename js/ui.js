@@ -1214,18 +1214,9 @@ window.DRBUI = (function () {
        t.state.trust * 0.15 + clamp01(t.state.cash / 500) * 100 * 0.1)
     );
 
-    el("fiPowerScore").textContent = power;
-    el("fiPowerFill").style.width = clamp01(power / 100) * 100 + "%";
-    /* ★ 변화 대응력은 숫자로 내놓지 않습니다.
-         정상적으로 플레이해도 30 언저리라, 숫자만 보면 "우리가 못했나" 가 됩니다.
-         참가자 화면에는 순위도 나가지 않으므로, 남은 여력이 무엇인지만 말합니다.
-         (조끼리의 자리는 진행자 화면 시상에서 한 번만 공개합니다) */
-    var strong = adapt.parts
-      .filter(function (p) { return p.value >= 0.5; })
-      .sort(function (a, b) { return b.value - a.value; })
-      .slice(0, 3)
-      .map(function (p) { return p.name; });
-    el("fiAdaptScore").textContent = strong.length ? strong.join(" · ") : "아직 남은 것이 적습니다";
+    /* ★ 최종 화면에는 변화 대응력 점수 하나만 세웁니다.
+         현재 경쟁력은 화면에서 뺐고, 아래 '지표 자세히' 총평 계산에만 씁니다. */
+    el("fiAdaptScore").textContent = adapt.score;
     el("fiAdaptFill").style.width = clamp01(adapt.score / 100) * 100 + "%";
     el("fiVerdict").textContent = verdictText(power, adapt.score);
 
@@ -1539,12 +1530,93 @@ window.DRBUI = (function () {
     return out;
   }
 
+  /* 그 국면의 조별 매출 — 등수와 매출 차이를 내기 위한 것입니다.
+
+     ★ 이 노트북은 우리 조 기록밖에 없습니다. 그래서 라이브에서는 진행자 화면이
+       회고 챕터를 열 때 control.standings 로 내려보낸 것을 씁니다
+       (facilitator.js publishStandings). 게임 중에는 내려오지 않습니다.
+
+     ★ 혼자 연습할 때는 한 PC 안에 모든 조가 있으므로 그 기록에서 바로 만듭니다.
+       라이브에서는 우리 조 말고는 history 가 비어 있어 한 줄만 나오고,
+       그러면 부르는 쪽에서 아예 띄우지 않습니다.
+
+     매출은 게임 단위 그대로입니다 — 억으로 바꾸는 것은 부르는 쪽에서 won() 이 합니다. */
+  function turnStandings(turn, subroundId) {
+    var out = [];
+    var control = window.DRBLive && window.DRBLive.currentControl
+      ? window.DRBLive.currentControl() : null;
+    var sent = control && control.standings && control.standings[String(turn)];
+
+    if (sent) {
+      Object.keys(sent).forEach(function (name) {
+        var revenue = Number(sent[name]);
+        if (isFinite(revenue)) out.push({ name: name, revenue: revenue });
+      });
+    } else {
+      var g = S.g();
+      (g.teamNames || []).forEach(function (name) {
+        var other = g.teams[name];
+        var past = ((other && other.history) || []).filter(function (x) {
+          return x.subroundId === subroundId;
+        })[0];
+        if (past && past.report && past.report.kpi) {
+          out.push({ name: name, revenue: Number(past.report.kpi.revenue) || 0 });
+        }
+      });
+    }
+
+    out.sort(function (a, b) { return b.revenue - a.revenue; });
+    return out;
+  }
+
+  /* 창 맨 위 — 그 국면에 우리 조가 몇 등이었고 남의 조와 얼마나 벌어졌는가 */
+  function reflectRankHtml(item, h, sc) {
+    var rank = turnStandings(item.turn, h.subroundId);
+    if (rank.length < 2) return "";        /* 혼자면 등수가 아닙니다 */
+
+    var myName = S.team().name;
+    var at = -1;
+    rank.forEach(function (row, i) { if (row.name === myName) at = i; });
+    if (at < 0) return "";
+
+    /* 1위면 바로 뒤 조와, 아니면 1위와 견줍니다 */
+    var against = at === 0 ? rank[1] : rank[0];
+    var gap = Math.abs(rank[at].revenue - against.revenue);
+    var gapLine = at === 0
+      ? "2위 " + against.name + "보다 매출 " + won(gap, sc) + "억 앞섰습니다"
+      : "1위 " + against.name + "와 매출 " + won(gap, sc) + "억 차이";
+
+    /* ★ 차이는 색을 입히지 않습니다. 이 앱에서 보라는 '좋은 것' 이라,
+         우리를 앞선 조의 +12억을 보라로 칠하면 반대로 읽힙니다.
+         부호만으로 충분합니다. */
+    var list = rank.map(function (row, i) {
+      var diff = row.revenue - rank[at].revenue;
+      return "<div class='rfrank__row" + (i === at ? " is-mine" : "") + "'>" +
+        "<span class='rfrank__no num'>" + (i + 1) + "</span>" +
+        "<span class='rfrank__team'>" + escapeHtml(row.name) + "</span>" +
+        "<span class='rfrank__rev num'>" + won(row.revenue, sc) + "억</span>" +
+        "<span class='rfrank__diff num'>" +
+          (i === at ? "우리 조" : wonSigned(diff, sc) + "억") + "</span>" +
+      "</div>";
+    }).join("");
+
+    return "<div class='rfrank'>" +
+      "<div class='rfrank__head'>" +
+        "<span class='rfrank__pos'><b class='num'>" + (at + 1) + "</b>위</span>" +
+        "<span class='rfrank__of'>" + rank.length + "개 조 중</span>" +
+        "<span class='rfrank__gap'>" + escapeHtml(gapLine) + "</span>" +
+      "</div>" +
+      "<div class='rfrank__list'>" + list + "</div>" +
+    "</div>";
+  }
+
   /* ★ 그 국면에 우리가 무엇을 했고 무엇이 돌아왔는가 — 창 하나로 펼칩니다.
        회고는 여섯 국면이 다 끝난 자리입니다. 돌발도 결과도 이미 빔에서 다 같이 봤으므로,
        여기서 다시 보여줘도 진행자보다 먼저 알아버리는 일이 없습니다.
        (게임 중에는 여전히 노트북에 결과를 띄우지 않습니다 — renderLiveWait 참고)
 
-       남의 조 것은 나오지 않습니다. 이 노트북은 우리 조 기록만 갖고 있습니다. */
+       우리 조가 무엇을 했는지는 이 노트북 기록에서, 조별 등수는 진행자 화면이
+       회고 때 내려보낸 것에서 옵니다 (turnStandings). */
   function showReflectDetail(item) {
     var t = S.team();
     var h = (t.history || [])[item.turn];
@@ -1592,6 +1664,7 @@ window.DRBUI = (function () {
     }).join("");
 
     openModal(item.tag + " · " + item.year + " · " + item.title,
+      reflectRankHtml(item, h, sc) +
       "<div class='section-label'>우리가 넣은 곳</div>" +
       "<div class='breakdown'>" + rows + "</div>" +
       "<div class='section-label' style='margin-top:var(--sp-5)'>경영정책</div>" +

@@ -557,6 +557,48 @@
     return (liveSnapshot && liveSnapshot.control) || null;
   }
 
+  /* ============================================================
+     국면별 조 매출 — 회고 화면에서 "우리가 몇 등이었나" 를 적기 위한 것
+
+     ★ 조 노트북은 자기 조 기록밖에 없습니다. 남의 조 매출을 모르니
+       등수도 매출 차이도 스스로 낼 수 없습니다. 낙찰 판정(awards)과
+       같은 길로, 모든 조를 한자리에서 보는 여기서 내려보냅니다.
+
+     ★ 회고 챕터에서만 보냅니다. 게임 중에 보내면 참가자 화면에 순위가
+       생깁니다 — 이 게임은 마지막 시상까지 등수를 매기지 않는 것이 원칙입니다.
+       회고는 시상이 끝난 뒤라 이미 다 같이 본 숫자입니다.
+     ============================================================ */
+  var standingsSent = "";
+
+  function standingsPayload(teams) {
+    var out = {};
+    timeline.forEach(function (_, turn) {
+      var row = {};
+      var any = false;
+      teams.forEach(function (team) {
+        var h = historyAt(team, turn);
+        if (!h || !h.report || !h.report.kpi) return;
+        /* 게임 단위 그대로 보냅니다. 억으로 바꾸는 배율(moneyScale)은 rounds.js 에
+           있어 조 노트북도 같은 값을 갖고 있습니다 — 여기서 바꾸면 두 번 곱해집니다. */
+        row[team.name] = Math.round((Number(h.report.kpi.revenue) || 0) * 10) / 10;
+        any = true;
+      });
+      if (any) out[String(turn)] = row;
+    });
+    return out;
+  }
+
+  function publishStandings(teams) {
+    if (currentStage !== "reflect") return;
+    var live = window.DRBLive && window.DRBLive.hasFacilitatorSession && window.DRBLive.hasFacilitatorSession();
+    if (!live) return;
+    var payload = standingsPayload(teams);
+    var key = JSON.stringify(payload);
+    if (key === "{}" || key === standingsSent) return;
+    standingsSent = key;
+    window.DRBLive.control({ standings: payload }).catch(function () {});
+  }
+
   function goStep(delta) {
     var list = book();
     var at = bookIndex(list);
@@ -1145,9 +1187,14 @@
     el("bComplexity").textContent = "복잡도 " + (selectedTurn + 1) + " / " + timeline.length;
 
     /* 그 시점에 알 수 있었던 신호. 참가자 노트북에서 이 화면을 뺐으므로
-       국내·세계는 이제 여기서만 나옵니다 — 진행자가 그대로 읽어줍니다. */
-    signalList(el("bBriefDomestic"), era.briefing.domestic);
-    signalList(el("bBriefGlobal"), era.briefing.global);
+       국내·세계는 이제 여기서만 나옵니다 — 진행자가 그대로 읽어줍니다.
+
+       ★ 국면 것(rounds.js subround.briefing)을 먼저 씁니다. 시대 것(eras.js)만 쓰면
+         1945 와 1965 가 같은 신호로 떠서 "시대가 다른데 왜 같은 말을 하나" 가 됐습니다.
+         국면에 없으면 시대 것으로 떨어집니다 — 새 국면을 추가해도 빈 칸은 안 납니다. */
+    var brief = item.sub.briefing || {};
+    signalList(el("bBriefDomestic"), brief.domestic || era.briefing.domestic);
+    signalList(el("bBriefGlobal"), brief.global || era.briefing.global);
 
     el("bBriefSource").textContent = "이 배경은 당시 산업환경을 재구성한 교육용 시뮬레이션입니다. DRB의 실제 기록은 시대가 끝난 뒤 따로 공개합니다.";
   }
@@ -1964,6 +2011,7 @@
     renderReflection(teams);
     renderDrive(teams);
     publishAwards(teams);
+    publishStandings(teams);
     if (clock.turn !== selectedTurn) resetClock();
     paintClock();
     showStage(currentStage, false);

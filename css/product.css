@@ -702,20 +702,12 @@ button, .btn, .policy, .alloc, .teampick__btn { touch-action: manipulation; }
 .final__style { display: flex; align-items: baseline; gap: var(--sp-3); font-size: var(--fs-display); font-weight: var(--fw-strong); letter-spacing: -0.045em; }
 .final__stylenote { color: var(--text-3); font-size: var(--fs-small); font-weight: 400; letter-spacing: -0.01em; }
 
-.scores { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); margin-top: 34px; }
+.scores { display: grid; grid-template-columns: 1fr; gap: var(--sp-3); margin-top: 34px; }
 .scorebox { padding: var(--sp-5); border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--bg-2); }
 .scorebox--main { border-color: var(--accent); background: var(--accent-tint); box-shadow: 0 0 0 1px var(--accent); }
 .scorebox__label { color: var(--text-3); font-size: var(--fs-small); font-weight: var(--fw-mid); }
 .scorebox--main .scorebox__label { color: var(--accent-deep); }
 .scorebox__value { margin-top: var(--sp-2); font-size: 62px; font-weight: var(--fw-strong); line-height: 1; letter-spacing: -0.05em; color: var(--text-3); }
-/* ★ 변화 대응력 자리에는 숫자가 아니라 '무엇이 남아 있는가' 가 들어갑니다.
-     62px 로 두면 세 항목이 화면 밖으로 나갑니다. */
-.scorebox--main .scorebox__value {
-  font-size: 27px;
-  line-height: 1.35;
-  letter-spacing: -0.02em;
-  color: var(--text-1);
-}
 .scorebox--main .scorebox__value { color: var(--accent); }
 .scorebox__bar { height: 8px; margin-top: var(--sp-4); border-radius: var(--r-pill); background: var(--accent-track); overflow: hidden; }
 .scorebox__fill { height: 100%; border-radius: var(--r-pill); background: var(--accent-line); transition: width var(--t-base); }
@@ -1176,7 +1168,7 @@ button, .btn, .policy, .alloc, .teampick__btn { touch-action: manipulation; }
 /* ★ 이름이 두 줄이 되는 카드가 있습니다 ("신사업 Pilot (작게 여러 개)").
      열이 다섯이 되는 마지막 국면에서는 특히 그렇습니다. 그 한 줄이 더 들어가도
      +/- 가 카드 밖으로 밀리지 않도록 숫자와 버튼을 미리 줄여둡니다. */
-.alloc-list[data-rows="2"] .alloc__name { font-size: 15px; }
+.alloc-list[data-rows="2"] .alloc__name { font-size: 18px; }
 .alloc-list[data-rows="2"] .alloc__amount { margin-top: 5px; font-size: 24px; }
 /* 점 표시를 뺍니다 — 바로 위에 숫자가 크게 있습니다.
    이 16px 이 효과 두 줄이 들어갈 자리입니다. */
@@ -1195,7 +1187,7 @@ button, .btn, .policy, .alloc, .teampick__btn { touch-action: manipulation; }
 /* 3줄이 되면 전략군 딱지는 뺍니다 — 이 20px 때문에 +/- 가 카드 밖으로 밀립니다 */
 .alloc-list[data-rows="3"] .alloc__group { display: none; }
 .alloc-list[data-rows="3"] .alloc__stepper { margin-top: auto; padding-top: 2px; gap: 6px; }
-.alloc-list[data-rows="3"] .alloc__name { font-size: 14px; }
+.alloc-list[data-rows="3"] .alloc__name { font-size: 16px; }
 .alloc-list[data-rows="3"] .alloc.has-new .alloc__name { padding-right: 52px; }
 .alloc-list[data-rows="3"] .alloc__amount { margin-top: 2px; font-size: 23px; line-height: 1.1; }
 /* 3줄에서는 점 표시를 뺍니다 — 바로 위에 숫자가 크게 있고, 이 한 줄 때문에
@@ -1230,7 +1222,7 @@ button, .btn, .policy, .alloc, .teampick__btn { touch-action: manipulation; }
   margin-top: 0;
 }
 .alloc.has-new .alloc__name { padding-right: 58px; }
-.alloc__name { font-size: 17px; }
+.alloc__name { font-size: 20px; }
 .alloc__amount {
   margin-top: var(--sp-3);
   font-size: 46px;
@@ -1416,6 +1408,47 @@ button, .btn, .policy, .alloc, .teampick__btn { touch-action: manipulation; }
   cursor: pointer;
 }
 .rfitem__more:hover { border-color: var(--accent); color: var(--accent); }
+
+/* 창 맨 위 — 그 국면에 우리 조가 몇 등이었는가 · 남의 조와 얼마나 벌어졌는가.
+   숫자는 진행자 화면이 회고 때 내려보냅니다 (ui.js turnStandings). */
+.rfrank {
+  margin-bottom: var(--sp-5);
+  padding: var(--sp-4);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--r-lg);
+  background: var(--accent-tint);
+}
+.rfrank__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+.rfrank__pos { color: var(--accent-deep); font-size: var(--fs-small); font-weight: var(--fw-strong); }
+.rfrank__pos b { font-size: 34px; line-height: 1; letter-spacing: -0.04em; }
+.rfrank__of { color: var(--text-3); font-size: var(--fs-small); }
+/* 등수 다음에 곧바로 읽히도록 같은 줄 오른쪽 끝에 붙입니다 */
+.rfrank__gap {
+  margin-left: auto;
+  color: var(--text-2);
+  font-size: var(--fs-small);
+  font-weight: var(--fw-mid);
+}
+.rfrank__list { display: flex; flex-direction: column; gap: 2px; margin-top: var(--sp-3); }
+.rfrank__row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 5px var(--sp-3);
+  border-radius: var(--r-sm);
+  font-size: var(--fs-small);
+}
+.rfrank__row.is-mine { background: var(--bg-1); box-shadow: 0 0 0 1px var(--accent); }
+.rfrank__no { flex: 0 0 18px; color: var(--text-3); font-weight: var(--fw-strong); }
+.rfrank__team { flex: 1 1 auto; color: var(--text-2); }
+.rfrank__row.is-mine .rfrank__team { color: var(--text-1); font-weight: var(--fw-strong); }
+.rfrank__rev { min-width: 72px; text-align: right; font-weight: 700; }
+.rfrank__diff { min-width: 64px; text-align: right; color: var(--text-3); }
 
 /* 창 안 — 그 국면에 벌어진 일과 우리 조에 붙은 것 */
 .rfdetail__event {

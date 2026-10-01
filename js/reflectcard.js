@@ -34,10 +34,17 @@ window.DRBReflect = (function () {
     return name;
   }
 
-  function policyName(id, fallback) {
+  /* ★ 그 시대의 정책 목록에서만 찾습니다.
+       정책 id 는 시대끼리 겹칩니다 — "growth" 가 era1 에서는 '공격적 성장',
+       era2 에서는 '공격적 확장' 입니다. 예전에는 전 시대를 순서대로 뒤져
+       먼저 걸리는 것을 썼기 때문에, 1997년에 '공격적 확장' 을 고른 조의
+       회고 카드에 '공격적 성장' 이라고 적혔습니다 — 고르지도 않은 이름입니다. */
+  function policyName(id, fallback, setKey) {
     var name = fallback || "";
-    Object.keys(window.DRB_POLICIES || {}).some(function (set) {
-      return window.DRB_POLICIES[set].some(function (policy) {
+    var all = window.DRB_POLICIES || {};
+    var sets = setKey && all[setKey] ? [setKey] : Object.keys(all);
+    sets.some(function (set) {
+      return all[set].some(function (policy) {
         if (policy.id !== id) return false;
         name = policy.name;
         return true;
@@ -69,7 +76,7 @@ window.DRBReflect = (function () {
   }
 
   /* 그 국면에 이 조가 실제로 무엇을 했는가 */
-  function choiceOf(team, subroundId) {
+  function choiceOf(team, subroundId, policySet) {
     var entry = (team.history || []).filter(function (h) {
       return h.subroundId === subroundId;
     })[0];
@@ -84,7 +91,7 @@ window.DRBReflect = (function () {
 
     return {
       top: top,
-      policy: policyName(entry.policyId, entry.policyName),
+      policy: policyName(entry.policyId, entry.policyName, policySet),
       found: true,
     };
   }
@@ -104,7 +111,7 @@ window.DRBReflect = (function () {
       /* 제목이 "첫 번째 국면 · 고무신인가" 라 앞머리가 위치표시와 겹칩니다 */
       title: String(spot.sub.title || "").replace(/^[^·]*번째 국면\s*·\s*/, ""),
       situation: firstSentences(spot.sub.situation && spot.sub.situation.body, 2),
-      choice: choiceOf(team, spot.sub.id),
+      choice: choiceOf(team, spot.sub.id, (window.DRB_ERAS[spot.round.era] || {}).policySet),
     };
 
     if (kind === "event") {

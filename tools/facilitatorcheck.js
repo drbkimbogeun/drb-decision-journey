@@ -273,6 +273,40 @@ function checkStructure(W) {
   expect(briefingCounts.length === 3 && briefingCounts.slice(1).every(function (count, index) {
     return count > briefingCounts[index];
   }), "브리핑 정보량이 ERA마다 엄격히 증가함 (" + briefingCounts.join(" < ") + ")");
+
+  /* ★ 국면별 국내·세계 신호 — 실제로 났던 일입니다.
+       시대 신호만 있던 때 1945 와 1965 가 똑같은 문구로 떴습니다.
+       국면마다 자기 신호가 있어야 하고, 같은 시대의 두 국면이 같은 말을 하면 안 됩니다. */
+  rounds.forEach(function (round) {
+    const texts = [];
+    round.subrounds.forEach(function (sub) {
+      const brief = sub.briefing;
+      ["domestic", "global"].forEach(function (key) {
+        const list = brief && brief[key];
+        expect(Array.isArray(list) && list.length > 0,
+          sub.id + " 국면에 자기 " + key + " 신호가 있음");
+        if (Array.isArray(list)) {
+          list.forEach(function (row) {
+            expect(row && isNonEmptyString(row.text), sub.id + " " + key + " 신호에 문장이 있음");
+          });
+        }
+      });
+      texts.push(JSON.stringify((brief && brief.domestic) || []) + "|" +
+                 JSON.stringify((brief && brief.global) || []));
+    });
+    expect(new Set(texts).size === texts.length,
+      round.id + " 의 국면들이 서로 다른 국내·세계 신호를 가짐 (같으면 시대가 다른데 같은 말을 함)");
+  });
+  const subroundSignalCounts = rounds.map(function (round) {
+    return round.subrounds.map(function (sub) {
+      return ((sub.briefing || {}).domestic || []).length + ((sub.briefing || {}).global || []).length;
+    });
+  });
+  expect(subroundSignalCounts.every(function (counts, index) {
+    return counts.every(function (count) { return count === counts[0]; }) &&
+      (index === 0 || counts[0] > subroundSignalCounts[index - 1][0]);
+  }), "국면별 신호 개수가 시대 안에서는 같고 시대가 갈수록 늘어남 (" +
+      subroundSignalCounts.map(function (c) { return c.join("="); }).join(" < ") + ")");
   expect(visibilityValues.length === 3 && visibilityValues.slice(1).every(function (value, index) {
     return value < visibilityValues[index];
   }), "전망 선명도가 ERA마다 엄격히 감소함 (" + visibilityValues.join(" > ") + ")");

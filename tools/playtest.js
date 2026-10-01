@@ -275,9 +275,7 @@ const server = http.createServer((req, res) => {
   /* 변화 대응력이 최종 화면에서 처음 공개되는가 */
   if (!$("fiAdaptScore").textContent.trim()) bad("변화 대응력 점수가 표시되지 않았습니다");
   else ok("변화 대응력 공개 — " + $("fiAdaptScore").textContent);
-  if (!$("fiPowerScore").textContent.trim()) bad("현재 경쟁력 점수가 표시되지 않았습니다");
-  else ok("현재 경쟁력 — " + $("fiPowerScore").textContent);
-  if (!$("fiAdaptFill").style.width || !$("fiPowerFill").style.width) bad("점수 막대가 그려지지 않았습니다");
+  if (!$("fiAdaptFill").style.width) bad("점수 막대가 그려지지 않았습니다");
   else ok("점수 막대 표시");
   if ($("fiAdaptParts").children.length < 5) bad("변화 대응력 구성 항목이 부족합니다");
   else ok("변화 대응력 구성 " + $("fiAdaptParts").children.length + "항목");

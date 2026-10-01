@@ -360,7 +360,7 @@ function sanitizeReflection(value) {
 }
 
 function defaultControl() {
-  return { currentTurn: 0, stage: "lobby", deadline: null, revealedActual: null, awards: {} };
+  return { currentTurn: 0, stage: "lobby", deadline: null, revealedActual: null, awards: {}, standings: {} };
 }
 
 /* 한 곳만 딸 수 있는 기회의 판정 결과.
@@ -398,10 +398,45 @@ function sanitizeAwards(value) {
   return out;
 }
 
+/* 국면별 조 매출.
+   { "0": { "1조": 12.5, "2조": 9.8 } }  ← 국면 번호 → 조 이름 → 그 국면 매출(게임 단위)
+
+   ★ 회고에서 조 노트북이 "우리가 몇 등이었나" 를 적으려면 남의 조 매출이 필요합니다.
+     노트북은 자기 조밖에 모르므로 진행자 화면이 시상을 마친 뒤 한 번 내려보냅니다.
+     서버는 awards 와 똑같이 모양만 확인하고 그대로 전달합니다. */
+function sanitizeStandings(value) {
+  if (value === null || value === undefined) return {};
+  if (typeof value !== "object" || Array.isArray(value)) {
+    throw new ApiError(400, "standings는 국면별 조 매출이어야 합니다.", "INVALID_CONTROL");
+  }
+  const out = {};
+  for (const turn of Object.keys(value).slice(0, 8)) {
+    if (!/^[0-5]$/.test(turn)) {
+      throw new ApiError(400, "standings의 국면 번호는 0~5여야 합니다.", "INVALID_CONTROL");
+    }
+    const row = value[turn];
+    if (!row || typeof row !== "object" || Array.isArray(row)) {
+      throw new ApiError(400, "standings의 국면 값은 조별 매출이어야 합니다.", "INVALID_CONTROL");
+    }
+    const bucket = {};
+    for (const name of Object.keys(row).slice(0, 6)) {
+      if (!TEAM_NAME.test(name)) continue;
+      /* ★ Number() 로 먼저 바꾸면 안 됩니다. Number(null) · Number("") · Number([]) 이
+           전부 0 이라, 값이 없는 조가 '매출 0 인 조' 로 둔갑해 등수에 끼어듭니다.
+           숫자로 온 것만 받습니다 (live.js cleanMap 과 같은 방식). */
+      const revenue = row[name];
+      if (typeof revenue !== "number" || !Number.isFinite(revenue)) continue;
+      bucket[name] = Math.max(-100000, Math.min(100000, Math.round(revenue * 10) / 10));
+    }
+    out[turn] = bucket;
+  }
+  return out;
+}
+
 function sanitizeControlPatch(value, current) {
   const next = { ...current };
   const keys = Object.keys(value);
-  if (!keys.length || keys.some((key) => !["currentTurn", "stage", "deadline", "revealedActual", "awards"].includes(key))) {
+  if (!keys.length || keys.some((key) => !["currentTurn", "stage", "deadline", "revealedActual", "awards", "standings"].includes(key))) {
     throw new ApiError(400, "허용된 진행 제어 항목만 보내주세요.", "INVALID_CONTROL");
   }
   if (Object.hasOwn(value, "currentTurn")) {
@@ -430,6 +465,9 @@ function sanitizeControlPatch(value, current) {
   }
   if (Object.hasOwn(value, "awards")) {
     next.awards = sanitizeAwards(value.awards);
+  }
+  if (Object.hasOwn(value, "standings")) {
+    next.standings = sanitizeStandings(value.standings);
   }
   return next;
 }
