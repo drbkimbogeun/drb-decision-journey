@@ -1168,7 +1168,12 @@ button, .btn, .policy, .alloc, .teampick__btn { touch-action: manipulation; }
 /* ★ 이름이 두 줄이 되는 카드가 있습니다 ("신사업 Pilot (작게 여러 개)").
      열이 다섯이 되는 마지막 국면에서는 특히 그렇습니다. 그 한 줄이 더 들어가도
      +/- 가 카드 밖으로 밀리지 않도록 숫자와 버튼을 미리 줄여둡니다. */
-.alloc-list[data-rows="2"] .alloc__name { font-size: 18px; }
+/* ★ 글자는 키우되 줄 높이는 예전과 같게 둡니다 (18px × 1.04 ≈ 15px × 1.25).
+     위기 경고 띠가 뜨는 조는 카드가 153px 로 낮아져, 내용이 카드 높이에 딱 맞습니다 — 여유가 0 입니다.
+     제목만 18px 로 키웠더니 내용이 3.75px 커져 3~6국면 모든 카드의 +/- 가 1.9px 씩 밖으로 나갔습니다.
+     ⚠ 이 카드는 내용이 가운데 정렬이라 넘치는 양이 (내용 − 카드 높이) ÷ 2 입니다.
+       여백(padding)을 줄여도 상쇄되어 아무 효과가 없습니다. 줄여야 하는 것은 내용의 높이입니다. */
+.alloc-list[data-rows="2"] .alloc__name { font-size: 18px; line-height: 1.04; }
 .alloc-list[data-rows="2"] .alloc__amount { margin-top: 5px; font-size: 24px; }
 /* 점 표시를 뺍니다 — 바로 위에 숫자가 크게 있습니다.
    이 16px 이 효과 두 줄이 들어갈 자리입니다. */

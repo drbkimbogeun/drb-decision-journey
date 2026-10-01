@@ -1,0 +1,291 @@
+/* ============================================================================
+   meet.css — 대표님과의 만남
+
+   조마다 카드 한 장. 덮인 면은 조 이름만, 뒤집으면 그 조의 회고입니다.
+   인쇄해서 읽는 문서(review.css)와 달리, 화면에 띄워 놓고 한 장씩 뒤집으며
+   이야기하는 자리라 글자를 크게 둡니다.
+   색·간격 값은 여기서 정하지 않습니다. tokens.css 의 변수만 씁니다.
+   ============================================================================ */
+
+body.mt-body {
+  background: var(--bg-1);
+  color: var(--text-1);
+  font-family: var(--font-ui);
+  letter-spacing: -0.01em;
+  /* 한글은 어절 안에서 끊으면 안 됩니다. 없으면 "살 사 / 람이" 처럼 잘립니다 —
+     화면에 띄워 놓고 소리 내어 읽는 자리라 특히 걸립니다. */
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+.mt-top {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  /* 세션 고르는 칸과 지우기 버튼까지 놓이면 좁은 화면에서는 한 줄에 다 들어가지 않습니다.
+     접히게 두지 않으면 띠가 화면 밖으로 밀려 페이지 전체가 옆으로 넘칩니다. */
+  flex-wrap: wrap;
+  min-height: 62px;
+  padding: var(--sp-2) clamp(20px, 3vw, 48px);
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-2);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.mt-top__brand { font-size: 15px; font-weight: var(--fw-strong); letter-spacing: -0.03em; }
+.mt-top__title {
+  padding: 4px 12px;
+  border-radius: var(--r-pill);
+  background: var(--accent-tint);
+  color: var(--accent-deep);
+  font-size: var(--fs-tiny);
+  font-weight: var(--fw-strong);
+}
+.mt-top__meta { color: var(--text-3); font-size: var(--fs-tiny); }
+/* 지난 교육 세션 고르기 — 세션이 둘 이상일 때만 보입니다 */
+.mt-top__session {
+  max-width: min(46vw, 420px);
+  min-height: 34px;
+  padding: 4px var(--sp-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--bg-2);
+  color: var(--text-1);
+  font-family: inherit;
+  font-size: var(--fs-tiny);
+}
+
+.mt-main { max-width: 1680px; margin: 0 auto; padding: clamp(24px, 3vw, 48px) clamp(20px, 3vw, 48px); }
+
+.mt-head { margin-bottom: clamp(20px, 2.4vw, 36px); }
+.mt-head__title {
+  font-size: clamp(26px, 2.8vw, 40px);
+  font-weight: var(--fw-strong);
+  line-height: 1.2;
+  letter-spacing: -0.045em;
+}
+.mt-head__lead {
+  margin-top: var(--sp-3);
+  max-width: 46em;
+  color: var(--text-2);
+  font-size: clamp(15px, 1.2vw, 19px);
+  line-height: 1.7;
+}
+.mt-head__where { margin-top: var(--sp-2); color: var(--text-3); font-size: var(--fs-small); }
+
+.mt-state {
+  padding: var(--sp-5);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-lg);
+  color: var(--text-2);
+  font-size: var(--fs-small);
+  line-height: 1.7;
+}
+.mt-state.hidden { display: none; }
+
+/* 칸 수(--cols)는 meet.js 가 조 수에 맞춰 정합니다 — 4개 조는 2 × 2 */
+.mt-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 2), minmax(0, 1fr));
+  gap: var(--sp-4);
+}
+@media (max-width: 900px) {
+  .mt-grid { grid-template-columns: 1fr; }
+}
+
+/* ---------- 카드 한 장 ----------
+   ★ 두 면을 같은 칸(grid-area 1/1)에 겹쳐 둡니다. 절대배치로 겹치면 카드 높이를
+     따로 정해줘야 하고, 회고가 길면 잘립니다. 겹쳐 두면 카드 높이가 두 면 중
+     큰 쪽을 따라가 글이 잘리지 않습니다. */
+.mcard {
+  display: grid;
+  min-height: clamp(240px, 34vh, 400px);
+  perspective: 1800px;
+}
+.mcard__inner {
+  display: grid;
+  transform-style: preserve-3d;
+  transition: transform 560ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.mcard.is-flipped .mcard__inner { transform: rotateY(180deg); }
+
+.mcard__face {
+  grid-area: 1 / 1;
+  min-width: 0;
+  border-radius: var(--r-xl);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+/* 안 보이는 면이 눌리지 않게 합니다 */
+.mcard:not(.is-flipped) .mcard__back,
+.mcard.is-flipped .mcard__front { pointer-events: none; }
+
+/* ---------- 덮인 면 — 조 이름만 ---------- */
+.mcard__front {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-3);
+  padding: var(--sp-6);
+  border: 0;
+  background: var(--accent-deep);
+  color: var(--text-on-accent);
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: var(--shadow-raise);
+  transition: transform var(--t-base), box-shadow var(--t-base);
+}
+.mcard__front:hover { transform: translateY(-3px); box-shadow: var(--shadow-pop); }
+.mcard__front:focus-visible { outline: 3px solid var(--accent-line); outline-offset: 3px; }
+
+.mcard__eyebrow {
+  padding: 3px 12px;
+  border: 1px solid var(--accent-line);
+  border-radius: var(--r-pill);
+  color: var(--accent-line);
+  font-size: var(--fs-tiny);
+  font-weight: var(--fw-strong);
+  letter-spacing: 0.12em;
+}
+.mcard__name {
+  font-size: clamp(56px, 7vw, 116px);
+  font-weight: var(--fw-strong);
+  line-height: 1;
+  letter-spacing: -0.055em;
+}
+.mcard__hint { color: var(--accent-line); font-size: var(--fs-small); font-weight: var(--fw-mid); }
+
+/* ---------- 뒤집은 면 — 그 조의 회고 ---------- */
+.mcard__back {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  padding: clamp(18px, 1.8vw, 30px);
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  box-shadow: var(--shadow-raise);
+  transform: rotateY(180deg);
+}
+.mcard__bar { display: flex; align-items: center; gap: var(--sp-3); }
+.mcard__team {
+  padding: 4px 14px;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  color: var(--text-on-accent);
+  font-size: var(--fs-small);
+  font-weight: var(--fw-strong);
+}
+
+/* 넓으면 회고와 DRB 기록이 나란히, 좁으면 위아래로 */
+.mcard__cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: var(--sp-5);
+  align-items: start;
+}
+
+.mcard__when {
+  color: var(--accent);
+  font-size: var(--fs-small);
+  font-weight: var(--fw-strong);
+  letter-spacing: 0.04em;
+}
+/* 밖에서 온 돌발은 코랄 — 게임 화면과 같은 구분입니다 */
+.mcard__when--event { color: var(--coral); }
+.mcard__title {
+  margin-top: 4px;
+  font-size: clamp(22px, 2vw, 30px);
+  font-weight: var(--fw-strong);
+  line-height: 1.3;
+  letter-spacing: -0.04em;
+}
+.mcard__situation {
+  margin-top: var(--sp-2);
+  color: var(--text-2);
+  font-size: var(--fs-small);
+  line-height: 1.65;
+}
+.mcard__none { color: var(--text-3); font-size: var(--fs-small); }
+
+.mcard__choice {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md);
+  background: var(--bg-3);
+}
+.mcard__label {
+  color: var(--text-3);
+  font-size: var(--fs-tiny);
+  font-weight: var(--fw-strong);
+  letter-spacing: 0.1em;
+}
+.mcard__value { font-size: var(--fs-small); font-weight: var(--fw-strong); line-height: 1.5; }
+
+/* 조가 직접 쓴 문장 — 이 자리의 핵심입니다. 가장 크게 둡니다. */
+.mcard__say {
+  margin-top: var(--sp-4);
+  padding-left: var(--sp-4);
+  border-left: 3px solid var(--accent-line);
+}
+.mcard__comment {
+  margin-top: 6px;
+  font-size: clamp(17px, 1.5vw, 22px);
+  font-weight: var(--fw-mid);
+  line-height: 1.65;
+}
+
+/* 확인된 DRB 의 실제 기록 — 게임과 같은 금색입니다 (tokens.css --fact-*) */
+.mcard__drb {
+  padding: var(--sp-4);
+  border: 1px solid var(--fact-line);
+  border-left: 4px solid var(--fact-line);
+  border-radius: var(--r-md);
+  background: var(--fact-bg);
+  font-size: var(--fs-small);
+  line-height: 1.7;
+}
+.mcard__drb-label {
+  display: block;
+  margin-bottom: var(--sp-2);
+  color: var(--fact-text);
+  font-size: var(--fs-tiny);
+  font-weight: var(--fw-strong);
+  letter-spacing: 0.08em;
+}
+.mcard__drb p + p { margin-top: var(--sp-3); }
+
+/* 회고를 남기지 않은 조 — 뒤집을 것이 없습니다 */
+.mcard--empty {
+  align-content: center;
+  justify-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-6);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-xl);
+  color: var(--text-3);
+}
+.mcard--empty .mcard__name { color: var(--text-3); }
+
+.mt-foot { margin-top: clamp(20px, 2.4vw, 36px); color: var(--text-3); font-size: var(--fs-tiny); line-height: 1.6; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mcard__inner, .mcard__front { transition: none; }
+}
+
+/* 인쇄하면 전부 펼쳐서 나옵니다 */
+@media print {
+  .no-print { display: none !important; }
+  body.mt-body { background: #FFFFFF; }
+  .mt-main { max-width: none; padding: 0; }
+  .mt-grid { grid-template-columns: 1fr; }
+  .mcard { min-height: 0; break-inside: avoid; }
+  .mcard__inner, .mcard__back { transform: none !important; }
+  .mcard__front { display: none; }
+  .mcard__back { border-color: #CCCCCC; box-shadow: none; }
+  .mcard__close { display: none; }
+}

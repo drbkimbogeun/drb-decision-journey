@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>대표님과의 만남 · 80년의 여정</title>
+  <link rel="stylesheet" href="css/fonts.css">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/meet.css">
+</head>
+<body class="mt-body">
+  <!-- ============================================================
+       대표님과의 만남 — 조별 회고를 카드로 뒤집어 봅니다
+
+       ★ 오전에 교육을 진행한 그 PC · 그 브라우저에서 엽니다.
+         진행자 화면이 [회고] 챕터를 열 때 이 PC 에 복사해 둔 것만 읽습니다
+         (간담회 자료 review.html 과 같은 저장분입니다). 서버를 부르지 않습니다.
+       ★ 카드는 덮인 채로 시작합니다. 한 조씩 뒤집어 가며 이야기합니다.
+         한꺼번에 다 펼쳐 놓으면 아직 이야기하지 않은 조의 것을 먼저 읽게 됩니다.
+       ============================================================ -->
+  <header class="mt-top no-print">
+    <span class="mt-top__brand">80년의 여정</span>
+    <span class="mt-top__title">대표님과의 만남</span>
+    <span class="mt-top__meta" id="mtMeta"></span>
+    <span class="spacer"></span>
+    <!-- 회고는 세션마다 따로 남습니다 (최근 3개). 세션이 둘 이상일 때만 고르는 칸이 보입니다. -->
+    <select class="mt-top__session hidden" id="mtSession" aria-label="교육 세션 고르기"></select>
+    <button class="btn btn--sm btn--ghost hidden" id="btnMtDelete">이 세션 지우기</button>
+    <button class="btn btn--sm btn--ghost" id="btnMtReset">모두 덮기</button>
+    <a class="btn btn--sm btn--ghost" href="review.html" target="_blank" rel="noopener">간담회 자료 ↗</a>
+  </header>
+
+  <main class="mt-main">
+    <div class="mt-head">
+      <h1 class="mt-head__title">각 조가 다시 이야기하고 싶은 결정</h1>
+      <p class="mt-head__lead">
+        카드를 누르면 뒤집힙니다. 그 조가 고른 결정과,
+        앞으로 비슷한 상황이 오면 어떻게 하겠는지 적은 것이 나옵니다.
+      </p>
+      <p class="mt-head__where" id="mtWhen"></p>
+    </div>
+
+    <div class="mt-state" id="mtState"></div>
+    <div class="mt-grid" id="mtGrid"></div>
+
+    <p class="mt-foot no-print">
+      이 화면은 이 PC에만 저장되어 있습니다. 최근 3개 세션까지 남고, 더 들어오면 가장 먼저 한 교육부터 지워집니다.
+      금색 칸은 확인된 DRB의 실제 기록입니다.
+    </p>
+  </main>
+
+  <script src="data/config.js"></script>
+  <script src="data/eras.js"></script>
+  <script src="data/investments.js"></script>
+  <script src="data/policies.js"></script>
+  <script src="data/events.js"></script>
+  <script src="data/rounds.js"></script>
+  <script src="data/actual_drb.js"></script>
+  <script src="data/global.js"></script>
+  <script src="js/reflectcard.js"></script>
+  <script src="js/meet.js"></script>
+</body>
+</html>

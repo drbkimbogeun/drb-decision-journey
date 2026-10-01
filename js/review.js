@@ -10,13 +10,17 @@
        - 새 탭에서 열어도 인증이 필요 없습니다 (localStorage 는 탭끼리 공유)
        - 인사자료를 서버에 더 오래 남기지 않습니다
 
+   ★ 회고는 세션마다 따로 저장됩니다 (reflectcard.js — 최근 3개 세션).
+     기본은 가장 최근에 한 교육이고, 위에서 지난 세션을 고를 수 있습니다.
+
    ⚠ 진행자 화면을 띄웠던 그 브라우저에서 열어야 합니다. 다른 PC 에는 없습니다.
    ============================================================ */
 
 (function () {
   "use strict";
 
-  var CACHE_KEY = (window.DRB_CONFIG.storage.key || "drb_sim_v1") + "_review";
+  /* 보고 있는 세션. 비어 있으면 가장 최근 세션입니다. */
+  var selected = "";
 
   function el(id) { return document.getElementById(id); }
   function esc(value) {
@@ -33,14 +37,29 @@
     node._timer = setTimeout(function () { node.classList.remove("is-show"); }, 2600);
   }
 
-  function readCache() {
-    try { return JSON.parse(localStorage.getItem(CACHE_KEY) || "null"); }
-    catch (err) { return null; }
-  }
-
   function stamp(value) {
     var when = value ? new Date(value) : new Date();
     return when.getFullYear() + "년 " + (when.getMonth() + 1) + "월 " + when.getDate() + "일";
+  }
+
+  function sessionLabel(session) {
+    return "교육일 " + stamp(session.savedAt) + " · 세션 " + (session.sessionId || "로컬") +
+      " · " + session.teams.length + "개 조";
+  }
+
+  function current(list) {
+    return list.filter(function (s) { return s.id === selected; })[0] || list[0] || null;
+  }
+
+  /* 세션이 둘 이상일 때만 고르는 칸을 보여줍니다 */
+  function paintPicker(list, now) {
+    var pick = el("rvSession");
+    pick.innerHTML = list.map(function (s) {
+      return "<option value='" + esc(s.id) + "'" + (now && s.id === now.id ? " selected" : "") + ">" +
+        esc(sessionLabel(s)) + "</option>";
+    }).join("");
+    pick.classList.toggle("hidden", list.length < 2);
+    el("btnRvDelete").classList.toggle("hidden", !now);
   }
 
   function render(data) {
@@ -64,8 +83,7 @@
     }
 
     state.className = "rv-state hidden";
-    el("rvWhen").textContent = "교육일 " + stamp(data.savedAt) +
-      " · 세션 " + (data.sessionId || "로컬") + " · " + data.teams.length + "개 조";
+    el("rvWhen").textContent = sessionLabel(data);
     el("rvMeta").textContent = written.length + " / " + data.teams.length + "조 작성";
 
     data.teams.forEach(function (team) {
@@ -109,13 +127,35 @@
     });
   }
 
+  function refresh() {
+    var list = window.DRBReflect.sessions();
+    var now = current(list);
+    selected = now ? now.id : "";
+    paintPicker(list, now);
+    render(now);
+  }
+
   function boot() {
+    el("rvSession").onchange = function () {
+      selected = this.value;
+      refresh();
+    };
+    el("btnRvDelete").onclick = function () {
+      var now = current(window.DRBReflect.sessions());
+      if (!now) return;
+      if (!window.confirm("이 세션의 회고를 이 PC 에서 지울까요?\n\n" + sessionLabel(now) +
+                          "\n\n지우면 되돌릴 수 없습니다.")) return;
+      var ok = window.DRBReflect.removeSession(now.id);
+      selected = "";
+      refresh();
+      toast(ok ? "그 세션의 회고를 지웠습니다." : "지우지 못했습니다. 브라우저 저장 공간을 확인해주세요.");
+    };
     el("btnRvReload").onclick = function () {
-      render(readCache());
+      refresh();
       toast("이 PC 에 저장된 최신 내용으로 다시 읽었습니다.");
     };
     el("btnRvPrint").onclick = function () { window.print(); };
-    render(readCache());
+    refresh();
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);

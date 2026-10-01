@@ -1085,6 +1085,10 @@ export default {
     if (url.pathname === "/review" || url.pathname === "/review/") {
       return env.ASSETS.fetch(new Request(new URL("/review.html", url), request));
     }
+    /* 대표님과의 만남. 조별 회고를 카드로 뒤집어 봅니다 — 간담회 자료와 같은 저장분만 읽습니다. */
+    if (url.pathname === "/meet" || url.pathname === "/meet/") {
+      return env.ASSETS.fetch(new Request(new URL("/meet.html", url), request));
+    }
 
     if (url.pathname === "/api" || url.pathname.startsWith("/api/")) {
       try {

@@ -960,18 +960,30 @@
   /* 간담회는 대개 교육이 끝나고 며칠 뒤입니다. 세션은 24시간 뒤 서버에서
      지워지므로, 회고 챕터를 열 때 이 PC 에 자료를 복사해 둡니다.
      /review 는 서버를 부르지 않고 이것만 읽습니다. */
+  var reviewSaveFailed = false;
   function saveReviewCopy(teams) {
     var creds = window.DRBLive && window.DRBLive.facilitatorCredentials
       ? window.DRBLive.facilitatorCredentials() : null;
     var written = teams.filter(function (team) { return team.reflection; });
     if (!written.length) return;
-    writeJson(CFG.storage.key + "_review", {
-      savedAt: new Date().toISOString(),
+    if (!window.DRBReflect || !window.DRBReflect.saveSession) return;
+
+    /* ★ 세션마다 따로 저장합니다 (저장 자리는 reflectcard.js — 최근 3개 세션).
+         예전에는 자리가 하나라, 다음 교육의 첫 회고가 지난 교육의 회고를 덮었습니다.
+         세션을 가르는 값 : 라이브는 세션 코드, 혼자 돌린 판은 그 판을 시작한 시각. */
+    var local = readJson(CFG.storage.key, null);
+    var ok = window.DRBReflect.saveSession({
+      id: creds ? creds.sessionId : "local-" + ((local && local.startedAt) || ""),
       sessionId: creds ? creds.sessionId : "",
       teams: teams.map(function (team) {
         return { name: team.name, history: team.history || [], reflection: team.reflection || null };
       })
     });
+    /* 화면을 그릴 때마다 불리므로 한 번만 알립니다 */
+    if (!ok && !reviewSaveFailed) {
+      reviewSaveFailed = true;
+      toast("회고를 이 PC 에 저장하지 못했습니다. 브라우저 저장 공간을 확인해주세요.");
+    }
   }
 
   function renderReflection(teams) {

@@ -25,6 +25,9 @@
     <span class="rv-top__title">회고 자료</span>
     <span class="rv-top__meta" id="rvMeta"></span>
     <span class="spacer"></span>
+    <!-- 회고는 세션마다 따로 남습니다 (최근 3개). 세션이 둘 이상일 때만 고르는 칸이 보입니다. -->
+    <select class="rv-top__session hidden" id="rvSession" aria-label="교육 세션 고르기"></select>
+    <button class="btn btn--sm btn--ghost hidden" id="btnRvDelete">이 세션 지우기</button>
     <button class="btn btn--sm btn--ghost" id="btnRvReload">새로 받기</button>
     <button class="btn btn--sm btn--ghost" id="btnRvPrint">인쇄 · PDF</button>
   </header>
@@ -43,7 +46,8 @@
     <div class="rv-list" id="rvList"></div>
 
     <p class="rv-foot">
-      이 화면은 이 PC에만 저장되어 있습니다. 교육 세션은 24시간 뒤 서버에서 지워집니다.
+      이 화면은 이 PC에만 저장되어 있습니다. 최근 3개 세션까지 남고, 더 들어오면 가장 먼저 한 교육부터 지워집니다.
+      교육 세션은 24시간 뒤 서버에서 지워집니다.
     </p>
   </main>
 

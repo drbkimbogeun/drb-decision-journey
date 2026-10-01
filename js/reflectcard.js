@@ -137,5 +137,87 @@ window.DRBReflect = (function () {
     return out;
   }
 
-  return { card: card, timeline: timeline };
+  /* ============================================================
+     세션별 회고 저장 — 이 PC 의 localStorage 에만 둡니다
+
+     진행자 화면이 [회고] 챕터에서 저장하고, 간담회 자료와 만남 화면이 읽습니다.
+     세 화면이 이 함수들만 씁니다 — 각자 저장 자리를 따로 다루면 반드시 어긋납니다.
+
+     ★ 예전에는 자리가 하나(_review)뿐이었습니다. 다음 교육의 첫 회고가 들어오는
+       순간 지난 교육의 회고가 통째로 덮였습니다 — 오전 교육 뒤 오후 교육을 하면
+       오전 조의 만남에 띄울 것이 사라졌습니다. 이제 세션마다 한 묶음입니다.
+
+     ★ KEEP 개까지만 남깁니다. 조가 직접 쓴 문장이 이 PC 에 끝없이 쌓이지 않게,
+       더 들어오면 가장 먼저 한 교육부터 지웁니다.
+
+     ★ savedAt 은 그 세션이 '처음' 저장된 시각입니다. 다시 저장해도 바꾸지 않습니다.
+       진행자 화면은 그릴 때마다 저장하므로, 그때마다 시각을 새로 찍으면 지난 교육의
+       진행자 화면을 다시 열기만 해도 그 세션이 오늘 교육으로 둔갑합니다.
+     ============================================================ */
+  var KEEP = 3;
+
+  function storeKey(suffix) {
+    var base = (window.DRB_CONFIG && window.DRB_CONFIG.storage && window.DRB_CONFIG.storage.key) || "drb_sim_v1";
+    return base + suffix;
+  }
+
+  function readStored(key) {
+    try { return JSON.parse(localStorage.getItem(key) || "null"); }
+    catch (err) { return null; }
+  }
+
+  /* 가장 최근에 한 교육이 앞. 예전 방식으로 남아 있는 한 묶음도 한 세션으로 칩니다. */
+  function sessions() {
+    var list = readStored(storeKey("_reviews"));
+    if (!Array.isArray(list)) list = [];
+    list = list.filter(function (s) { return s && s.id && Array.isArray(s.teams); });
+
+    var old = readStored(storeKey("_review"));
+    if (old && Array.isArray(old.teams)) {
+      var oldId = old.sessionId || ("legacy-" + (old.savedAt || ""));
+      if (!list.some(function (s) { return s.id === oldId; })) {
+        list.push({ id: oldId, savedAt: old.savedAt || "", sessionId: old.sessionId || "", teams: old.teams });
+      }
+    }
+
+    list.sort(function (a, b) { return String(b.savedAt || "").localeCompare(String(a.savedAt || "")); });
+    return list.slice(0, KEEP);
+  }
+
+  /* 저장에 실패하면 조용히 넘기지 않고 false 를 돌려줍니다 — 부른 쪽이 화면에 알립니다. */
+  function writeSessions(list) {
+    try {
+      localStorage.setItem(storeKey("_reviews"), JSON.stringify(list.slice(0, KEEP)));
+      localStorage.removeItem(storeKey("_review"));      // 예전 자리는 새 자리로 옮겨졌습니다
+      return true;
+    } catch (err) {
+      console.error("회고를 이 PC 에 저장하지 못했습니다:", err);
+      return false;
+    }
+  }
+
+  /* record = { id, sessionId, teams }
+     같은 id 는 그 자리의 내용만 갱신하고, 새 id 는 새 묶음이 됩니다. */
+  function saveSession(record) {
+    if (!record || !record.id) return false;
+    var list = sessions();
+    var teams = record.teams || [];
+    var mine = list.filter(function (s) { return s.id === record.id; })[0];
+    if (mine) {
+      if (JSON.stringify(mine.teams) === JSON.stringify(teams)) return true;   // 바뀐 것이 없습니다
+      mine.teams = teams;
+    } else {
+      list.unshift({ id: record.id, savedAt: new Date().toISOString(), sessionId: record.sessionId || "", teams: teams });
+    }
+    return writeSessions(list);
+  }
+
+  function removeSession(id) {
+    return writeSessions(sessions().filter(function (s) { return s.id !== id; }));
+  }
+
+  return {
+    card: card, timeline: timeline,
+    sessions: sessions, saveSession: saveSession, removeSession: removeSession, KEEP: KEEP
+  };
 })();

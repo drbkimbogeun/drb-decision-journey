@@ -701,12 +701,109 @@ function checkLiveApi() {
   expect(/function\s+saveReviewCopy\s*\(/.test(facSource) &&
     /saveReviewCopy\(teams\)/.test(facSource),
     "진행자 화면이 회고를 이 PC 에 복사해 둠");
-  expect(/_review/.test(facSource) && /_review/.test(reviewSource),
-    "진행자와 간담회 자료가 같은 저장 자리를 씀");
+  expect(/DRBReflect\.saveSession\(/.test(facSource) && /DRBReflect\.sessions\(/.test(reviewSource),
+    "진행자와 간담회 자료가 같은 저장 자리를 씀 (reflectcard.js 의 세션별 저장)");
   expect(!/DRBLive\.snapshot\(/.test(reviewSource) && !/fetch\(/.test(reviewSource),
     "간담회 자료는 서버를 부르지 않음 (세션이 지워진 뒤에도 열려야 함)");
   expect(/ASSETS\.fetch\(new Request\(new URL\("\/review\.html"/.test(worker),
     "worker 가 /review 를 review.html 로 연결함");
+
+  /* 대표님과의 만남 — 조별 회고를 카드로 뒤집어 봅니다.
+     간담회 자료와 같은 저장분을 읽고, 같은 함수로 회고를 풀어야 합니다.
+     한쪽만 따로 만들면 같은 조의 회고가 화면마다 다르게 나옵니다. */
+  const meetSource = read("js/meet.js");
+  const meetHtml = read("meet.html");
+  expect(/DRBReflect\.sessions\(/.test(meetSource),
+    "만남 화면이 간담회 자료와 같은 저장 자리를 읽음");
+  expect(!/_review/.test(facSource) && !/_review/.test(reviewSource) && !/_review/.test(meetSource),
+    "저장 자리 이름은 reflectcard.js 한 곳에만 있음 (화면마다 따로 다루면 어긋남)");
+  expect(!/DRBLive/.test(meetSource) && !/fetch\(/.test(meetSource) && !/live\.js/.test(meetHtml),
+    "만남 화면은 서버를 부르지 않음 (인사자료를 서버에 더 두지 않음)");
+  expect(/DRBReflect\.card\(/.test(meetSource),
+    "만남 화면의 회고는 진행자 화면 · 간담회 자료와 같은 함수로 풀어냄");
+  expect(/reflectcard\.js/.test(meetHtml) && /actual_drb\.js/.test(meetHtml) && /js\/meet\.js/.test(meetHtml),
+    "만남 화면이 회고 카드 · DRB 실제 기록 · 자기 스크립트를 불러옴");
+  expect(/actual\s*&&\s*actual\.filled/.test(meetSource),
+    "만남 화면은 확인된 DRB 기록(filled)만 보여줌");
+  expect(/setFlipped\(card,\s*false\)/.test(meetSource),
+    "만남 화면의 카드는 덮인 채로 시작함 (아직 이야기하지 않은 조의 것을 먼저 읽지 않게)");
+  expect(/href="meet\.html"/.test(read("facilitator.html")),
+    "진행자 도구에 만남 화면으로 가는 버튼이 있음");
+  expect(/ASSETS\.fetch\(new Request\(new URL\("\/meet\.html"/.test(worker),
+    "worker 가 /meet 를 meet.html 로 연결함");
+
+  /* ★ 세션별 회고 저장 — 진짜 reflectcard.js 를 가짜 localStorage 위에서 돌려봅니다.
+       예전에는 저장 자리가 하나라, 다음 교육의 첫 회고가 지난 교육의 회고를 덮었습니다.
+       글자만 맞춰보면 "세션별로 저장한다고 적혀는 있는데 실제로는 덮는" 것을 못 잡습니다. */
+  (function () {
+    const mem = {};
+    let failWrites = false;
+    let tick = 0;
+    const box = {
+      console: { error: function () {} },
+      localStorage: {
+        getItem: function (k) { return k in mem ? mem[k] : null; },
+        setItem: function (k, v) { if (failWrites) throw new Error("quota"); mem[k] = String(v); },
+        removeItem: function (k) { delete mem[k]; }
+      },
+      /* 저장할 때마다 하루씩 뒤로 가는 시계 — 같은 밀리초에 넷을 저장하면 순서를 못 가립니다 */
+      Date: function () {
+        tick += 1;
+        const day = String(tick).padStart(2, "0");
+        this.toISOString = function () { return "2026-10-" + day + "T09:00:00.000Z"; };
+      }
+    };
+    box.window = { DRB_CONFIG: { storage: { key: "t" } } };
+    vm.createContext(box);
+    vm.runInContext(read("js/reflectcard.js"), box, { filename: "js/reflectcard.js" });
+    const R = box.window.DRBReflect;
+    const teamsOf = function (text) {
+      return [{ name: "1조", history: [], reflection: { pick: "decision:r1s1", comment: text } }];
+    };
+    const ids = function () { return R.sessions().map(function (s) { return s.id; }).join(","); };
+
+    expect(R.KEEP === 3, "남기는 세션 수가 3개임");
+    expect(R.sessions().length === 0, "저장된 회고가 없으면 빈 목록");
+
+    ["A", "B", "C", "D"].forEach(function (id) {
+      R.saveSession({ id: id, sessionId: id, teams: teamsOf(id + " 회고") });
+    });
+    expect(ids() === "D,C,B",
+      "네 번째 교육의 회고가 들어오면 가장 먼저 한 교육이 지워지고 최근 3개만 남음 (" + ids() + ")");
+    expect(R.sessions().filter(function (s) { return s.id === "C"; })[0].teams[0].reflection.comment === "C 회고",
+      "다음 교육의 회고가 들어와도 지난 교육의 회고가 덮이지 않음");
+
+    const firstSaved = R.sessions().filter(function (s) { return s.id === "B"; })[0].savedAt;
+    R.saveSession({ id: "B", sessionId: "B", teams: teamsOf("B 고친 회고") });
+    const again = R.sessions().filter(function (s) { return s.id === "B"; })[0];
+    expect(ids() === "D,C,B" && again.teams[0].reflection.comment === "B 고친 회고",
+      "같은 세션을 다시 저장하면 그 자리의 내용만 바뀜 (새 묶음이 생기지 않음)");
+    expect(again.savedAt === firstSaved,
+      "다시 저장해도 교육일은 처음 저장된 날 그대로 (진행자 화면을 다시 열어도 오늘 교육이 되지 않음)");
+
+    expect(R.removeSession("C") === true && ids() === "D,B", "세션 하나만 골라 지울 수 있음");
+
+    Object.keys(mem).forEach(function (k) { delete mem[k]; });
+    mem.t_review = JSON.stringify({ savedAt: "2026-09-01T09:00:00.000Z", sessionId: "OLD123", teams: teamsOf("예전 회고") });
+    const legacy = R.sessions();
+    expect(legacy.length === 1 && legacy[0].id === "OLD123" &&
+      legacy[0].teams[0].reflection.comment === "예전 회고",
+      "예전 방식(한 자리)으로 남아 있던 회고도 한 세션으로 읽힘 — 업데이트로 잃지 않음");
+    R.saveSession({ id: "NEW", sessionId: "NEW", teams: teamsOf("새 회고") });
+    expect(ids() === "NEW,OLD123" && !("t_review" in mem),
+      "새로 저장하면 예전 자리의 회고가 새 자리로 옮겨짐");
+
+    failWrites = true;
+    let threw = false;
+    let result = null;
+    try { result = R.saveSession({ id: "X", sessionId: "X", teams: teamsOf("x") }); }
+    catch (error) { threw = true; }
+    failWrites = false;
+    expect(!threw && result === false,
+      "저장에 실패하면 화면이 멈추지 않고 실패를 돌려줌 (진행자 화면이 안내를 띄움)");
+    expect(/reviewSaveFailed/.test(facSource) && /toast\("회고를 이 PC 에 저장하지 못했습니다/.test(facSource),
+      "진행자 화면이 저장 실패를 화면에 알림");
+  })();
   expect(/function\s+renderReflection\s*\(/.test(facSource) &&
     /bReflectCount/.test(facSource),
     "진행자 화면이 조별 제출 현황을 셈");
