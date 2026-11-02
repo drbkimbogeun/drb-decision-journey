@@ -728,23 +728,34 @@ function checkLiveApi() {
   expect(/actual\s*&&\s*actual\.filled/.test(meetSource),
     "만남 화면은 확인된 DRB 기록(filled)만 보여줌");
   expect(/setFlipped\(card,\s*false\)/.test(meetSource),
-    "만남 화면의 카드는 덮인 채로 시작함 (아직 이야기하지 않은 조의 것을 먼저 읽지 않게)");
-  /* 카드 안에 다 넣으면 글자가 작아 빔에서 읽히지 않습니다 — 뒤집으면 가운데 큰 창에 띄웁니다 */
-  expect(/id="mtModal"/.test(meetHtml) && /id="mtModalBody"/.test(meetHtml) && /openModal\(card\)/.test(meetSource),
-    "만남 화면은 카드를 뒤집으면 가운데 큰 창에 회고와 DRB 기록을 띄움");
-  expect(/key === "Escape"/.test(meetSource) && /closeModal\(\)/.test(meetSource),
-    "만남 화면의 큰 창은 Esc 와 닫기 버튼으로 닫힘");
+    "만남 화면의 조 카드는 덮인 채로 나옴 (아직 이야기하지 않은 조의 것을 먼저 읽지 않게)");
+  /* 슬라이드로 진행합니다 — 표지 → 맞았을까 → 불확실성 → (조 카드 덮인 면 ▶ 뒤집힘 ▶ 그때 윤혁님은?) × 조 → 마무리.
+     이 순서는 「애프터 토크 사회자 대본.md」 §1 과 같아야 합니다. */
+  expect(/id="mtStage"/.test(meetHtml) && ["title", "why", "future", "end"].every(function (id) {
+    return new RegExp('data-slide="' + id + '"').test(meetHtml);
+  }), "만남 화면에 표지 · 맞았을까 · 불확실성 · 마무리 장이 있음");
+  expect(/kind: "title"[\s\S]*?kind: "why"[\s\S]*?kind: "future"[\s\S]*?kind: "cover"[\s\S]*?kind: "open"[\s\S]*?kind: "cue"[\s\S]*?kind: "end"/.test(meetSource),
+    "슬라이드 순서가 대본과 같음 (표지 → 맞았을까 → 불확실성 → 조 카드 덮인 면 → 뒤집힘 → 그때 윤혁님은? → 마무리)");
+  /* 화면에는 질문을 띄우지 않습니다 — '그때 윤혁님은?' 한 줄뿐이고, 질문은 대본에만 있습니다 */
+  expect(/그때 윤혁님은\?/.test(meetSource) && !/윤혁님께 묻습니다/.test(meetHtml) && !/윤혁님께 묻습니다/.test(meetSource),
+    "'그때 윤혁님은?' 장은 한 줄뿐이고, 질문 장은 화면에 없음");
+  const talkScript = read("애프터 토크 사회자 대본.md");
+  expect(/그때 윤혁님은\?/.test(talkScript) && /윤혁님께 묻습니다/.test(talkScript) &&
+    [1, 2, 3, 4, 5, 6].every(function (n) { return new RegExp("### " + n + "국면").test(talkScript); }),
+    "질문은 사회자 대본에 있음 — 국면별 '그때 윤혁님은?' 6묶음과 '윤혁님께 묻습니다'");
   /* 진행자는 마우스 없이 프레젠터만 쥡니다 — ▶ 는 PageDown/→, ◀ 는 PageUp/← */
   expect(/"PageDown"/.test(meetSource) && /"ArrowRight"/.test(meetSource) && /"PageUp"/.test(meetSource) && /"ArrowLeft"/.test(meetSource),
-    "만남 화면은 프레젠터 ▶ ◀ (PageDown · PageUp · 화살표) 로 조를 차례로 넘김");
-  expect(/function next\(\)[\s\S]*?closeModal\(\)/.test(meetSource),
-    "마지막 조 다음 ▶ 는 창을 닫아 전체 카드로 돌아감");
+    "만남 화면은 프레젠터 ▶ ◀ (PageDown · PageUp · 화살표) 로 장을 넘김");
+  expect(/key === "Home" \|\| key === "Escape"[\s\S]*?first\(\)/.test(meetSource),
+    "Home · Esc 는 처음(표지)으로 돌아가고 카드를 다시 덮음");
   expect(/tag === "select"[\s\S]*?return/.test(meetSource),
     "세션 고르는 칸에 초점이 있을 때는 화살표가 슬라이드를 넘기지 않음");
-  expect(/mcard__print/.test(meetSource) && /\.mcard__print\s*\{\s*display:\s*block/.test(read("css/meet.css")),
-    "만남 화면을 인쇄하면 카드 자리에 회고 전체가 찍힘 (큰 창은 인쇄에 안 나옴)");
+  expect(/function written\(\)[\s\S]*?team\.reflection/.test(meetSource),
+    "회고를 남기지 않은 조는 슬라이드에서 건너뜀");
+  expect(/r3s2/.test(meetSource) && /id="slSignals"/.test(meetHtml),
+    "불확실성 장의 다섯 줄은 6국면 신호(data/rounds.js)에서 가져옴 — 따로 적지 않음");
   expect(!/대표님과의 만남/.test(meetHtml) && !/대표님과의 만남/.test(read("facilitator.html")),
-    "만남 화면 이름이 '윤혁님과의 만남' 으로 통일됨");
+    "만남 화면에 옛 이름('대표님과의 만남')이 남아 있지 않음");
   expect(/href="meet\.html"/.test(read("facilitator.html")),
     "진행자 도구에 만남 화면으로 가는 버튼이 있음");
   expect(/ASSETS\.fetch\(new Request\(new URL\("\/meet\.html"/.test(worker),

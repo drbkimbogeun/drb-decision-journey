@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>윤혁님과의 만남 · 80년의 여정</title>
+  <title>다시, 그 결정 앞에서 · 80년의 여정</title>
   <link rel="stylesheet" href="css/fonts.css">
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/base.css">
@@ -13,63 +13,155 @@
 </head>
 <body class="mt-body">
   <!-- ============================================================
-       윤혁님과의 만남 — 조별 회고를 카드로 뒤집어 봅니다
+       「다시, 그 결정 앞에서」 — 윤혁님과의 만남, 슬라이드로 진행합니다
 
        ★ 오전에 교육을 진행한 그 PC · 그 브라우저에서 엽니다.
          진행자 화면이 [회고] 챕터를 열 때 이 PC 에 복사해 둔 것만 읽습니다
          (간담회 자료 review.html 과 같은 저장분입니다). 서버를 부르지 않습니다.
-       ★ 카드는 덮인 채로 시작합니다. 한 조씩 뒤집어 가며 이야기합니다.
-         한꺼번에 다 펼쳐 놓으면 아직 이야기하지 않은 조의 것을 먼저 읽게 됩니다.
-       ★ 카드를 뒤집으면 가운데에 큰 창이 열립니다 — 그 조의 회고와 그때 DRB 의 실제 기록이
-         나란히 나옵니다. 카드 안에 넣으면 글자가 작아 빔에서 읽히지 않았습니다.
+       ★ 프레젠터 ▶ 한 번 = 한 장. 마우스는 쓰지 않습니다.
+         표지 → 맞았을까 → 불확실성 → (조 카드 덮인 면 ▶ 뒤집힘 ▶ 그때 윤혁님은?) × 조 → 마무리.
+         회고를 남기지 않은 조는 건너뜁니다.
+       ★ 화면에는 질문을 띄우지 않습니다. 질문은 「애프터 토크 사회자 대본.md」에만 있습니다.
+       ★ 이 파일의 고정 문장(표지 · 맞았을까 · 불확실성 · 마무리)은 여기서 바로 고칩니다.
+         조 카드와 '그때 윤혁님은?' 은 meet.js 가 저장된 회고로 만듭니다.
        ============================================================ -->
   <header class="mt-top no-print" id="mtTop">
     <span class="mt-top__brand">80년의 여정</span>
-    <span class="mt-top__title">윤혁님과의 만남</span>
+    <span class="mt-top__title">다시, 그 결정 앞에서</span>
     <span class="mt-top__meta" id="mtMeta"></span>
     <span class="spacer"></span>
     <!-- 회고는 세션마다 따로 남습니다 (최근 3개). 세션이 둘 이상일 때만 고르는 칸이 보입니다. -->
     <select class="mt-top__session hidden" id="mtSession" aria-label="교육 세션 고르기"></select>
     <button class="btn btn--sm btn--ghost hidden" id="btnMtDelete">이 세션 지우기</button>
-    <button class="btn btn--sm btn--ghost" id="btnMtReset">모두 덮기</button>
+    <button class="btn btn--sm btn--ghost" id="btnMtReset">처음으로</button>
     <a class="btn btn--sm btn--ghost" href="review.html" target="_blank" rel="noopener">간담회 자료 ↗</a>
   </header>
 
-  <main class="mt-main" id="mtMain">
-    <div class="mt-head">
-      <h1 class="mt-head__title">각 조가 다시 이야기하고 싶은 결정</h1>
-      <p class="mt-head__lead">
-        카드를 누르면 뒤집히면서 가운데에 크게 열립니다. 그 조가 고른 결정과,
-        앞으로 비슷한 상황이 오면 어떻게 하겠는지 적은 것이 그때 DRB의 기록과 나란히 나옵니다.
-      </p>
-      <!-- 진행자는 마우스 없이 프레젠터만 쥐고 있습니다. ▶ 는 PageDown/→, ◀ 는 PageUp/← 로 들어옵니다. -->
-      <p class="mt-head__keys no-print">
-        프레젠터 · 키보드 — <b>▶ (PageDown · →)</b> 1조부터 차례로 다음 조 ·
-        <b>◀ (PageUp · ←)</b> 이전 조 · <b>Esc</b> 창 닫기 · <b>Home</b> 모두 덮기
-      </p>
-      <p class="mt-head__where" id="mtWhen"></p>
-    </div>
+  <main class="mt-stage" id="mtStage">
 
-    <div class="mt-state" id="mtState"></div>
-    <div class="mt-grid" id="mtGrid"></div>
-
-    <p class="mt-foot no-print">
-      이 화면은 이 PC에만 저장되어 있습니다. 최근 3개 세션까지 남고, 더 들어오면 가장 먼저 한 교육부터 지워집니다.
-      금색 칸은 확인된 DRB의 실제 기록입니다.
-    </p>
-  </main>
-
-  <!-- 뒤집은 조의 회고를 크게 보는 창. 내용은 meet.js 가 카드를 뒤집을 때 채웁니다. -->
-  <div class="modal mt-modal no-print" id="mtModal">
-    <div class="modal__panel mt-modal__panel" id="mtModalPanel" role="dialog" aria-modal="true" aria-labelledby="mtModalTeam" tabindex="-1">
-      <div class="mt-modal__bar">
-        <span class="mcard__team" id="mtModalTeam"></span>
-        <span class="spacer"></span>
-        <button class="btn btn--sm btn--ghost" id="btnMtModalClose" type="button">닫기 (Esc)</button>
+    <!-- 1 표지 -->
+    <section class="slide slide--dark" data-slide="title">
+      <div class="sl-head">
+        <span class="sl-kicker">DRB 신규입사자 온보딩 · 애프터 토크</span>
+        <span class="sl-section" id="slDate"></span>
       </div>
-      <div class="mt-modal__body" id="mtModalBody"></div>
-    </div>
-  </div>
+      <div class="sl-hero">
+        <span class="sl-label">80년의 여정 : 그때, 당신이라면? — 두 번째 시간</span>
+        <h1 class="sl-h1 sl-h1--huge">다시,<br>그 결정 앞에서</h1>
+        <p class="sl-sub">오늘의 손님 <b>윤혁님</b> · 사회 인사팀 · <span id="slTeams">1조부터 4조까지</span></p>
+      </div>
+      <div class="tl">
+        <div class="tl__track">
+          <div class="tl__dots"><i></i><i></i><i></i><i></i><i></i><i class="is-now"></i></div>
+          <div class="tl__years"><span>1945</span><span>1965</span><span>1986</span><span>1997</span><span>2012</span><span class="is-now">2026</span></div>
+        </div>
+        <div class="tl__ahead"><span class="tl__dash"></span><span class="tl__next">그리고 다음 결정 ?</span></div>
+      </div>
+      <p class="sl-state hidden" id="slState"></p>
+    </section>
+
+    <!-- 2 그 결정은 맞았을까, 틀렸을까 -->
+    <section class="slide" data-slide="why">
+      <div class="sl-head">
+        <span class="sl-brand">다시, 그 결정 앞에서</span>
+        <span class="sl-section">오늘의 이야기 · 1 / 2</span>
+      </div>
+      <h1 class="sl-h1">그 결정은 맞았을까, 틀렸을까</h1>
+      <p class="sl-lead">결정하는 순간에는 누구도 모릅니다. 맞고 틀림은 결과가 나온 뒤에야 보입니다.</p>
+      <div class="sl-grid sl-grid--4">
+        <article class="sl-card">
+          <span class="sl-year">1947</span>
+          <h2 class="sl-card__t">살 사람이 없던<br>벨트를 시작하다</h2>
+          <div class="sl-rows">
+            <div class="sl-row"><i class="sl-ic sl-ic--q" aria-hidden="true">?</i><span><b>그때</b> — 무모해 보였다</span></div>
+            <div class="sl-row"><i class="sl-ic sl-ic--ok" aria-hidden="true"><svg viewBox="0 0 26 26"><polyline points="5,14 11,20 21,7" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></polyline></svg></i><span><b>지금</b> — 회사의 이름이 됐다</span></div>
+          </div>
+        </article>
+        <article class="sl-card">
+          <span class="sl-year">1967</span>
+          <h2 class="sl-card__t">시장이 없던 자동차 부품,<br>현대자동차와 함께</h2>
+          <div class="sl-rows">
+            <div class="sl-row"><i class="sl-ic sl-ic--q" aria-hidden="true">?</i><span><b>그때</b> — 팔 데가 없었다</span></div>
+            <div class="sl-row"><i class="sl-ic sl-ic--ok" aria-hidden="true"><svg viewBox="0 0 26 26"><polyline points="5,14 11,20 21,7" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></polyline></svg></i><span><b>지금</b> — 완성차와 함께 컸다</span></div>
+          </div>
+        </article>
+        <article class="sl-card">
+          <span class="sl-year">2021</span>
+          <h2 class="sl-card__t">고무 회사가<br>헬스케어에 들어가다</h2>
+          <div class="sl-rows">
+            <div class="sl-row"><i class="sl-ic sl-ic--q" aria-hidden="true">?</i><span><b>그때</b> — 낯선 길이었다</span></div>
+            <div class="sl-row"><i class="sl-ic sl-ic--open" aria-hidden="true">?</i><span><b>지금</b> — 아직 채점 중이다</span></div>
+          </div>
+        </article>
+        <article class="sl-card">
+          <span class="sl-year sl-year--now">2026</span>
+          <h2 class="sl-card__t">오늘 우리가<br>내리는 결정</h2>
+          <div class="sl-rows">
+            <div class="sl-row"><i class="sl-ic sl-ic--now" aria-hidden="true">?</i><span><b>그때</b> — 지금 이 순간</span></div>
+            <div class="sl-row"><i class="sl-ic sl-ic--now" aria-hidden="true">?</i><span><b>지금</b> — 아무도 모른다</span></div>
+          </div>
+        </article>
+      </div>
+      <p class="sl-closing">그러니 과거의 결정을 채점하는 데 머물지 않습니다. 모르는 채로도 결정할 수 있는 힘이 중요합니다.</p>
+    </section>
+
+    <!-- 3 앞에는 더 많은 불확실성이 있습니다 -->
+    <section class="slide" data-slide="future">
+      <div class="sl-head">
+        <span class="sl-brand">다시, 그 결정 앞에서</span>
+        <span class="sl-section">오늘의 이야기 · 2 / 2</span>
+      </div>
+      <h1 class="sl-h1">앞에는 더 많은 불확실성이 있습니다</h1>
+      <p class="sl-lead">지나온 80년보다 다가오는 10년에 모르는 것이 더 많습니다. 우리가 집중할 곳은 여기입니다.</p>
+      <div class="sl-grid sl-grid--future">
+        <article class="sl-card sl-card--cone">
+          <!-- 뒤로 갈수록 넓어지는 띠 — 모르는 것이 많아진다는 뜻. --h 는 가장 긴 막대 대비 높이 -->
+          <div class="cone">
+            <i style="--h: .12"></i><i style="--h: .12"></i><i style="--h: .12"></i><i style="--h: .12"></i><i style="--h: .12"></i>
+            <i class="is-now" style="--h: .18"></i>
+            <i class="is-next" style="--h: .36"></i><i class="is-next" style="--h: .56"></i><i class="is-next" style="--h: .78"></i><i class="is-next" style="--h: 1"></i>
+          </div>
+          <div class="cone__years">
+            <span>1945</span><span>1965</span><span>1986</span><span>1997</span><span>2012</span>
+            <span class="is-now">2026</span><span class="is-next">2028</span><span class="is-next">2030</span><span class="is-next">2033</span><span class="is-next">2036</span>
+          </div>
+          <div class="cone__caps"><span>결과를 아는 결정들 — 좁다</span><span>결과를 모르는 결정들 — 갈수록 넓어진다</span></div>
+        </article>
+        <article class="sl-card sl-card--list">
+          <span class="sl-card__k">2026년, 지금 보이는 것만 해도</span>
+          <!-- 6국면 빔에 뜨는 신호 그대로 (data/rounds.js) — meet.js 가 채웁니다 -->
+          <ul class="sl-list" id="slSignals"></ul>
+          <span class="sl-card__k sl-card__k--foot">그리고 아직 이름이 없는 것들</span>
+        </article>
+      </div>
+      <p class="sl-closing">미리 준비하고, 모든 부서가 함께 보고, 모르는 채로도 결정합니다. 그렇게 헤쳐 나갑니다.</p>
+    </section>
+
+    <!-- 조 카드 · 그때 윤혁님은? — meet.js 가 저장된 회고로 여기(마무리 앞)에 끼워 넣습니다 -->
+
+    <!-- 마무리 -->
+    <section class="slide slide--dark" data-slide="end" id="slEnd">
+      <div class="sl-head">
+        <span class="sl-kicker">다시, 그 결정 앞에서</span>
+        <span class="sl-section">마무리</span>
+      </div>
+      <div class="sl-hero">
+        <span class="sl-label">1945 → 2026 → 그리고</span>
+        <h1 class="sl-h1 sl-h1--huge">불확실한 쪽으로,<br>함께 갑니다</h1>
+        <p class="sl-sub">다음 결정은 오늘 이 자리에 있는 여러분과 함께 내립니다.<br>윤혁님, 오늘 이야기 감사합니다.</p>
+      </div>
+      <div class="tl">
+        <div class="tl__track">
+          <div class="tl__dots"><i></i><i></i><i></i><i></i><i></i><i class="is-now"></i></div>
+          <div class="tl__years"><span>1945</span><span>1965</span><span>1986</span><span>1997</span><span>2012</span><span class="is-now">2026</span></div>
+        </div>
+        <div class="tl__ahead"><span class="tl__dash"></span><span class="tl__next">단체 사진 — 앞으로 모여 주세요</span></div>
+      </div>
+    </section>
+
+    <!-- 다음 ▶ 가 무엇을 하는지 — 오른쪽 아래 작은 안내 -->
+    <div class="sl-hint" id="mtHint"></div>
+  </main>
 
   <script src="data/config.js"></script>
   <script src="data/eras.js"></script>
