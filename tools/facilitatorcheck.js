@@ -288,6 +288,8 @@ function checkStructure(W) {
         if (Array.isArray(list)) {
           list.forEach(function (row) {
             expect(row && isNonEmptyString(row.text), sub.id + " " + key + " 신호에 문장이 있음");
+            /* 사회자 대본(tools/script.js)이 이 문장을 그대로 씁니다. 없으면 대본에 구멍이 납니다. */
+            expect(row && isNonEmptyString(row.say), sub.id + " " + key + " 신호에 사회자가 풀어 말할 문장(say)이 있음");
           });
         }
       });
@@ -708,7 +710,7 @@ function checkLiveApi() {
   expect(/ASSETS\.fetch\(new Request\(new URL\("\/review\.html"/.test(worker),
     "worker 가 /review 를 review.html 로 연결함");
 
-  /* 대표님과의 만남 — 조별 회고를 카드로 뒤집어 봅니다.
+  /* 윤혁님과의 만남 — 조별 회고를 카드로 뒤집어 봅니다.
      간담회 자료와 같은 저장분을 읽고, 같은 함수로 회고를 풀어야 합니다.
      한쪽만 따로 만들면 같은 조의 회고가 화면마다 다르게 나옵니다. */
   const meetSource = read("js/meet.js");
@@ -727,6 +729,22 @@ function checkLiveApi() {
     "만남 화면은 확인된 DRB 기록(filled)만 보여줌");
   expect(/setFlipped\(card,\s*false\)/.test(meetSource),
     "만남 화면의 카드는 덮인 채로 시작함 (아직 이야기하지 않은 조의 것을 먼저 읽지 않게)");
+  /* 카드 안에 다 넣으면 글자가 작아 빔에서 읽히지 않습니다 — 뒤집으면 가운데 큰 창에 띄웁니다 */
+  expect(/id="mtModal"/.test(meetHtml) && /id="mtModalBody"/.test(meetHtml) && /openModal\(card\)/.test(meetSource),
+    "만남 화면은 카드를 뒤집으면 가운데 큰 창에 회고와 DRB 기록을 띄움");
+  expect(/key === "Escape"/.test(meetSource) && /closeModal\(\)/.test(meetSource),
+    "만남 화면의 큰 창은 Esc 와 닫기 버튼으로 닫힘");
+  /* 진행자는 마우스 없이 프레젠터만 쥡니다 — ▶ 는 PageDown/→, ◀ 는 PageUp/← */
+  expect(/"PageDown"/.test(meetSource) && /"ArrowRight"/.test(meetSource) && /"PageUp"/.test(meetSource) && /"ArrowLeft"/.test(meetSource),
+    "만남 화면은 프레젠터 ▶ ◀ (PageDown · PageUp · 화살표) 로 조를 차례로 넘김");
+  expect(/function next\(\)[\s\S]*?closeModal\(\)/.test(meetSource),
+    "마지막 조 다음 ▶ 는 창을 닫아 전체 카드로 돌아감");
+  expect(/tag === "select"[\s\S]*?return/.test(meetSource),
+    "세션 고르는 칸에 초점이 있을 때는 화살표가 슬라이드를 넘기지 않음");
+  expect(/mcard__print/.test(meetSource) && /\.mcard__print\s*\{\s*display:\s*block/.test(read("css/meet.css")),
+    "만남 화면을 인쇄하면 카드 자리에 회고 전체가 찍힘 (큰 창은 인쇄에 안 나옴)");
+  expect(!/대표님과의 만남/.test(meetHtml) && !/대표님과의 만남/.test(read("facilitator.html")),
+    "만남 화면 이름이 '윤혁님과의 만남' 으로 통일됨");
   expect(/href="meet\.html"/.test(read("facilitator.html")),
     "진행자 도구에 만남 화면으로 가는 버튼이 있음");
   expect(/ASSETS\.fetch\(new Request\(new URL\("\/meet\.html"/.test(worker),

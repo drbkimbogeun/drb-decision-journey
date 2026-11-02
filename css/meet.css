@@ -1,7 +1,8 @@
 /* ============================================================================
-   meet.css — 대표님과의 만남
+   meet.css — 윤혁님과의 만남
 
-   조마다 카드 한 장. 덮인 면은 조 이름만, 뒤집으면 그 조의 회고입니다.
+   조마다 카드 한 장. 덮인 면은 조 이름만, 뒤집으면 그 조가 고른 국면이 남고
+   회고 전체는 가운데 큰 창(.mt-modal)에 뜹니다.
    인쇄해서 읽는 문서(review.css)와 달리, 화면에 띄워 놓고 한 장씩 뒤집으며
    이야기하는 자리라 글자를 크게 둡니다.
    색·간격 값은 여기서 정하지 않습니다. tokens.css 의 변수만 씁니다.
@@ -73,6 +74,23 @@ body.mt-body {
   line-height: 1.7;
 }
 .mt-head__where { margin-top: var(--sp-2); color: var(--text-3); font-size: var(--fs-small); }
+/* 프레젠터 안내 — 진행자가 처음 열었을 때 어느 버튼을 누르면 되는지 */
+.mt-head__keys {
+  margin-top: var(--sp-3);
+  color: var(--text-2);
+  font-size: var(--fs-small);
+  line-height: 1.6;
+}
+.mt-head__keys b {
+  padding: 1px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--bg-2);
+  color: var(--text-1);
+  font-weight: var(--fw-strong);
+}
+/* 초점이 판에 올 때 테두리가 번쩍이지 않게 — 키보드로 넘기는 동안 초점은 늘 여기 있습니다 */
+.mt-modal__panel:focus { outline: none; }
 
 .mt-state {
   padding: var(--sp-5);
@@ -259,6 +277,47 @@ body.mt-body {
 }
 .mcard__drb p + p { margin-top: var(--sp-3); }
 
+/* 뒤집은 카드에는 국면 · 제목과 [크게 보기] 만 남습니다.
+   회고 전체는 인쇄할 때만 카드 자리에 찍힙니다 (아래 @media print). */
+.mcard__open { align-self: flex-start; margin-top: auto; }
+.mcard__print { display: none; }
+
+/* ---------- 가운데 큰 창 — 회고와 DRB 기록을 나란히 ----------
+   카드 안에 넣었을 때는 글자가 작아 빔에서 읽히지 않았습니다.
+   바탕(.modal)과 판(.modal__panel)은 components.css 의 공용 모달이고,
+   여기서는 크기와 글자만 키웁니다. */
+.mt-modal__panel {
+  width: min(1480px, 100%);
+  max-height: calc(92 * var(--vh));
+  padding: clamp(24px, 2.6vw, 40px);
+  border-radius: var(--r-xl);
+  background: var(--bg-2);
+}
+.mt-modal__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+}
+.mt-modal__body .mcard__cols {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr));
+  gap: clamp(24px, 3vw, 48px);
+}
+.mt-modal__body .mcard__when { font-size: var(--fs-body); }
+.mt-modal__body .mcard__title { font-size: clamp(28px, 2.6vw, 44px); }
+.mt-modal__body .mcard__situation { font-size: clamp(16px, 1.3vw, 20px); }
+.mt-modal__body .mcard__label { font-size: var(--fs-small); }
+.mt-modal__body .mcard__value { font-size: clamp(16px, 1.3vw, 20px); }
+.mt-modal__body .mcard__comment { font-size: clamp(22px, 2.1vw, 34px); line-height: 1.6; }
+.mt-modal__body .mcard__drb {
+  padding: var(--sp-5);
+  font-size: clamp(16px, 1.3vw, 20px);
+  line-height: 1.75;
+}
+.mt-modal__body .mcard__drb-label { font-size: var(--fs-small); }
+/* 창이 떠 있는 동안 뒤의 화면은 스크롤되지 않게 */
+body.mt-modal-open { overflow: hidden; }
+
 /* 회고를 남기지 않은 조 — 뒤집을 것이 없습니다 */
 .mcard--empty {
   align-content: center;
@@ -287,5 +346,7 @@ body.mt-body {
   .mcard__inner, .mcard__back { transform: none !important; }
   .mcard__front { display: none; }
   .mcard__back { border-color: #CCCCCC; box-shadow: none; }
-  .mcard__close { display: none; }
+  .mcard__close, .mcard__open { display: none; }
+  .mcard__print { display: block; }
+  .mt-modal { display: none !important; }
 }

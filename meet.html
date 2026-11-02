@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>대표님과의 만남 · 80년의 여정</title>
+  <title>윤혁님과의 만남 · 80년의 여정</title>
   <link rel="stylesheet" href="css/fonts.css">
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/base.css">
@@ -13,17 +13,19 @@
 </head>
 <body class="mt-body">
   <!-- ============================================================
-       대표님과의 만남 — 조별 회고를 카드로 뒤집어 봅니다
+       윤혁님과의 만남 — 조별 회고를 카드로 뒤집어 봅니다
 
        ★ 오전에 교육을 진행한 그 PC · 그 브라우저에서 엽니다.
          진행자 화면이 [회고] 챕터를 열 때 이 PC 에 복사해 둔 것만 읽습니다
          (간담회 자료 review.html 과 같은 저장분입니다). 서버를 부르지 않습니다.
        ★ 카드는 덮인 채로 시작합니다. 한 조씩 뒤집어 가며 이야기합니다.
          한꺼번에 다 펼쳐 놓으면 아직 이야기하지 않은 조의 것을 먼저 읽게 됩니다.
+       ★ 카드를 뒤집으면 가운데에 큰 창이 열립니다 — 그 조의 회고와 그때 DRB 의 실제 기록이
+         나란히 나옵니다. 카드 안에 넣으면 글자가 작아 빔에서 읽히지 않았습니다.
        ============================================================ -->
-  <header class="mt-top no-print">
+  <header class="mt-top no-print" id="mtTop">
     <span class="mt-top__brand">80년의 여정</span>
-    <span class="mt-top__title">대표님과의 만남</span>
+    <span class="mt-top__title">윤혁님과의 만남</span>
     <span class="mt-top__meta" id="mtMeta"></span>
     <span class="spacer"></span>
     <!-- 회고는 세션마다 따로 남습니다 (최근 3개). 세션이 둘 이상일 때만 고르는 칸이 보입니다. -->
@@ -33,12 +35,17 @@
     <a class="btn btn--sm btn--ghost" href="review.html" target="_blank" rel="noopener">간담회 자료 ↗</a>
   </header>
 
-  <main class="mt-main">
+  <main class="mt-main" id="mtMain">
     <div class="mt-head">
       <h1 class="mt-head__title">각 조가 다시 이야기하고 싶은 결정</h1>
       <p class="mt-head__lead">
-        카드를 누르면 뒤집힙니다. 그 조가 고른 결정과,
-        앞으로 비슷한 상황이 오면 어떻게 하겠는지 적은 것이 나옵니다.
+        카드를 누르면 뒤집히면서 가운데에 크게 열립니다. 그 조가 고른 결정과,
+        앞으로 비슷한 상황이 오면 어떻게 하겠는지 적은 것이 그때 DRB의 기록과 나란히 나옵니다.
+      </p>
+      <!-- 진행자는 마우스 없이 프레젠터만 쥐고 있습니다. ▶ 는 PageDown/→, ◀ 는 PageUp/← 로 들어옵니다. -->
+      <p class="mt-head__keys no-print">
+        프레젠터 · 키보드 — <b>▶ (PageDown · →)</b> 1조부터 차례로 다음 조 ·
+        <b>◀ (PageUp · ←)</b> 이전 조 · <b>Esc</b> 창 닫기 · <b>Home</b> 모두 덮기
       </p>
       <p class="mt-head__where" id="mtWhen"></p>
     </div>
@@ -51,6 +58,18 @@
       금색 칸은 확인된 DRB의 실제 기록입니다.
     </p>
   </main>
+
+  <!-- 뒤집은 조의 회고를 크게 보는 창. 내용은 meet.js 가 카드를 뒤집을 때 채웁니다. -->
+  <div class="modal mt-modal no-print" id="mtModal">
+    <div class="modal__panel mt-modal__panel" id="mtModalPanel" role="dialog" aria-modal="true" aria-labelledby="mtModalTeam" tabindex="-1">
+      <div class="mt-modal__bar">
+        <span class="mcard__team" id="mtModalTeam"></span>
+        <span class="spacer"></span>
+        <button class="btn btn--sm btn--ghost" id="btnMtModalClose" type="button">닫기 (Esc)</button>
+      </div>
+      <div class="mt-modal__body" id="mtModalBody"></div>
+    </div>
+  </div>
 
   <script src="data/config.js"></script>
   <script src="data/eras.js"></script>
