@@ -200,7 +200,16 @@ const server = http.createServer((req, res) => {
       await fac.waitForTimeout(280);
       continue;
     }
-    await fac.click("#btnNextStep");
+    /* 회사 사진 · 맺음말은 머리띠 없이 화면 전체라 [다음] 버튼이 없습니다 — 리모컨 ▶ 로 넘깁니다 */
+    const cinema = await fac.evaluate(() => document.body.classList.contains("is-cinema"));
+    if (cinema && stage === "closing") break;
+    if (cinema) await fac.keyboard.press("ArrowRight");
+    else await fac.click("#btnNextStep");
+    await fac.waitForTimeout(280);
+  }
+  /* 도구 버튼은 머리띠에 있으므로, 화면 전체 장에서 회고까지 ◀ 로 돌아옵니다 */
+  for (let i = 0; i < 3 && await fac.evaluate(() => document.body.classList.contains("is-cinema")); i++) {
+    await fac.keyboard.press("ArrowLeft");
     await fac.waitForTimeout(280);
   }
   /* 간담회 자료 — 진행자 화면이 회고 챕터에서 이 PC 에 저장해둔 것을 읽습니다 */

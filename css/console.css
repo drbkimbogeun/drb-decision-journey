@@ -1315,6 +1315,20 @@ body.fac-body {
 }
 .fac-film__caption:empty { display: none; }
 
+/* ---------- 회사 사진 · 맺음말 — 화면 전체 ----------
+   두 장에서는 위 머리띠 · 챕터 줄 · 안전 띠를 모두 걷고 본문이 화면을 덮습니다.
+   (js/facilitator.js 가 이 두 챕터에서만 body 에 is-cinema 를 답니다.) */
+body.is-cinema .fac-top,
+body.is-cinema .fac-chap { display: none; }
+body.is-cinema .fac-main {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  padding: 0;
+}
+body.is-cinema .fac-film,
+body.is-cinema .fac-closing { border-radius: 0; }
+
 /* 2초 안에 움직이는 것이 보여야 하므로 폭을 조금 키웠습니다 */
 @keyframes film-zoom-a {
   from { transform: scale(1.00); }

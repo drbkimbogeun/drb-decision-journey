@@ -1817,7 +1817,13 @@
 
     function show() {
       film.at += 1;
-      if (film.at >= photos.length) return;   /* 마지막 장은 그대로 둡니다 */
+      /* 마지막 장까지 흐르면 맺음말로 저절로 넘어갑니다 — 진행자가 손대지 않아도
+         사진에서 말로 끊김 없이 이어집니다. 두 장 다 화면 전체(is-cinema)입니다. */
+      if (film.at >= photos.length) {
+        film.timer = null;
+        if (currentStage === "finale") goStep(1);
+        return;
+      }
 
       var photo = photos[film.at];
       var next = layers[film.at % 2];
@@ -2058,6 +2064,10 @@
       lastAlarmStage = stage + selectedTurn;
       flashShock();
     }
+
+    /* 회사 사진 · 맺음말은 위 머리띠와 챕터 줄을 걷고 화면 전체로 띄웁니다.
+       ◀ / ▶ 리모컨은 그대로 듣습니다 — 다른 챕터로 가면 띠가 돌아옵니다. */
+    document.body.classList.toggle("is-cinema", stage === "finale" || stage === "closing");
 
     /* 맺음말 화면에 들어온 순간 글자가 찍히기 시작합니다 */
     if (stage === "closing") startClosing();

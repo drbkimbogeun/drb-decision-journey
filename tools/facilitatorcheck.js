@@ -867,6 +867,12 @@ function checkLiveApi() {
   expect(tailOrder.every(function (at) { return at > 0; }) &&
     tailOrder[0] < tailOrder[1] && tailOrder[1] < tailOrder[2] && tailOrder[2] < tailOrder[3],
     "마지막 챕터 순서 : 시상 → 회고 → 회사 사진 → 맺음말");
+  /* 회사 사진 · 맺음말은 위 띠를 걷고 화면 전체로, 사진이 끝나면 맺음말로 저절로 */
+  expect(/classList\.toggle\("is-cinema",\s*stage === "finale" \|\| stage === "closing"\)/.test(facSource) &&
+    /body\.is-cinema \.fac-top/.test(read("css/console.css")),
+    "회사 사진 · 맺음말은 머리띠 없이 화면 전체로 뜸");
+  expect(/film\.at >= photos\.length\)[\s\S]{0,200}?currentStage === "finale"\) goStep\(1\)/.test(facSource),
+    "회사 사진이 끝나면 맺음말로 저절로 넘어감");
 
   const workerSnapshot = functionSource(worker, "sanitizeSnapshot");
   const workerHistory = functionSource(worker, "sanitizeHistoryEntry");
