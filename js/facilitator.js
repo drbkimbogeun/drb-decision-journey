@@ -1794,6 +1794,20 @@
     if (film.timer) { clearTimeout(film.timer); film.timer = null; }
   }
 
+  function photoHold() { return (CFG.closing && CFG.closing.photoMs) || 2000; }
+
+  /* 엔딩곡을 몇 초부터 틀지 — 사람이 부르는 대목(config 의 audio.finaleVocalAt)이
+     맺음말 첫 글자와 함께 들어오도록 앞을 자릅니다.
+     사진에서 시작하면 사진이 흐르는 시간만큼 앞당겨 틀고 (사진이 끝나면 맺음말로 저절로 넘어갑니다),
+     맺음말로 바로 들어오면 그 대목부터 틉니다. 같은 곡이 이미 흐르고 있으면 audio.js 가 무시합니다. */
+  function finaleStartAt(stage) {
+    var vocalAt = (CFG.audio && CFG.audio.finaleVocalAt) || 0;
+    if (!vocalAt) return 0;
+    if (stage === "finale") return Math.max(0, vocalAt - endingPhotos().length * photoHold() / 1000);
+    if (stage === "closing") return vocalAt;
+    return 0;
+  }
+
   function startFilm() {
     stopFilm();
     var photos = endingPhotos();
@@ -1807,7 +1821,7 @@
     var layers = [document.createElement("div"), document.createElement("div")];
     layers.forEach(function (n) { n.className = "fac-film__shot"; stage.appendChild(n); });
 
-    var hold = (CFG.closing && CFG.closing.photoMs) || 2000;
+    var hold = photoHold();
     /* ★ 겹쳐 넘어가는 시간과 확대 시간을 머무는 시간에서 뽑습니다.
          CSS 에 고정해두면 photoMs 를 줄였을 때 앞 장이 다 사라지기도 전에
          다음 장이 오고, 확대는 시작만 하다 끝납니다.
@@ -2053,7 +2067,7 @@
     /* ★ 배경음악은 이 화면에서만 납니다 (교육장에 스피커는 하나여야 합니다).
          곡은 챕터를 따라갑니다 — 어느 챕터가 어느 곡인지는 config 의 musicByScreen. */
     if (window.DRBAudio) {
-      window.DRBAudio.scene(stage);
+      window.DRBAudio.scene(stage, finaleStartAt(stage));
       window.DRBAudio.duck(stage === "event");
     }
 

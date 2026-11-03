@@ -873,6 +873,15 @@ function checkLiveApi() {
     "회사 사진 · 맺음말은 머리띠 없이 화면 전체로 뜸");
   expect(/film\.at >= photos\.length\)[\s\S]{0,200}?currentStage === "finale"\) goStep\(1\)/.test(facSource),
     "회사 사진이 끝나면 맺음말로 저절로 넘어감");
+  /* 엔딩곡은 사람이 부르는 대목이 맺음말 첫 글자와 함께 들어오도록 앞을 잘라 틉니다.
+     배포 서버가 Range 를 받지 않아 주소로 걸면 중간으로 못 건너뛰므로, 엔딩곡은 통째로 받아 겁니다. */
+  const audioSource = read("js/audio.js");
+  expect(/finaleVocalAt:\s*\d/.test(read("data/config.js")) &&
+    /DRBAudio\.scene\(stage,\s*finaleStartAt\(stage\)\)/.test(facSource) &&
+    /vocalAt - endingPhotos\(\)\.length \* photoHold\(\) \/ 1000/.test(facSource),
+    "엔딩곡은 노래 대목 − 사진 시간만큼 앞을 잘라 틂");
+  expect(/name === "finale" && cfg\.finaleVocalAt > 0/.test(audioSource) && /function takeWhole\(/.test(audioSource),
+    "엔딩곡은 통째로 받아 걸어 중간으로 건너뛸 수 있음 (서버가 Range 를 받지 않음)");
 
   const workerSnapshot = functionSource(worker, "sanitizeSnapshot");
   const workerHistory = functionSource(worker, "sanitizeHistoryEntry");

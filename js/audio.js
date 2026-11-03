@@ -140,7 +140,8 @@ window.DRBAudio = (function () {
     return "audio/mpeg";
   }
 
-  function loadTrack(src, loop, eager) {
+  /* whole — 중간부터 틀어야 하는 곡. 주소로 걸지 않고 takeWhole 이 통째로 받아 겁니다. */
+  function loadTrack(src, loop, eager, whole) {
     var el = new Audio();
     el.loop = !!loop;
     el.volume = 0;
@@ -148,7 +149,8 @@ window.DRBAudio = (function () {
          당기게 됩니다. 그래서 처음엔 지금 쓸 곡만 받고, 나머지는 첫 곡이 다 들어온
          뒤에 조용히 뒤에서 받습니다 (첫 국면이 몇 분이라 충분합니다). */
     el.preload = eager ? "auto" : "metadata";
-    el.src = src;
+    if (whole) el.dataset.whole = src;
+    else el.src = src;
 
     /* ★ 곡이 2분이고 국면이 5분입니다. 끝까지 가면 처음으로 되감아 다시 겁니다.
          el.loop 만으로는 브라우저·형식에 따라 한 번 돌고 멈추는 경우가 있어
@@ -173,7 +175,10 @@ window.DRBAudio = (function () {
         if (!r.ok) throw new Error("no file");
         return r.arrayBuffer();
       }).then(function (buf) {
+        /* 앞을 잘라 틀라고 받은 자리(scene 의 startAt)는 src 를 바꾸면 0 으로 돌아가므로 다시 걸어줍니다 */
+        var resumeAt = el.currentTime || 0;
         el.src = URL.createObjectURL(new Blob([buf], { type: sniff(new Uint8Array(buf.slice(0, 16))) }));
+        if (resumeAt > 0) { try { el.currentTime = resumeAt; } catch (e) {} }
         /* src 를 바꾸면 loop 는 유지되지만, 재생 중이었다면 다시 걸어줘야 합니다 */
         if (playing === el && !muted) fade(el, baseVolume(), 600);
       }).catch(function () { el.dataset.missing = "1"; });
@@ -186,7 +191,8 @@ window.DRBAudio = (function () {
     if (tracks.normal || shockTrack) return;
     var files = cfg.music || {};
     Object.keys(files).forEach(function (name) {
-      tracks[name] = loadTrack(files[name], true, name === "normal");
+      /* 엔딩곡은 노래 대목에 맞춰 중간부터 틀므로 통째로 받습니다 (config 의 finaleVocalAt) */
+      tracks[name] = loadTrack(files[name], true, name === "normal", name === "finale" && cfg.finaleVocalAt > 0);
     });
     /* 알람은 작고(0.2MB) 언제 터질지 모르므로 미리 받아둡니다 */
     if (cfg.shock) shockTrack = loadTrack(cfg.shock, false, true);
@@ -206,8 +212,29 @@ window.DRBAudio = (function () {
       var el = tracks[name];
       /* load() 는 재생을 처음으로 되돌립니다. 지금 울리는 곡은 건드리지 않습니다. */
       if (name === "normal" || el === playing) return;
+      if (el.dataset.whole) { takeWhole(el); return; }
       try { el.preload = "auto"; el.load(); } catch (e) {}
     });
+  }
+
+  /* ★ 배포 서버는 파일 일부만 달라는 요청(Range)을 받지 않고 늘 통째로 보냅니다.
+       그러면 브라우저는 주소로 건 곡의 중간으로 건너뛰지 못하고 처음부터 틉니다.
+       그래서 중간부터 틀어야 하는 곡(엔딩곡)은 통째로 받아(blob) 겁니다 — 받아 둔 것은 어디로든 건너뜁니다.
+       받지 못하면(file:// 로 열었을 때 등) 주소로 걸고, 그때는 처음부터 흐릅니다. */
+  function takeWhole(el) {
+    if (el._whole) return el._whole;
+    var src = el.dataset.whole;
+    el._whole = (window.fetch ? fetch(src) : Promise.reject(new Error("no fetch")))
+      .then(function (r) {
+        if (!r.ok) throw new Error("no file");
+        return r.arrayBuffer();
+      })
+      .then(function (buf) {
+        el.dataset.retried = "1";   // 형식을 이미 붙였으니 못 읽어도 다시 받지 않습니다
+        el.src = URL.createObjectURL(new Blob([buf], { type: sniff(new Uint8Array(buf.slice(0, 16))) }));
+      })
+      .catch(function () { el.src = src; });
+    return el._whole;
   }
 
   /* 소리는 어떤 경우에도 게임을 막지 않습니다.
@@ -250,7 +277,8 @@ window.DRBAudio = (function () {
     return document.documentElement.getAttribute("data-music") === "on";
   }
 
-  function scene(screen) {
+  /* startAt — 곡이 바뀌어 처음부터 틀 때, 처음 대신 이 초부터 틉니다 (엔딩곡의 앞을 자를 때) */
+  function scene(screen, startAt) {
     if (!musicAllowed()) return;
     var map = cfg.musicByScreen || {};
     var name = tracks[screen] ? screen : (map[screen] || "normal");
@@ -267,8 +295,20 @@ window.DRBAudio = (function () {
 
     if (playing) fade(playing, 0, 900);      // 앞 곡은 천천히 사라지고
     playing = next;
+    var at = changed && startAt > 0 ? startAt : 0;
+    if (next.dataset.whole) {
+      /* 통째로 받아 거는 곡 — 받는 동안 흐른 시간만큼 더 앞에서 틀어,
+         늦게 받아도 노래 대목이 제자리(맺음말 첫 글자)에 옵니다 */
+      var asked = Date.now();
+      takeWhole(next).then(function () {
+        if (playing !== next || muted) return;
+        if (changed) { try { next.currentTime = at > 0 ? at + (Date.now() - asked) / 1000 : 0; } catch (e) {} }
+        fade(next, baseVolume(), 1400);
+      });
+      return;
+    }
     /* 곡이 바뀌었을 때만 처음부터. 음소거를 풀 때는 멈춘 자리에서 이어집니다. */
-    if (changed) { try { next.currentTime = 0; } catch (e) {} }
+    if (changed) { try { next.currentTime = at; } catch (e) {} }
     fade(playing, baseVolume(), 1400);       // 새 곡은 천천히 올라옵니다
   }
 
