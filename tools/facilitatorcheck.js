@@ -723,26 +723,45 @@ function checkLiveApi() {
     "만남 화면은 서버를 부르지 않음 (인사자료를 서버에 더 두지 않음)");
   expect(/DRBReflect\.card\(/.test(meetSource),
     "만남 화면의 회고는 진행자 화면 · 간담회 자료와 같은 함수로 풀어냄");
-  expect(/reflectcard\.js/.test(meetHtml) && /actual_drb\.js/.test(meetHtml) && /js\/meet\.js/.test(meetHtml),
-    "만남 화면이 회고 카드 · DRB 실제 기록 · 자기 스크립트를 불러옴");
-  expect(/actual\s*&&\s*actual\.filled/.test(meetSource),
-    "만남 화면은 확인된 DRB 기록(filled)만 보여줌");
+  expect(/reflectcard\.js/.test(meetHtml) && /js\/audio\.js/.test(meetHtml) && /js\/meet\.js/.test(meetHtml),
+    "만남 화면이 회고 카드 · 음악 · 자기 스크립트를 불러옴");
   expect(/setFlipped\(card,\s*false\)/.test(meetSource),
     "만남 화면의 조 카드는 덮인 채로 나옴 (아직 이야기하지 않은 조의 것을 먼저 읽지 않게)");
-  /* 슬라이드로 진행합니다 — 표지 → 맞았을까 → 불확실성 → (조 카드 덮인 면 ▶ 뒤집힘 ▶ 그때 윤혁님은?) × 조 → 마무리.
+  /* 슬라이드로 진행합니다 — 표지 → 맞았을까, 틀렸을까 → (조 카드 덮인 면 ▶ 뒤집힘) × 조
+     → 윤혁님과의 대화 → 우리들이 묻고싶은 이야기 → 앞으로의 DRB → 마무리.
      이 순서는 「애프터 토크 사회자 대본.md」 §1 과 같아야 합니다. */
-  expect(/id="mtStage"/.test(meetHtml) && ["title", "why", "future", "end"].every(function (id) {
+  expect(/id="mtStage"/.test(meetHtml) && ["title", "why", "talk", "ask", "future", "end"].every(function (id) {
     return new RegExp('data-slide="' + id + '"').test(meetHtml);
-  }), "만남 화면에 표지 · 맞았을까 · 불확실성 · 마무리 장이 있음");
-  expect(/kind: "title"[\s\S]*?kind: "why"[\s\S]*?kind: "future"[\s\S]*?kind: "cover"[\s\S]*?kind: "open"[\s\S]*?kind: "cue"[\s\S]*?kind: "end"/.test(meetSource),
-    "슬라이드 순서가 대본과 같음 (표지 → 맞았을까 → 불확실성 → 조 카드 덮인 면 → 뒤집힘 → 그때 윤혁님은? → 마무리)");
-  /* 화면에는 질문을 띄우지 않습니다 — '그때 윤혁님은?' 한 줄뿐이고, 질문은 대본에만 있습니다 */
-  expect(/그때 윤혁님은\?/.test(meetSource) && !/윤혁님께 묻습니다/.test(meetHtml) && !/윤혁님께 묻습니다/.test(meetSource),
-    "'그때 윤혁님은?' 장은 한 줄뿐이고, 질문 장은 화면에 없음");
+  }), "만남 화면에 표지 · 맞았을까 · 윤혁님과의 대화 · 묻고싶은 이야기 · 앞으로의 DRB · 마무리 장이 있음");
+  expect(/kind: "title"[\s\S]*?kind: "why"[\s\S]*?kind: "cover"[\s\S]*?kind: "open"[\s\S]*?kind: "talk"[\s\S]*?kind: "ask"[\s\S]*?kind: "future"[\s\S]*?kind: "end"/.test(meetSource),
+    "슬라이드 순서가 대본과 같음 (표지 → 맞았을까 → 조 카드 덮인 면 → 뒤집힘 → 윤혁님과의 대화 → 묻고싶은 이야기 → 앞으로의 DRB → 마무리)");
+  /* 화면에는 질문을 띄우지 않습니다 — 질문은 대본에만 있습니다 */
+  expect(!/그때 윤혁님은\?/.test(meetSource) && !/윤혁님께 묻습니다/.test(meetHtml) && !/윤혁님께 묻습니다/.test(meetSource),
+    "만남 화면에 질문 장이 없음 (질문은 사회자가 대본에서 읽음)");
   const talkScript = read("애프터 토크 사회자 대본.md");
-  expect(/그때 윤혁님은\?/.test(talkScript) && /윤혁님께 묻습니다/.test(talkScript) &&
+  expect(/윤혁님과의 대화/.test(talkScript) && /우리들이 묻고싶은 이야기/.test(talkScript) &&
     [1, 2, 3, 4, 5, 6].every(function (n) { return new RegExp("### " + n + "국면").test(talkScript); }),
-    "질문은 사회자 대본에 있음 — 국면별 '그때 윤혁님은?' 6묶음과 '윤혁님께 묻습니다'");
+    "질문은 사회자 대본에 있음 — 국면별 질문 6묶음과 '우리들이 묻고싶은 이야기'");
+  /* 뒤집은 카드에는 회고만 — 국면 · 연도 범위, 그때 국내 · 해외 한 줄, 조가 쓴 문장.
+     게임 속 국면 제목 · 그 조의 선택 · DRB 기록은 띄우지 않습니다. */
+  const meetCss = read("css/meet.css");
+  const roundsSrc = read("data/rounds.js");
+  expect(!/tcard__drb|tcard__situation|이 조가 한 선택/.test(meetSource),
+    "뒤집은 카드에 DRB 기록 · 상황 · 조의 선택이 없음 (회고만)");
+  expect((roundsSrc.match(/recap: \{ domestic: "[^"]+", global: "[^"]+" \}/g) || []).length === 6 && /\.recap/.test(meetSource),
+    "여섯 국면 모두 카드에 뜨는 국내 · 해외 한 줄(recap)이 있고, 만남 화면이 그것을 씀");
+  /* 프레젠터로는 스크롤할 수 없습니다 — 카드 안에 스크롤을 두지 않고, 긴 회고는 글자를 줄여 맞춥니다 */
+  expect(!/overflow-y:\s*auto/.test(meetCss) && /function fitSay\(/.test(meetSource),
+    "만남 화면에 안쪽 스크롤이 없고, 긴 회고는 글자 크기로 맞춤");
+  /* 글자에는 주황(코랄)을 쓰지 않습니다 — 코랄은 도형에만 */
+  expect(!/(^|[;{\s])color:\s*var\(--coral\)/m.test(meetCss),
+    "만남 화면 글자에 주황을 쓰지 않음");
+  /* 화면 전체가 슬라이드 — 윗줄은 숨어 있다가 마우스를 맨 위에 댈 때만 내려옴 */
+  expect(/\.mt-top\s*\{[\s\S]*?transform:\s*translateY\(-110%\)/.test(meetCss) && /class="mt-hot/.test(meetHtml),
+    "만남 화면 윗줄은 평소에 숨어 있음");
+  /* 음악 — 게임을 시작할 때 나오는 평상시 곡. 음악은 data-music="on" 인 화면에서만 납니다 */
+  expect(/<html[^>]*data-music="on"/.test(meetHtml) && /scene\("normal"\)/.test(meetSource),
+    "만남 화면에서 게임 시작 곡(normal)이 나옴");
   /* 진행자는 마우스 없이 프레젠터만 쥡니다 — ▶ 는 PageDown/→, ◀ 는 PageUp/← */
   expect(/"PageDown"/.test(meetSource) && /"ArrowRight"/.test(meetSource) && /"PageUp"/.test(meetSource) && /"ArrowLeft"/.test(meetSource),
     "만남 화면은 프레젠터 ▶ ◀ (PageDown · PageUp · 화살표) 로 장을 넘김");
@@ -752,8 +771,8 @@ function checkLiveApi() {
     "세션 고르는 칸에 초점이 있을 때는 화살표가 슬라이드를 넘기지 않음");
   expect(/function written\(\)[\s\S]*?team\.reflection/.test(meetSource),
     "회고를 남기지 않은 조는 슬라이드에서 건너뜀");
-  expect(/r3s2/.test(meetSource) && /id="slSignals"/.test(meetHtml),
-    "불확실성 장의 다섯 줄은 6국면 신호(data/rounds.js)에서 가져옴 — 따로 적지 않음");
+  expect(/function fillEras\(/.test(meetSource) && /id="slEras"/.test(meetHtml),
+    "윤혁님과의 대화 장의 시대 줄은 조들이 실제로 회고를 쓴 국면으로 만듦");
   expect(!/대표님과의 만남/.test(meetHtml) && !/대표님과의 만남/.test(read("facilitator.html")),
     "만남 화면에 옛 이름('대표님과의 만남')이 남아 있지 않음");
   expect(/href="meet\.html"/.test(read("facilitator.html")),

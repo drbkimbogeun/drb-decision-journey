@@ -1,7 +1,8 @@
 /* ============================================================
-   meet.js — 「다시, 그 결정 앞에서」 윤혁님과의 만남, 슬라이드 진행
+   meet.js — 「다시, 그 결정 앞에서」 윤혁님과의 대화, 슬라이드 진행
 
-   표지 → 맞았을까 → 불확실성 → (조 카드 덮인 면 ▶ 뒤집힘 ▶ 그때 윤혁님은?) × 조 → 마무리.
+   표지 → 맞았을까, 틀렸을까 → (조 카드 덮인 면 ▶ 뒤집힘) × 조
+     → 윤혁님과의 대화 → 우리들이 묻고싶은 이야기 → 앞으로의 DRB → 마무리.
    프레젠터 ▶ 한 번 = 한 장. 진행자는 마우스 없이 리모컨만 쥐고 있습니다.
    ▶ 는 PageDown 또는 →, ◀ 는 PageUp 또는 ← 로 들어옵니다. Home · Esc 는 처음으로.
 
@@ -10,14 +11,15 @@
      읽기만 합니다 — 간담회 자료(review.js)와 같은 저장분입니다.
      그래서 오전에 교육을 진행한 그 PC · 그 브라우저에서 열어야 합니다.
 
-   ★ 회고 내용은 DRBReflect.card() 로 만듭니다.
+   ★ 회고 내용은 DRBReflect.card() 로 풉니다.
      진행자 화면 · 간담회 자료와 같은 함수라, 세 화면이 서로 다른 말을 하지 않습니다.
 
-   ★ '그때 DRB는' 은 actual_drb.js 의 확인된 기록(filled)만 보여줍니다.
-     기록은 국면이 아니라 시대 단위입니다 — 국면에 맞춰 지어내지 않습니다.
+   ★ 뒤집은 카드에는 회고만 둡니다 — 어느 국면(연도 범위)인지, 그때 국내 · 해외가 어땠는지
+     한 줄씩(rounds.js 의 recap), 그리고 조가 쓴 문장. 게임 속 국면 제목 · 그 조의 선택 ·
+     그때 DRB 기록은 띄우지 않습니다. 사회자가 말로 묻습니다 (「애프터 토크 사회자 대본.md」).
 
-   ★ 화면에는 질문을 띄우지 않습니다. '그때 윤혁님은?' 장은 그 한 줄뿐이고,
-     질문은 「애프터 토크 사회자 대본.md」에서 사회자가 읽습니다.
+   ★ 회고는 300자까지 들어옵니다. 길면 글자를 줄여 카드 한 장에 다 넣습니다.
+     프레젠터로는 스크롤할 수 없으므로, 카드 안에 스크롤이 생기면 안 됩니다.
 
    ★ 조 카드는 덮인 채로 나옵니다. 아직 이야기하지 않은 조의 것을 먼저 읽지 않게.
      회고를 남기지 않은 조는 건너뜁니다.
@@ -31,9 +33,15 @@
   var selected = "";
   /* 지금 그려진 조들 */
   var teamsNow = [];
-  /* 슬라이드 순서. 조 카드는 덮인 면(cover)과 뒤집은 면(open)이 한 장을 두 번 쓰고, 그 뒤에 cue 가 옵니다. */
+  /* 슬라이드 순서. 조 카드는 덮인 면(cover)과 뒤집은 면(open)이 한 장을 두 번 씁니다. */
   var steps = [];
   var cursor = 0;
+  /* 음악을 켰는지. 브라우저는 키를 한 번 누르기 전에는 소리를 못 냅니다 —
+     그래서 표지에서 첫 ▶ 는 음악만 켜고 화면은 표지에 둡니다. */
+  var musicStarted = false;
+
+  /* 회고 글자 크기 — 큰 것부터 대보고 카드에 들어가는 첫 크기를 씁니다 */
+  var SAY_SIZES = ["xl", "l", "m", "s", "xs"];
 
   function el(id) { return document.getElementById(id); }
   function esc(value) {
@@ -68,34 +76,24 @@
     el("btnMtDelete").classList.toggle("hidden", !now);
   }
 
-  /* 빈 줄로 나뉜 문단을 그대로 살립니다 (actual_drb.js 의 글은 문단으로 적혀 있습니다) */
-  function paragraphs(text) {
-    return String(text || "").split(/\n\s*\n/).map(function (block) {
-      return "<p>" + esc(block.trim()).replace(/\n/g, "<br>") + "</p>";
-    }).join("");
-  }
-
-  /* 조가 고른 국면이 속한 시대의 DRB 실제 기록 */
-  function actualOf(pickId) {
-    var subId = String(pickId || "").split(":")[1];
-    var spot = window.DRBReflect.timeline().filter(function (item) { return item.sub.id === subId; })[0];
-    if (!spot) return null;
-    var actual = (window.DRB_ACTUAL || {})[spot.round.actualId];
-    return actual && actual.filled ? actual : null;
-  }
-
   /* 회고를 남긴 조만, 조 순서대로 — 이것이 슬라이드에 나오는 조입니다 */
   function written() {
     return teamsNow.filter(function (team) { return team.reflection; });
   }
 
-  /* 긴 회고는 글자를 조금 줄입니다 — 빔에서 잘리는 것보다 낫습니다 (300자까지 들어옵니다) */
-  function commentSize(text) {
-    var n = String(text || "").length;
-    if (n <= 80) return "xl";
-    if (n <= 160) return "l";
-    if (n <= 240) return "m";
-    return "s";
+  /* 국면이 담당하는 기간 — '이 국면 연도 ~ 다음 국면 연도 직전' (rounds.js 머리말).
+     마지막 국면은 결과가 없으므로 끝을 적지 않습니다. */
+  function spanOf(turn) {
+    var line = window.DRBReflect.timeline();
+    var here = line[turn];
+    if (!here) return "";
+    var next = line[turn + 1];
+    return here.sub.year + " ~" + (next ? " " + (next.sub.year - 1) : "");
+  }
+
+  function subOf(turn) {
+    var spot = window.DRBReflect.timeline()[turn];
+    return spot ? spot.sub : null;
   }
 
   /* ---------- 조 카드 한 장 (덮인 면 + 뒤집은 면) ---------- */
@@ -105,70 +103,64 @@
     return out;
   }
 
-  function cardSlide(team, index, count) {
+  var IC_HOME = "<svg viewBox='0 0 32 32' fill='none' stroke='currentColor' stroke-width='2.6' stroke-linejoin='round'>" +
+    "<path d='M5 15 L16 6 L27 15 V27 H5 Z'/><path d='M13 27 V19 H19 V27'/></svg>";
+  var IC_GLOBE = "<svg viewBox='0 0 32 32' fill='none' stroke='currentColor' stroke-width='2.6'>" +
+    "<circle cx='16' cy='16' r='11'/><ellipse cx='16' cy='16' rx='5' ry='11'/><line x1='5' y1='16' x2='27' y2='16'/></svg>";
+
+  function cardSlide(team, index) {
     var name = esc(team.name);
     var reflection = team.reflection;
-    /* 조가 보낸 것은 국면 id 하나입니다. 상황과 그 조의 선택은 여기서 붙입니다. */
+    /* 조가 보낸 것은 국면 id 하나입니다. 어느 국면인지는 여기서 붙입니다. */
     var picked = window.DRBReflect.card(team, reflection.pick);
-    var actual = actualOf(reflection.pick);
 
-    var said;
+    var head = "", era = "";
     if (picked) {
-      var choice = picked.choice.top.length
-        ? picked.choice.top.map(function (t) { return t.name + " " + t.amount; }).join(" · ")
-        : "투자 없음";
-      said =
-        "<div class='tcard__phase tcard__phase--" + esc(picked.kind) + "'>" + phaseDots(picked.turn) +
-          "<span>" + esc(picked.where) + "</span></div>" +
-        "<h2 class='tcard__t'>" + esc(picked.title) + "</h2>" +
-        (picked.situation ? "<p class='tcard__situation'>" + esc(picked.situation) + "</p>" : "") +
-        "<span class='tcard__k'>이 조가 한 선택</span>" +
-        "<span class='tcard__v'>" + esc(choice) + (picked.choice.policy ? " · " + esc(picked.choice.policy) : "") + "</span>";
-    } else {
-      said = "<p class='tcard__none'>고른 국면을 찾지 못했습니다.</p>";
+      var tag = picked.kind === "event" ? " · 돌발" : (picked.kind === "inner" ? " · 우리 상태" : "");
+      head = "<span class='tcard__dots'>" + phaseDots(picked.turn) + "</span>" +
+        "<span class='tcard__where'>" + (picked.turn + 1) + "국면 · " + esc(spanOf(picked.turn)) + tag + "</span>";
+      var recap = (subOf(picked.turn) || {}).recap;
+      if (recap) {
+        era =
+          "<div class='tcard__era'>" +
+            "<div class='tcard__row'><span class='tcard__ic'>" + IC_HOME + "</span>" +
+              "<span class='tcard__k'>국내</span><span class='tcard__v'>" + esc(recap.domestic) + "</span></div>" +
+            "<div class='tcard__row'><span class='tcard__ic'>" + IC_GLOBE + "</span>" +
+              "<span class='tcard__k'>해외</span><span class='tcard__v'>" + esc(recap.global) + "</span></div>" +
+          "</div>";
+      }
     }
-    said +=
-      "<div class='tcard__say'>" +
-        "<span class='tcard__k'>앞으로 이런 상황이 온다면</span>" +
-        "<p class='tcard__comment tcard__comment--" + commentSize(reflection.comment) + "'>" + esc(reflection.comment) + "</p>" +
-      "</div>";
 
-    return "<section class='slide' data-slide='team-" + index + "'>" +
-      "<div class='sl-head'><span class='sl-brand'>다시, 그 결정 앞에서</span>" +
-        "<span class='sl-section'>조별 토크 · " + (index + 1) + " / " + count + "</span></div>" +
-      "<h1 class='sl-h1'>" + name + "가 다시 이야기하고 싶은 결정</h1>" +
+    return "<section class='slide slide--card' data-slide='team-" + index + "'>" +
       "<div class='tcard' data-team='" + name + "'>" +
         "<div class='tcard__inner'>" +
           "<div class='tcard__face tcard__front' aria-hidden='false'>" +
             "<span class='tcard__eyebrow'>회고 카드</span>" +
             "<span class='tcard__name'>" + name + "</span>" +
           "</div>" +
-          "<div class='tcard__face tcard__back" + (actual ? "" : " tcard__back--single") + "' aria-hidden='true'>" +
-            "<div class='tcard__said'>" + said + "</div>" +
-            (actual
-              ? "<aside class='tcard__drb'>" +
-                  "<span class='tcard__drb-k'>그때 DRB는 · " + esc(actual.year) + "</span>" +
-                  paragraphs(actual.choice) +
-                "</aside>"
-              : "") +
+          "<div class='tcard__face tcard__back' aria-hidden='true'>" +
+            "<div class='tcard__head" + (picked && picked.kind !== "decision" ? " tcard__head--event" : "") + "'>" +
+              head + "<b class='tcard__team'>" + name + "</b></div>" +
+            era +
+            "<div class='tcard__say'>" +
+              "<span class='tcard__quote' aria-hidden='true'>“</span>" +
+              "<p class='tcard__comment tcard__comment--xl'>" + esc(reflection.comment) + "</p>" +
+            "</div>" +
           "</div>" +
         "</div>" +
       "</div>" +
     "</section>";
   }
 
-  /* '그때 윤혁님은?' — 이 한 줄과 어느 조 · 어느 국면인지만. 질문은 대본에 있습니다. */
-  function cueSlide(team, index, count) {
-    var picked = window.DRBReflect.card(team, team.reflection.pick);
-    var line = esc(team.name) + (picked ? " · " + esc(picked.where) + " · " + esc(picked.title) : "");
-    return "<section class='slide' data-slide='cue-" + index + "'>" +
-      "<div class='sl-head'><span class='sl-brand'>다시, 그 결정 앞에서</span>" +
-        "<span class='sl-section'>조별 토크 · " + (index + 1) + " / " + count + "</span></div>" +
-      "<div class='sl-cue'>" +
-        "<h1 class='sl-h1 sl-h1--cue'>그때 윤혁님은?</h1>" +
-        "<p class='sl-cue__line'>" + line + "</p>" +
-      "</div>" +
-    "</section>";
+  /* 회고가 카드 안에 다 들어가는 가장 큰 글자 — 보이는 장에서만 잴 수 있습니다 */
+  function fitSay(slide) {
+    var say = slide && slide.querySelector(".tcard__say");
+    var text = say && say.querySelector(".tcard__comment");
+    if (!say || !text || !say.clientHeight) return;
+    for (var i = 0; i < SAY_SIZES.length; i++) {
+      text.className = "tcard__comment tcard__comment--" + SAY_SIZES[i];
+      if (say.scrollHeight <= say.clientHeight + 1) return;
+    }
   }
 
   /* 뒤집힌 쪽만 읽을 수 있게 — 안 보이는 면은 키보드로도 닿지 않습니다 */
@@ -181,45 +173,105 @@
     back.setAttribute("aria-hidden", flipped ? "false" : "true");
   }
 
+  /* ---------- 윤혁님과의 대화 — 조들이 회고를 쓴 시대 ----------
+     같은 국면을 고른 조는 한 점 아래 나란히. 오래된 국면부터. */
+  function fillEras(list) {
+    var box = el("slEras");
+    var byTurn = {};
+    list.forEach(function (team) {
+      var picked = window.DRBReflect.card(team, team.reflection.pick);
+      if (!picked) return;
+      (byTurn[picked.turn] = byTurn[picked.turn] || []).push(team.name);
+    });
+    var turns = Object.keys(byTurn).map(Number).sort(function (a, b) { return a - b; });
+    box.classList.toggle("hidden", !turns.length);
+    box.style.setProperty("--n", turns.length || 1);
+    box.innerHTML = turns.length
+      ? "<span class='eras__line' aria-hidden='true'></span>" +
+        turns.map(function (turn) {
+          return "<div class='eras__item'>" +
+            "<i class='eras__dot' aria-hidden='true'></i>" +
+            "<b class='eras__span'>" + esc(spanOf(turn)) + "</b>" +
+            "<span class='eras__teams'>" + byTurn[turn].map(function (n) { return "<em>" + esc(n) + "</em>"; }).join("") + "</span>" +
+          "</div>";
+        }).join("")
+      : "";
+  }
+
+  /* ---------- 음악 ----------
+     게임을 시작할 때 나오는 평상시 곡(config.js 의 music.normal) 그대로입니다.
+     표지 · 마무리는 게임과 같은 크기, 그 사이는 말소리를 덮지 않게 작게 깝니다. */
+  function audio() { return window.DRBAudio || null; }
+
+  function setVolumeFor(step) {
+    var a = audio();
+    if (!a || !musicStarted || !step) return;
+    a.duck(!(step.kind === "title" || step.kind === "end"));
+  }
+
+  function paintSound() {
+    var a = audio();
+    var on = !!a && musicStarted && !a.isMuted();
+    el("btnMtSound").textContent = on ? "음악 끄기" : "음악 켜기";
+  }
+
+  function startMusic() {
+    var a = audio();
+    if (!a) return;
+    musicStarted = true;
+    setVolumeFor(steps[cursor]);
+    a.scene("normal");
+    paintSound();
+  }
+
+  function toggleMusic() {
+    var a = audio();
+    if (!a) return;
+    if (!musicStarted) { if (a.isMuted()) a.toggle(); startMusic(); return; }
+    var off = a.toggle();
+    if (!off) { setVolumeFor(steps[cursor]); a.scene("normal"); }
+    paintSound();
+  }
+
   /* ---------- 슬라이드 순서와 이동 ---------- */
   function buildSteps() {
     var list = written();
-    steps = [{ kind: "title", slide: "title" }, { kind: "why", slide: "why" }, { kind: "future", slide: "future" }];
+    steps = [{ kind: "title", slide: "title" }, { kind: "why", slide: "why" }];
     list.forEach(function (team, i) {
-      steps.push({ kind: "cover", slide: "team-" + i, team: team, last: i === list.length - 1 });
-      steps.push({ kind: "open", slide: "team-" + i, team: team, last: i === list.length - 1 });
-      steps.push({ kind: "cue", slide: "team-" + i, cue: "cue-" + i, team: team, last: i === list.length - 1 });
+      steps.push({ kind: "cover", slide: "team-" + i, team: team });
+      steps.push({ kind: "open", slide: "team-" + i, team: team });
     });
-    steps.push({ kind: "end", slide: "end" });
-  }
-
-  function hintFor(step) {
-    if (step.kind === "title") return "▶ 시작";
-    if (step.kind === "cover") return "▶ 카드 뒤집기";
-    if (step.kind === "open") return "▶ 그때 윤혁님은?";
-    if (step.kind === "cue") return step.last ? "▶ 마무리" : "▶ 다음 조";
-    if (step.kind === "end") return "";
-    return "▶";
+    steps.push({ kind: "talk", slide: "talk" }, { kind: "ask", slide: "ask" },
+      { kind: "future", slide: "future" }, { kind: "end", slide: "end" });
   }
 
   function show(index) {
     if (!steps.length) return;
     cursor = Math.max(0, Math.min(index, steps.length - 1));
     var step = steps[cursor];
-    var target = step.kind === "cue" ? step.cue : step.slide;
+    var on = null;
     Array.prototype.forEach.call(el("mtStage").querySelectorAll(".slide"), function (slide) {
-      slide.classList.toggle("is-on", slide.dataset.slide === target);
+      var hit = slide.dataset.slide === step.slide;
+      slide.classList.toggle("is-on", hit);
+      if (hit) on = slide;
     });
-    /* 조 카드 — 덮인 면 / 뒤집은 면. cue 로 넘어가도 카드는 뒤집힌 채 둡니다 (◀ 로 돌아오면 그대로). */
-    if (step.team) {
-      var card = el("mtStage").querySelector("[data-slide='" + step.slide + "'] .tcard");
+    /* 조 카드 — 덮인 면 / 뒤집은 면 */
+    if (step.team && on) {
+      var card = on.querySelector(".tcard");
       if (card) setFlipped(card, step.kind !== "cover");
+      fitSay(on);
     }
-    el("mtHint").textContent = hintFor(step);
-    el("mtHint").classList.toggle("hidden", !hintFor(step));
+    setVolumeFor(step);
   }
 
-  function next() { if (cursor < steps.length - 1) show(cursor + 1); }
+  function next() {
+    var a = audio();
+    if (steps[cursor] && steps[cursor].kind === "title" && !musicStarted && a && !a.isMuted()) {
+      startMusic();
+      return;
+    }
+    if (cursor < steps.length - 1) show(cursor + 1);
+  }
   function prev() { if (cursor > 0) show(cursor - 1); }
   function first() {
     /* 처음으로 돌아가면 카드도 다시 덮습니다 */
@@ -228,33 +280,15 @@
   }
 
   /* ---------- 그리기 ---------- */
-  function fillSignals() {
-    /* 6국면(2026) 빔에 뜨는 신호 그대로 — 국내 AI · 전기차 · 인구 · 탄소, 세계 관세 */
-    var sub = null;
-    (window.DRB_ROUNDS || []).forEach(function (round) {
-      (round.subrounds || []).forEach(function (s) { if (s.id === "r3s2") sub = s; });
-    });
-    var brief = (sub && sub.briefing) || {};
-    var d = brief.domestic || [], g = brief.global || [];
-    var rows = [d[0], d[1], g[0], d[2], d[3]].filter(Boolean);
-    /* "제목 — 풀이" 꼴이라, 제목은 크게 풀이는 작게 */
-    el("slSignals").innerHTML = rows.map(function (row) {
-      var parts = String(row.text).split(" — ");
-      return "<li><b>" + esc(parts[0]) + "</b>" + (parts[1] ? "<span>" + esc(parts.slice(1).join(" — ")) + "</span>" : "") + "</li>";
-    }).join("");
-  }
-
   function render(data) {
     var stage = el("mtStage");
-    /* 지난번에 끼워 넣은 조 카드 · cue 장을 치웁니다 */
-    Array.prototype.forEach.call(stage.querySelectorAll("[data-slide^='team-'], [data-slide^='cue-']"), function (n) { n.remove(); });
+    /* 지난번에 끼워 넣은 조 카드를 치웁니다 */
+    Array.prototype.forEach.call(stage.querySelectorAll("[data-slide^='team-']"), function (n) { n.remove(); });
 
     var teams = data && data.teams ? data.teams : [];
     teamsNow = teams;
     var list = written();
 
-    el("slDate").textContent = data ? "교육일 " + stamp(data.savedAt) : "";
-    el("slTeams").textContent = teams.length ? "1조부터 " + teams.length + "조까지" : "";
     el("mtMeta").textContent = data ? list.length + " / " + teams.length + "조 작성 · " + sessionLabel(data) : "";
 
     var state = el("slState");
@@ -269,9 +303,9 @@
       state.innerHTML = "";
     }
 
-    var html = list.map(function (team, i) { return cardSlide(team, i, list.length) + cueSlide(team, i, list.length); }).join("");
-    el("slEnd").insertAdjacentHTML("beforebegin", html);
+    el("slTalk").insertAdjacentHTML("beforebegin", list.map(cardSlide).join(""));
     Array.prototype.forEach.call(stage.querySelectorAll(".tcard"), function (card) { setFlipped(card, false); });
+    fillEras(list);
 
     buildSteps();
     show(0);
@@ -291,11 +325,12 @@
       event.preventDefault(); prev();
     } else if (key === "Home" || key === "Escape") {
       event.preventDefault(); first();
+    } else if (key === "m" || key === "M") {
+      event.preventDefault(); toggleMusic();
     }
   }
 
   function boot() {
-    fillSignals();
     document.addEventListener("keydown", onKey);
     /* 마우스가 있으면 화면을 눌러도 다음 장으로 — 윗줄 버튼은 제외 */
     el("mtStage").addEventListener("click", function (event) {
@@ -303,6 +338,12 @@
       next();
     });
     el("btnMtReset").onclick = first;
+    el("btnMtSound").onclick = toggleMusic;
+
+    /* 빔 해상도가 바뀌거나 글꼴이 늦게 들어오면 회고 글자 크기를 다시 맞춥니다 */
+    var refit = function () { fitSay(el("mtStage").querySelector(".slide--card.is-on")); };
+    window.addEventListener("resize", refit);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(refit);
 
     /* 다른 세션을 고르면 처음부터 다시 시작합니다 */
     el("mtSession").onchange = function () {
@@ -321,6 +362,7 @@
       refresh();
     };
 
+    paintSound();
     refresh();
   }
 
