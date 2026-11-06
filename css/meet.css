@@ -114,7 +114,6 @@ body.mt-body {
 }
 .sl-title--end { font-size: calc(var(--u) * 170); line-height: 1.15; }
 /* ★ 글자에는 주황(코랄)을 쓰지 않습니다. 코랄은 도형에만. */
-.sl-title .is-accent { color: var(--accent-line); }
 /* 저장된 회고가 없을 때만 — 진행자가 시작 전에 알아챌 수 있게 표지 아래에 한 줄 */
 .sl-state {
   position: absolute;
