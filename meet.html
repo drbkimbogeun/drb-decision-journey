@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>다시, 그 결정 앞에서 · 80년의 여정</title>
+  <title>지나온 80년, 다가올 다음 · 80년의 여정</title>
   <link rel="stylesheet" href="css/fonts.css">
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/base.css">
@@ -13,7 +13,7 @@
 </head>
 <body class="mt-body">
   <!-- ============================================================
-       「다시, 그 결정 앞에서」 — 윤혁님과의 대화, 슬라이드로 진행합니다
+       「지나온 80년, 다가올 다음」 — 윤혁님과의 대화, 슬라이드로 진행합니다
 
        ★ 오전에 교육을 진행한 그 PC · 그 브라우저에서 엽니다.
          진행자 화면이 [회고] 챕터를 열 때 이 PC 에 복사해 둔 것만 읽습니다
@@ -26,14 +26,14 @@
        ★ 음악은 게임을 시작할 때 나오는 평상시 곡입니다. 표지에서 첫 ▶ 가 음악을 켭니다.
          M 키로 끄고 켭니다.
        ★ 이 파일의 고정 문장(표지 · 맞았을까 · 윤혁님과의 대화 · 묻고싶은 이야기 · 앞으로의 DRB · 마무리)은
-         여기서 바로 고칩니다. 조 카드와 '윤혁님과의 대화' 아래 줄은 meet.js 가 저장된 회고로 만듭니다.
+         여기서 바로 고칩니다. 조 카드는 meet.js 가 저장된 회고로 만듭니다.
        ============================================================ -->
 
   <!-- 세션 고르기 · 처음으로 · 간담회 자료 — 평소에는 숨어 있고,
        마우스를 화면 맨 위에 댈 때만 내려옵니다. 발표 중에는 보이지 않습니다. -->
   <div class="mt-hot no-print" aria-hidden="true"></div>
   <header class="mt-top no-print" id="mtTop">
-    <span class="mt-top__brand">다시, 그 결정 앞에서</span>
+    <span class="mt-top__brand">지나온 80년, 다가올 다음</span>
     <span class="mt-top__meta" id="mtMeta"></span>
     <span class="spacer"></span>
     <!-- 회고는 세션마다 따로 남습니다 (최근 3개). 세션이 둘 이상일 때만 고르는 칸이 보입니다. -->
@@ -48,7 +48,7 @@
 
     <!-- 1 표지 -->
     <section class="slide slide--dark" data-slide="title">
-      <h1 class="sl-title"><span class="is-accent">다시,</span><br>그 결정 앞에서</h1>
+      <h1 class="sl-title"><span class="is-accent">지나온 80년,</span><br>다가올 다음</h1>
       <!-- 저장된 회고가 없을 때만 한 줄 뜹니다 (meet.js) -->
       <p class="sl-state hidden" id="slState"></p>
     </section>
@@ -111,30 +111,14 @@
 
     <!-- 조 카드 — meet.js 가 저장된 회고로 여기('윤혁님과의 대화' 앞)에 끼워 넣습니다 -->
 
-    <!-- 윤혁님과의 대화 — 아래 줄은 조들이 회고를 쓴 시대만, 오래된 순으로 (meet.js) -->
+    <!-- 윤혁님과의 대화 -->
     <section class="slide slide--center" data-slide="talk" id="slTalk">
       <h1 class="sl-h1 sl-h1--big">윤혁님과의 대화</h1>
-      <div class="eras hidden" id="slEras"></div>
     </section>
 
     <!-- 우리들이 묻고싶은 이야기 — 질문은 화면에 없습니다 (사회자 대본) -->
-    <section class="slide" data-slide="ask">
-      <h1 class="sl-h1">우리들이 묻고싶은 이야기</h1>
-      <svg class="ask" viewBox="0 0 1640 780" aria-hidden="true">
-        <g text-anchor="middle" font-weight="900">
-          <polygon points="560,560 500,700 680,580" fill="var(--accent)"/>
-          <ellipse cx="700" cy="390" rx="320" ry="220" fill="var(--accent)"/>
-          <text x="700" y="470" font-size="240" fill="var(--text-on-accent)">?</text>
-
-          <ellipse cx="1130" cy="450" rx="220" ry="150" fill="var(--accent-tint)" stroke="var(--accent-line)" stroke-width="5"/>
-          <path d="M1110,588 L1250,680 L1185,582" fill="var(--accent-tint)" stroke="var(--accent-line)" stroke-width="5" stroke-linejoin="round"/>
-          <text x="1130" y="508" font-size="160" fill="var(--accent)">?</text>
-
-          <polygon points="1060,215 1020,290 1110,228" fill="var(--coral)"/>
-          <ellipse cx="1130" cy="150" rx="120" ry="88" fill="var(--coral)"/>
-          <text x="1130" y="186" font-size="104" fill="var(--text-on-accent)">?</text>
-        </g>
-      </svg>
+    <section class="slide slide--center" data-slide="ask">
+      <h1 class="sl-h1 sl-h1--big">우리들이<br>묻고싶은 이야기</h1>
     </section>
 
     <!-- 앞으로의 DRB -->
@@ -144,7 +128,7 @@
 
     <!-- 마무리 -->
     <section class="slide slide--dark slide--center" data-slide="end">
-      <h1 class="sl-title sl-title--end">함께해주셔서<br><span class="is-accent">감사합니다.</span></h1>
+      <h1 class="sl-title sl-title--end">함께해주셔서<br>감사합니다.</h1>
     </section>
   </main>
 

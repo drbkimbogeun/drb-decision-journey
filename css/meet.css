@@ -1,5 +1,5 @@
 /* ============================================================================
-   meet.css — 「다시, 그 결정 앞에서」 윤혁님과의 대화, 슬라이드
+   meet.css — 「지나온 80년, 다가올 다음」 윤혁님과의 대화, 슬라이드
 
    빔에 띄워 놓고 프레젠터로 넘기는 화면입니다. 한 장이 화면 전체를 채우고,
    그 위에는 아무 띠도 없습니다 (세션 고르기 띠는 마우스를 맨 위에 댈 때만 내려옵니다).
@@ -91,7 +91,6 @@ body.mt-body {
 .slide--center {
   align-items: center;
   justify-content: center;
-  gap: calc(var(--u) * 120);
   text-align: center;
 }
 
@@ -114,7 +113,7 @@ body.mt-body {
   letter-spacing: -0.05em;
 }
 .sl-title--end { font-size: calc(var(--u) * 170); line-height: 1.15; }
-/* ★ 글자에는 주황(코랄)을 쓰지 않습니다. 코랄은 점 · 말풍선 같은 도형에만. */
+/* ★ 글자에는 주황(코랄)을 쓰지 않습니다. 코랄은 도형에만. */
 .sl-title .is-accent { color: var(--accent-line); }
 /* 저장된 회고가 없을 때만 — 진행자가 시작 전에 알아챌 수 있게 표지 아래에 한 줄 */
 .sl-state {
@@ -298,40 +297,6 @@ body.mt-body {
 .tcard__comment--m  { font-size: calc(var(--u) * 48); }
 .tcard__comment--s  { font-size: calc(var(--u) * 42); }
 .tcard__comment--xs { font-size: calc(var(--u) * 36); }
-
-/* ---------- 윤혁님과의 대화 — 조들이 회고를 쓴 시대 ---------- */
-.eras {
-  position: relative;
-  width: min(100%, calc(var(--u) * 470 * var(--n, 1)));
-  display: grid;
-  grid-template-columns: repeat(var(--n, 1), minmax(0, 1fr));
-}
-.eras__line {
-  position: absolute;
-  left: calc(50% / var(--n, 1));
-  right: calc(50% / var(--n, 1));
-  top: calc(var(--u) * 19);
-  height: calc(var(--u) * 6);
-  border-radius: 999px;
-  background: var(--line-strong);
-}
-.eras__item { position: relative; display: flex; flex-direction: column; align-items: center; gap: calc(var(--u) * 18); }
-.eras__dot { width: calc(var(--u) * 44); height: calc(var(--u) * 44); border-radius: 999px; background: var(--accent); }
-.eras__span { color: var(--text-1); font-size: calc(var(--u) * min(44, 1640 / var(--n, 1) / 6.8)); font-weight: var(--fw-strong); letter-spacing: -0.02em; }
-.eras__teams { display: flex; flex-wrap: wrap; justify-content: center; gap: calc(var(--u) * 12); }
-.eras__teams em {
-  padding: calc(var(--u) * 8) calc(var(--u) * 30);
-  border-radius: 999px;
-  background: var(--coral);
-  color: var(--text-on-accent);
-  font-size: calc(var(--u) * 38);
-  font-style: normal;
-  font-weight: var(--fw-strong);
-}
-
-/* ---------- 우리들이 묻고싶은 이야기 — 말풍선 ---------- */
-.ask { flex: 1 1 auto; min-height: 0; width: 100%; }
-.ask text { font-family: var(--font-ui); }
 
 @media (prefers-reduced-motion: reduce) {
   .tcard__inner { transition: none; }

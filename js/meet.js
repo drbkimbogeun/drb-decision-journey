@@ -1,5 +1,5 @@
 /* ============================================================
-   meet.js — 「다시, 그 결정 앞에서」 윤혁님과의 대화, 슬라이드 진행
+   meet.js — 「지나온 80년, 다가올 다음」 윤혁님과의 대화, 슬라이드 진행
 
    표지 → 맞았을까, 틀렸을까 → (조 카드 덮인 면 ▶ 뒤집힘) × 조
      → 윤혁님과의 대화 → 우리들이 묻고싶은 이야기 → 앞으로의 DRB → 마무리.
@@ -173,31 +173,6 @@
     back.setAttribute("aria-hidden", flipped ? "false" : "true");
   }
 
-  /* ---------- 윤혁님과의 대화 — 조들이 회고를 쓴 시대 ----------
-     같은 국면을 고른 조는 한 점 아래 나란히. 오래된 국면부터. */
-  function fillEras(list) {
-    var box = el("slEras");
-    var byTurn = {};
-    list.forEach(function (team) {
-      var picked = window.DRBReflect.card(team, team.reflection.pick);
-      if (!picked) return;
-      (byTurn[picked.turn] = byTurn[picked.turn] || []).push(team.name);
-    });
-    var turns = Object.keys(byTurn).map(Number).sort(function (a, b) { return a - b; });
-    box.classList.toggle("hidden", !turns.length);
-    box.style.setProperty("--n", turns.length || 1);
-    box.innerHTML = turns.length
-      ? "<span class='eras__line' aria-hidden='true'></span>" +
-        turns.map(function (turn) {
-          return "<div class='eras__item'>" +
-            "<i class='eras__dot' aria-hidden='true'></i>" +
-            "<b class='eras__span'>" + esc(spanOf(turn)) + "</b>" +
-            "<span class='eras__teams'>" + byTurn[turn].map(function (n) { return "<em>" + esc(n) + "</em>"; }).join("") + "</span>" +
-          "</div>";
-        }).join("")
-      : "";
-  }
-
   /* ---------- 음악 ----------
      게임을 시작할 때 나오는 평상시 곡(config.js 의 music.normal) 그대로입니다.
      표지 · 마무리는 게임과 같은 크기, 그 사이는 말소리를 덮지 않게 작게 깝니다. */
@@ -305,7 +280,6 @@
 
     el("slTalk").insertAdjacentHTML("beforebegin", list.map(cardSlide).join(""));
     Array.prototype.forEach.call(stage.querySelectorAll(".tcard"), function (card) { setFlipped(card, false); });
-    fillEras(list);
 
     buildSteps();
     show(0);

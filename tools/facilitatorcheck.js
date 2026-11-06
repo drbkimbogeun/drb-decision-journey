@@ -771,8 +771,9 @@ function checkLiveApi() {
     "세션 고르는 칸에 초점이 있을 때는 화살표가 슬라이드를 넘기지 않음");
   expect(/function written\(\)[\s\S]*?team\.reflection/.test(meetSource),
     "회고를 남기지 않은 조는 슬라이드에서 건너뜀");
-  expect(/function fillEras\(/.test(meetSource) && /id="slEras"/.test(meetHtml),
-    "윤혁님과의 대화 장의 시대 줄은 조들이 실제로 회고를 쓴 국면으로 만듦");
+  expect(/data-slide="talk"[^>]*>\s*<h1[^>]*>윤혁님과의 대화<\/h1>\s*<\/section>/.test(meetHtml) &&
+    /data-slide="ask"[^>]*>\s*<h1[^>]*>우리들이<br>묻고싶은 이야기<\/h1>\s*<\/section>/.test(meetHtml),
+    "윤혁님과의 대화 · 묻고싶은 이야기 장은 글자만 가운데에 둠");
   expect(!/대표님과의 만남/.test(meetHtml) && !/대표님과의 만남/.test(read("facilitator.html")),
     "만남 화면에 옛 이름('대표님과의 만남')이 남아 있지 않음");
   expect(/href="meet\.html"/.test(read("facilitator.html")),
